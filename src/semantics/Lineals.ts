@@ -1,5 +1,5 @@
 
-import unionize, { ofType, UnionOf } from "unionize";
+import { unionize, ofType, UnionOf } from "unionize";
 
 export type Lineal = UnionOf<typeof Lineals>
 export const Lineals = unionize({

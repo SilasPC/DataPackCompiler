@@ -22,7 +22,7 @@ export function expressionSyntaxParser(tokens:TokenIterator) {
 
     let ops: Op[] = []
     let que: ASTNode[] = []
-    let outTmp: string[] = []
+    let postfix: string[] = []
 
     let fncalls: boolean[] = [] // store astnodes instead?
 
@@ -69,7 +69,7 @@ export function expressionSyntaxParser(tokens:TokenIterator) {
                                     list: [argnode]
                                 }
                                 argnode = argAsList
-                                outTmp.push(',1')
+                                postfix.push(',1')
                             }
                             let invnode: ASTCallNode = {
                                 type: ASTNodeType.INVOKATION,
@@ -77,7 +77,7 @@ export function expressionSyntaxParser(tokens:TokenIterator) {
                                 parameters: argnode as ASTListNode
                             }
                             que.push(invnode)
-                            outTmp.push('$')
+                            postfix.push('$')
                         }
                         lastWasOperand = true
                         break
@@ -105,14 +105,14 @@ export function expressionSyntaxParser(tokens:TokenIterator) {
                 if (lastWasOperand) t.throwDebug('Unexpected operand')
                 let symnode: ASTIdentifierNode = {type:ASTNodeType.IDENTIFIER,identifier:t}
                 que.push(symnode)
-                outTmp.push(t.value)
+                postfix.push(t.value)
                 lastWasOperand = true
                 break
             case TokenType.PRIMITIVE:
                 if (lastWasOperand) t.throwDebug('Unexpected operand')
                 let prinode: ASTPrimitiveNode = {type:ASTNodeType.PRIMITIVE,value:t}
                 que.push(prinode)
-                outTmp.push(t.value)
+                postfix.push(t.value)
                 lastWasOperand = true
                 break
             default:
@@ -126,14 +126,13 @@ export function expressionSyntaxParser(tokens:TokenIterator) {
 
     if (que.length > 1) throw 'hmm'
 
-    console.log(outTmp.join(' '))
-    return que[0]
+    return {ast:que[0],meta:{postfix}}
 
     function opTop() {return ops[ops.length-1]}
 
     function pushOperator(op:Op,doPush=true) {
-        console.log('push out',outTmp.join(' '))
-        console.log('push ops',ops.map(o=>o.token.value).join(' '))
+        // console.log('push out',postfix.join(' '))
+        // console.log('push ops',ops.map(o=>o.token.value).join(' '))
         while (ops.length) {
             let l = ops[ops.length-1]
             if (!l.popable) break
@@ -151,12 +150,12 @@ export function expressionSyntaxParser(tokens:TokenIterator) {
                 // fix: prefix unaries must be sorted rather than popped
             }
             ops.pop()
-            console.log('push apply',l.token.value)
+            // console.log('push apply',l.token.value)
             applyOperator(l)
         }
         if (doPush) ops.push(op)
-        console.log('push ops2',ops.map(o=>o.token.value).join(' '))
-        console.log('push out2',outTmp.join(' '))
+        // console.log('push ops2',ops.map(o=>o.token.value).join(' '))
+        // console.log('push out2',postfix.join(' '))
     }
 
     function applyOperator(op:Op) {
@@ -168,8 +167,9 @@ export function expressionSyntaxParser(tokens:TokenIterator) {
                     operator: op.token,
                     operands: que.splice(-op.operands,op.operands)
                 }
+                const map = {[OpType.POSTFIX]:':post',[OpType.PREFIX]:':pre',[OpType.INFIX]:''}
                 que.push(node)
-                outTmp.push(op.token.value)
+                postfix.push(op.token.value+map[op.type])
                 break
             case TokenType.MARKER:
                 switch (op.token.value) {
@@ -179,7 +179,7 @@ export function expressionSyntaxParser(tokens:TokenIterator) {
                             list: que.splice(-op.operands,op.operands)
                         }
                         que.push(list)
-                        outTmp.push(','+op.operands)
+                        postfix.push(','+op.operands)
                         break
                     default:
                         throw new Error('could not use marker value')
@@ -194,7 +194,7 @@ export function expressionSyntaxParser(tokens:TokenIterator) {
 
 function opInfo(token:Token,prefix:boolean): Op {
     let [precedency,leftToRight,type] = p(token,prefix)
-    console.log('opinfo',token.value,precedency,leftToRight,OpType[type])
+    // console.log('opinfo',token.value,precedency,leftToRight,OpType[type])
     return {
         token,
         precedency,

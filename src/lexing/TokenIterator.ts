@@ -14,7 +14,7 @@ export class TokenIterator {
     peek() {return this.tokens[this.index]}
     next() {return this.tokens[this.index++]}
     skip(n:number) {this.index+=n;return this}
-    isDone() {return this.index > this.tokens.length}
+    isDone() {return this.index >= this.tokens.length}
 
     [Symbol.iterator]() {
         let self = this
@@ -22,7 +22,7 @@ export class TokenIterator {
             next() {
                 let value = self.tokens[self.index++]
                 return {
-                    done: self.isDone(),
+                    done: self.index > self.tokens.length,
                     value
                 }
             }
