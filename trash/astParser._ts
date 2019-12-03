@@ -1,0 +1,118 @@
+
+import { ParsingFile } from "../syntax/ParsingFile";
+import { ASTNodeType, ASTFnNode, ASTLetNode, ASTExportNode, ASTNode, ASTIfNode, ASTOpNode, ASTIdentifierNode } from "../syntax/AST";
+import { Declaration, Declarations } from "./Declaration";
+import { hoist } from "./hoister";
+import { SymbolTable } from "./SymbolTable";
+
+export function astParser(pfile:ParsingFile) {
+
+	if (pfile.status == 'parsed') return
+	if (pfile.status == 'parsing') throw new Error('circular parsing')
+
+	pfile.status = 'parsing'
+
+	let symbols = pfile.getSymbolTable()
+	let ast = pfile.getAST()
+
+	hoist(pfile)
+
+	for (let node of ast) {
+		let shouldExport = false
+
+		if (node.type == ASTNodeType.EXPORT) {
+			let expnode = node as ASTExportNode
+			node = expnode.node
+		}
+
+		switch (node.type) {
+
+			case ASTNodeType.DEFINE:
+				let defnode = node as ASTLetNode
+				break
+	
+			case ASTNodeType.FUNCTION:
+					let fnnode = node as ASTFnNode
+					populateBody(fnnode.body,symbols.branch())
+					break
+	
+			default:
+				throw new Error('not implemented')
+				// const exhaust: never = node.type
+	
+		}
+
+	}
+
+	pfile.status = 'parsed'
+
+}
+
+function populateBody(ast:ASTNode[],symbols:SymbolTable) {
+
+	for (let node of ast) {
+
+		switch (node.type) {
+
+			case ASTNodeType.CONDITIONAL:
+				let cndnode = node as ASTIfNode
+				populateBody(cndnode.primaryBranch,symbols.branch())
+				populateBody(cndnode.secondaryBranch,symbols.branch())
+				break
+
+			case ASTNodeType.DEFINE:
+				let defnode = node as ASTLetNode
+				let defdecl: VarDeclaration = {
+					type: DeclarationType.VARIABLE,
+					node: defnode,
+					identifier: generateIdentifier()
+				}
+				populateRecursive(defnode.initial,symbols)
+				symbols.declare(defnode.identifier,defdecl)
+				break
+
+			case ASTNodeType.OPERATION:
+				populateRecursive(node,symbols)
+				break
+
+			case ASTNodeType.COMMAND:
+				break
+
+			default:
+				console.error(node)
+				throw new Error('exhaust')
+				// const exhaust: never = node.type
+
+		}
+
+	}
+	
+}
+
+function populateRecursive(node:ASTNode,symbols:SymbolTable) {
+
+	switch (node.type) {
+
+		case ASTNodeType.IDENTIFIER:
+			let idnode = node as ASTIdentifierNode
+			let decl = symbols.getDeclaration(idnode.identifier.value)
+			if (!decl) return idnode.identifier.throwNotDefined()
+			if (decl.type != DeclarationType.VARIABLE) idnode.identifier.throwDebug('tmp')
+			break
+
+		case ASTNodeType.OPERATION:
+			let opnode = node as ASTOpNode
+			for (let operand of opnode.operands) populateRecursive(operand,symbols)
+			break
+
+		case ASTNodeType.PRIMITIVE:
+			break
+
+		default:
+			console.error(node)
+			throw new Error('exhaust')
+			// const exhaust: never = node.type
+
+	}
+
+}

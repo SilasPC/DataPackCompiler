@@ -1,0 +1,19 @@
+{
+
+	"name": "Test pack 2019",
+	"description": "Hello world!",
+	"debugMode": false,
+
+	"compilerOptions": {
+		"obscureNames": true,
+		"obscureSeed": "a seed",
+		"sourceMap": false,
+		"emitComments": false,
+		"optimize": false,
+		"noUnused": false,
+		"verbose": false,
+		"noInference": true,
+		"noImplicitCast": true
+	}
+
+}

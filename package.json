@@ -1,0 +1,17 @@
+{
+  "name": "source-map-support",
+  "version": "0.5.16",
+  "description": "source map",
+  "main": "test.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "unionize": "^3.0.2"
+  },
+  "devDependencies": {
+    "@types/node": "^12.12.14"
+  }
+}
