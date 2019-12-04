@@ -1,7 +1,8 @@
 
 import { ParsingFile } from "../lexing/ParsingFile";
 import { ASTNodeType, ASTFnNode, ASTLetNode } from "../syntax/AST";
-import { Declaration, Declarations } from "./Declaration";
+import { Declaration, FnDeclaration, DeclarationType, VarDeclaration } from "./Declaration";
+import { tokenToType } from "./Types";
 
 export function hoist(pfile:ParsingFile) {
 
@@ -11,34 +12,47 @@ export function hoist(pfile:ParsingFile) {
 	for (let node of ast) {
 		let shouldExport = false
 
+		if (node.type == ASTNodeType.EXPORT) {
+			shouldExport = true
+			node = node.node
+		}
+
 		switch (node.type) {
 
 			case ASTNodeType.EXPORT:
-				shouldExport = true
+				throw new Error('invalid ast structure')
 
 			case ASTNodeType.FUNCTION:
-				let fnnode = node as ASTFnNode
 				let fndecl: FnDeclaration = {
 					type: DeclarationType.FUNCTION,
-					node: node as ASTFnNode,
-					identifier: generateIdentifier()
+					node: node,
+					returnType: tokenToType(node.returnType,symbols)
 				}
-				symbols.declare(fnnode.identifier,fndecl)
+				symbols.declare(node.identifier,fndecl)
+				pfile.addExport(node.identifier.value,fndecl)
 				break
 
 			case ASTNodeType.DEFINE:
-				let defnode = node as ASTLetNode
 				let vardecl: VarDeclaration = {
 					type: DeclarationType.VARIABLE,
-					node: defnode,
-					identifier: generateIdentifier()
+					node: node,
+					varType: tokenToType(node.varType,symbols)
 				}
-				symbols.declare(defnode.identifier,vardecl)
+				symbols.declare(node.identifier,vardecl)
+				pfile.addExport(node.identifier.value,vardecl)
 				break
+			
+			case ASTNodeType.COMMAND:
+			case ASTNodeType.CONDITIONAL:
+			case ASTNodeType.IDENTIFIER:
+			case ASTNodeType.INVOKATION:
+			case ASTNodeType.LIST:
+			case ASTNodeType.OPERATION:
+			case ASTNodeType.PRIMITIVE:
+				throw new Error('invalid ast structure in hoisting')
 
 			default:
 				const exhaust: never = node
-
 		}
 
 	}

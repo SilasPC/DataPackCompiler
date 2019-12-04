@@ -36,7 +36,7 @@ parser
     .usingType(TokenType.SYMBOL)
     .fallback((iter,body)=>{
         iter.skip(-1)
-        body.push(expressionSyntaxParser(iter))
+        body.push(expressionSyntaxParser(iter).ast)
     })
 parser
     .usingType(TokenType.MARKER)
@@ -45,5 +45,5 @@ parser
 
 parser
     .fallback((iter,body)=>{
-        body.push(expressionSyntaxParser(iter.skip(-1)))
+        body.push(expressionSyntaxParser(iter.skip(-1)).ast)
     })

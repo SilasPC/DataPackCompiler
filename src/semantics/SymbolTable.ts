@@ -1,14 +1,6 @@
 
 import { Token } from "../lexing/Token"
 import { Declaration } from "./Declaration"
-import { ScoreboardManager } from "../toolbox/ScoreboardManager"
-import { ASTLetNode } from "../syntax/AST"
-import { ValueType, ElementaryValueType, ValueTypes } from "./Types"
-
-const elementaryTypes: {[k:string]:ValueType} = {
-    int: ValueTypes.ELEMENTARY(ElementaryValueType.INT),
-    void: ValueTypes.ELEMENTARY(ElementaryValueType.VOID)
-}
 
 export class SymbolTable {
 
@@ -17,7 +9,7 @@ export class SymbolTable {
     public static getAllDeclarations() {return this.allDeclarations}
 
     private readonly children: SymbolTable[] = []
-    private readonly declarations: Map<string,Declaration> = new Map()
+    private readonly declarations: Map<string,{decl:Declaration,refCounter:number}> = new Map()
 
     constructor(
         public readonly parent: SymbolTable|null
@@ -29,17 +21,25 @@ export class SymbolTable {
         return child
     }
 
-    getDeclaration(name:string): Declaration|null {
-        let decl = this.declarations.get(name)
-        if (decl) return decl
+    getDeclaration(name:Token): Declaration
+    getDeclaration(name:string): Declaration|null
+    getDeclaration(name:string|Token): Declaration|null
+    getDeclaration(name:string|Token): Declaration|null {
+        let id = (typeof name == 'string') ? name : name.value
+        let decl = this.declarations.get(id)
+        if (decl) {
+            decl.refCounter++
+            return decl.decl
+        }
         if (this.parent) return this.parent.getDeclaration(name)
+        if (name instanceof Token) name.throwDebug('not available in scope')
         return null
     }
 
     declare(name:Token,decl:Declaration) {
         // check for reserved names here
         if (this.getDeclaration(name.value)) name.throwDebug('redefinition')
-        this.declarations.set(name.value,decl)
+        this.declarations.set(name.value,{decl,refCounter:0})
         SymbolTable.allDeclarations.push(decl)
     }
 

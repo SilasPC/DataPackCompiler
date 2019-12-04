@@ -1,4 +1,4 @@
-
+/*
 import { ASTLetNode } from "../syntax/AST";
 
 export class ScoreboardManager {
@@ -31,3 +31,4 @@ export class ScoreboardManager {
 	}
 
 }
+*/

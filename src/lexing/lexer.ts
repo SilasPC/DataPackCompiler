@@ -3,7 +3,7 @@ import { Token, TokenType, SourceLine } from './Token'
 import { ParsingFile } from './ParsingFile'
 
 const keywords = "fn|let|var|break|for|event|while|return|if|else|class|tick|import|const|from|export"
-const types = 'int|void'
+const types = 'int|void|bool'
 const comments = "//|/\\*|\\*/"
 const operators = "\\+=|-=|\\*=|/=|%=|\\+\\+|\\+|--|-|\\*|/|%|>|<|==|>=|<=|=|!|&&|\\|\\|"
 const primitives = "\\d+(?:\\.\\d+)?|true|false"
@@ -12,15 +12,15 @@ const markers = ";|:|\\.|,|\\(|\\)|\\[|\\]|\\{|\\}"
 const cmd = '/\\w.*?(?=\r?\n)'
 
 const regex = RegExp(
-    '('+    cmd         +')|'+ // 1
-    '('+    comments	+')|'+ // 2
-    '('+    operators	+')|'+ // 3
-    '\b('+    keywords	+')\b|'+ // 4
-    '\b('+    types 	+')\b|'+ // 5
-    '('+    symbol		+')|'+ // 6
-    '('+    primitives	+')|'+ // 7
-    '('+    markers		+')|(\n)|(\\S)', // 8, 9, 10
-
+    '('+    cmd          +')|'+   // 1
+    '('+    comments     +')|'+   // 2
+    '('+    operators    +')|'+   // 3
+    '('+  keywords       +')|'+ // 4
+    '('+  types          +')|'+ // 5
+    '('+  primitives     +')|'+ // 6
+    '('+  symbol	     +')|'+ // 7
+    '('+    markers	     +')|'+   // 8
+    '(\n)|(\\S)', // 9, 10
     'g'
 )
 
@@ -31,11 +31,11 @@ function groupIndexToType(i:number): TokenType|ControlLexemes {
         case 3: return TokenType.OPERATOR
         case 4: return TokenType.KEYWORD
         case 5: return TokenType.TYPE
-        case 6: return TokenType.SYMBOL
-        case 7: return TokenType.PRIMITIVE
+        case 6: return TokenType.PRIMITIVE
+        case 7: return TokenType.SYMBOL
         case 8: return TokenType.MARKER
         case 9: return ControlLexemes.NEW_LINE
-        case 10: return ControlLexemes.WHITE_SPACE
+        case 10: return ControlLexemes.INVALID
         default: throw console.error(i)
     }
 }
@@ -43,7 +43,7 @@ function groupIndexToType(i:number): TokenType|ControlLexemes {
 enum ControlLexemes {
     COMMENTS = 'COMMENT',
     NEW_LINE = 'NEW_LINE',
-    WHITE_SPACE = 'WHITE_SPACE'
+    INVALID = 'INVALID'
 }
 
 export function lexer(file:string): ParsingFile {
@@ -70,12 +70,18 @@ export function lexRaw(pfile:ParsingFile): ParsingFile {
             continue
         }
         if (lineComment) continue
-        if (tt == ControlLexemes.WHITE_SPACE) throw console.error(tt,line,match)
+        if (tt == ControlLexemes.INVALID) {
+            console.error(tt,line,match)
+            return new Token(line,match.index-line.startIndex,TokenType.MARKER,t).throwDebug('invalid char')
+        }
         if (tt == ControlLexemes.COMMENTS) {
             if (t == '//') lineComment = true
             if (t == '/*') inlineComment = true
             if (t == '*/') {
-                if (!inlineComment) throw console.error(tt,line,match)
+                if (!inlineComment) {
+                    console.error(tt,line,match)
+                    return new Token(line,match.index-line.startIndex,TokenType.MARKER,t).throwDebug('not in comment')
+                }
                 inlineComment = false
             }
             continue

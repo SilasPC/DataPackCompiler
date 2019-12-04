@@ -4,9 +4,10 @@ import { promises as fs, Stats}  from 'fs'
 import { exec } from 'child_process'
 import { resolve as resolvePath, join } from "path";
 import { lexer as lexicalAnalysis } from "../lexing/lexer";
-import { generateCode } from "./generate";
+//import { generateCode } from "./generate";
 import { fileSyntaxParser } from "../syntax/fileSyntaxParser";
 import { WeakCompilerOptions, CompilerOptions, compilerOptionDefaults } from "../toolbox/config";
+import { semanticsParser } from "../semantics/semanticsParser";
 
 interface WeakPackJSON {
 	name?: string
@@ -26,7 +27,7 @@ export class Datapack {
 	private tickFile: string[] = []
 	private loadFile: string[] = []
 
-	public readonly publicVariableScoreboard = generateIdentifier()
+	//public readonly publicVariableScoreboard = generateIdentifier()
 	private files: FnFile[] = []
 
 	constructor(
@@ -36,7 +37,7 @@ export class Datapack {
 	) {
 		this.addLoadCode(
 			`tellraw @a Loaded my first compiled datapack!`,
-			`scoreboard objectives add ${this.publicVariableScoreboard} dummy`
+			//`scoreboard objectives add ${this.publicVariableScoreboard} dummy`
 		)
 	}
 
@@ -57,8 +58,8 @@ export class Datapack {
 			.sort()
 			.map(lexicalAnalysis)
 		pfiles.forEach(fileSyntaxParser)
-		throw new Error('missing ast parser')
-		//pfiles.forEach(astParser)
+		pfiles.forEach(semanticsParser)
+		throw new Error('no generator')
 		//pfiles.forEach(pf=>generateCode(pf,this))
 
 	}

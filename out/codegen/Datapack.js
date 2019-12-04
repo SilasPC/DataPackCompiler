@@ -4,18 +4,21 @@ const fs_1 = require("fs");
 const child_process_1 = require("child_process");
 const path_1 = require("path");
 const lexer_1 = require("../lexing/lexer");
+//import { generateCode } from "./generate";
 const fileSyntaxParser_1 = require("../syntax/fileSyntaxParser");
+const config_1 = require("../toolbox/config");
+const semanticsParser_1 = require("../semantics/semanticsParser");
 class Datapack {
     constructor(name, srcDir, emitDir) {
         this.name = name;
         this.srcDir = srcDir;
         this.emitDir = emitDir;
-        this.config = {};
+        this.config = null;
         this.tickFile = [];
         this.loadFile = [];
-        this.publicVariableScoreboard = generateIdentifier();
+        //public readonly publicVariableScoreboard = generateIdentifier()
         this.files = [];
-        this.addLoadCode(`tellraw @a Loaded my first compiled datapack!`, `scoreboard objectives add ${this.publicVariableScoreboard} dummy`);
+        this.addLoadCode(`tellraw @a Loaded my first compiled datapack!`);
     }
     addLoadCode(...lines) { this.loadFile.push(...lines); }
     addTickCode(...lines) { this.tickFile.push(...lines); }
@@ -25,18 +28,19 @@ class Datapack {
         let packJson = path_1.join(this.srcDir, 'pack.json');
         if (!files.includes(packJson))
             throw new Error('pack.json not found');
-        this.config = JSON.parse((await fs_1.promises.readFile(packJson)).toString());
-        this.setConfigDefaults();
+        this.setConfigDefaults(JSON.parse((await fs_1.promises.readFile(packJson)).toString()));
         let pfiles = files
             .filter(f => f.endsWith('.txt'))
             .sort()
             .map(lexer_1.lexer);
         pfiles.forEach(fileSyntaxParser_1.fileSyntaxParser);
-        throw new Error('missing ast parser');
-        //pfiles.forEach(astParser)
+        pfiles.forEach(semanticsParser_1.semanticsParser);
+        throw new Error('no generator');
         //pfiles.forEach(pf=>generateCode(pf,this))
     }
     async emit() {
+        if (this.config == null)
+            throw new Error('Config not set');
         let delPath = path_1.resolve(this.emitDir);
         let cmd = 'rmdir /Q /S ' + delPath;
         await execp(cmd); // this is vulnerable to shell code injection
@@ -65,22 +69,17 @@ class Datapack {
             values: ['tmp/load']
         }));
     }
-    setConfigDefaults() {
-        let c = this.config;
-        if (typeof c != 'object')
-            c = this.config = {};
-        c.name = c.name || 'Compiled datapack';
-        c.description = c.description || '';
-        c.compilerOptions = c.compilerOptions || {};
-        let o = c.compilerOptions;
-        o.obscureNames = def(o.obscureNames);
-        o.obscureSeed = o.obscureSeed || '';
-        o.noInference = def(o.noInference);
-        o.noImplicitCast = def(o.noImplicitCast);
+    setConfigDefaults(cfg) {
+        this.config = {
+            name: def(cfg.name, 'A compiled datapack'),
+            description: def(cfg.description, 'A description'),
+            compilerOptions: config_1.compilerOptionDefaults(cfg.compilerOptions),
+            debugMode: def(cfg.debugMode, false)
+        };
     }
 }
 exports.Datapack = Datapack;
-function def(val) { return val == undefined ? true : val; }
+function def(val, def) { return val == undefined ? def : val; }
 function execp(cmd) {
     return new Promise((resolve, reject) => {
         child_process_1.exec(cmd, (err => {

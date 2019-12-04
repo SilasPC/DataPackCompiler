@@ -5,6 +5,7 @@ import { readFileSync } from "fs";
 import { resolve, relative } from 'path'
 import { SymbolTable } from "../semantics/SymbolTable";
 import { TokenIterator } from "./TokenIterator";
+import { Declaration } from "../semantics/Declaration";
 
 export class ParsingFile {
 
@@ -37,6 +38,7 @@ export class ParsingFile {
     private readonly tokens: Token[] = []
     private readonly ast: ASTNode[] = []
     private readonly symbolTable: SymbolTable = new SymbolTable(null)
+    private readonly exports: Map<string,Declaration> = new Map()
 
     public status: 'lexed'|'parsing'|'parsed'|'generating'|'generated' = 'lexed'
 
@@ -52,6 +54,15 @@ export class ParsingFile {
     getAST() {return this.ast}
 
     getSymbolTable() {return this.symbolTable}
+    addExport(identifier:string,declaration:Declaration) {
+        if (this.exports.has(identifier)) throw new Error('export duplicate identifier')
+        this.exports.set(identifier,declaration)
+    }
+
+    import(identifier:Token): Declaration {
+        if (!this.exports.has(identifier.value)) identifier.throwDebug('no such exported member')
+        return this.exports.get(identifier.value) as Declaration
+    }
 
     throwUnexpectedEOF() {
         return (<Token>this.tokens.pop()).throw('Unexpected EOF')

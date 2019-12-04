@@ -2,6 +2,7 @@
 import { Token, TokenType } from "../lexing/Token";
 import { ASTNode, ASTNodeType, ASTIdentifierNode, ASTPrimitiveNode, ASTOpNode, ASTCallNode, ASTListNode } from "./AST";
 import { TokenIterator } from "../lexing/TokenIterator";
+import { CompilerOptions } from "../toolbox/config";
 
 enum OpType {
     INFIX,
@@ -61,7 +62,7 @@ export function expressionSyntaxParser(tokens:TokenIterator) {
                         } while (ops.length)
                         if (openOp.token.type != TokenType.MARKER || openOp.token.value != '(') t.throwDebug('cuts off other paren thing')
                         if (fncalls.pop()) {
-                            if (que.length<2) t.throwDebug('wth')
+                            if (que.length<2) t.throwDebug('wth') // this doesn't work so well when there are no parameters xd
                             let argnode = que.pop() as ASTNode
                             if (argnode.type != ASTNodeType.LIST) {
                                 let argAsList: ASTListNode = {
@@ -116,6 +117,7 @@ export function expressionSyntaxParser(tokens:TokenIterator) {
                 lastWasOperand = true
                 break
             default:
+                // const exhaust: never = t.type
                 t.throwDebug('tokentype not implemented')
         }
     }

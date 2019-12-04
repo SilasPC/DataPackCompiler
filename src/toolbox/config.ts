@@ -10,6 +10,7 @@ export interface WeakCompilerOptions {
 	verbose?: boolean
 	noInference?: boolean
 	noImplicitCast?: boolean
+	ignoreUnreachable?: boolean
 }
 
 export function compilerOptionDefaults(cfg?:WeakCompilerOptions): CompilerOptions {
@@ -19,11 +20,12 @@ export function compilerOptionDefaults(cfg?:WeakCompilerOptions): CompilerOption
 		obscureSeed: def(cfg.obscureSeed,''),
 		noInference: def(cfg.noInference,true),
 		noImplicitCast: def(cfg.noImplicitCast,true),
+		ignoreUnreachable: def(cfg.ignoreUnreachable,true),
 		sourceMap: def(cfg.sourceMap,false),
 		emitComments: def(cfg.emitComments,false),
 		optimize: def(cfg.optimize,false),
 		noUnused: def(cfg.noUnused,false),
-		verbose: def(cfg.verbose,false)
+		verbose: def(cfg.verbose,false),
 	}
 }
 

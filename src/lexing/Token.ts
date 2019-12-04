@@ -14,7 +14,12 @@ export class SourceLine {
 
 }
 
-export class Token {
+export interface Throwable {
+    throw: (msg:string) => never
+    warn: (msg:string) => void
+}
+
+export class Token implements Throwable {
 
     constructor(
         public readonly line: SourceLine,
@@ -39,7 +44,7 @@ export class Token {
 
     throwDebug(e:string) {return this.throw('DEBUG: '+e)}
 
-    throw(e:string): never {
+    private errorMessage(e:string) {
         let nrLen = (this.line.nr+(this.line.next?1:0)).toString().length
         let ws = ' '.repeat(nrLen+2)
         let msg: string[] = []
@@ -53,8 +58,11 @@ export class Token {
         if (this.line.next)
             msg.push(` ${(this.line.nr+1).toString().padStart(nrLen,' ')} | ${this.line.next.line}`)
         msg.push(`${ws}|`)
-        throw new Error(msg.join('\n'))
+        return msg.join('\n')
     }
+
+    throw(msg:string): never {throw new Error(this.errorMessage(msg))}
+    warn(msg:string) {console.log(this.errorMessage(msg))}
 
     throwUnexpectedKeyWord() {return this.throw('Unexpected keyword: '+this.value)}
     throwNotDefined() {return this.throw('Identifier not defined in this scope')}

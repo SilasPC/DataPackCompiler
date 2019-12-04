@@ -1,33 +1,36 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-class ScoreboardManager {
-    constructor() {
-        this.scoreboard = 'the_scoreboard';
-        this.constants = new Map();
-    }
-    getStatic(node) {
-        let decl = {
+/*
+import { ASTLetNode } from "../syntax/AST";
+
+export class ScoreboardManager {
+
+    private scoreboard = 'the_scoreboard'
+    private constants: Map<number,ScoreDeclaration> = new Map()
+
+    getStatic(node:ASTLetNode): ScoreDeclaration {
+        let decl: ScoreDeclaration = {
             type: DeclarationType.SCORE,
             node,
             scoreboard: this.scoreboard,
             selector: generateIdentifier()
-        };
-        return decl;
+        }
+        return decl
     }
-    getConstant(n) {
+
+    getConstant(n:number): ScoreDeclaration {
         if (this.constants.has(n))
-            return this.constants.get(n);
-        if (!Number.isInteger(n))
-            throw new Error('Can only use integer constant scores');
-        let decl = {
+            return this.constants.get(n) as ScoreDeclaration
+        if (!Number.isInteger(n)) throw new Error('Can only use integer constant scores')
+        let decl: ScoreDeclaration = {
             type: DeclarationType.SCORE,
             node: null,
             scoreboard: this.scoreboard,
             selector: generateIdentifier()
-        };
-        this.constants.set(n, decl);
-        return decl;
+        }
+        this.constants.set(n,decl)
+        return decl
     }
+
 }
-exports.ScoreboardManager = ScoreboardManager;
+*/ 
 //# sourceMappingURL=ScoreboardManager.js.map

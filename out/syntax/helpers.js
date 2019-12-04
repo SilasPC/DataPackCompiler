@@ -4,7 +4,7 @@ const Token_1 = require("../lexing/Token");
 const AST_1 = require("./AST");
 function getType(iter) {
     iter.next().expectType(Token_1.TokenType.MARKER).expectValue(':');
-    return iter.next().expectType(Token_1.TokenType.SYMBOL);
+    return iter.next().expectType(Token_1.TokenType.SYMBOL, Token_1.TokenType.TYPE);
 }
 exports.getType = getType;
 function wrapExport(node, wrap) {

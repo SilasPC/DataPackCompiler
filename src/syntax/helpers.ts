@@ -5,7 +5,7 @@ import { TokenIterator } from "../lexing/TokenIterator";
 
 export function getType(iter:TokenIterator): Token {
     iter.next().expectType(TokenType.MARKER).expectValue(':')
-    return iter.next().expectType(TokenType.SYMBOL)
+    return iter.next().expectType(TokenType.SYMBOL,TokenType.TYPE)
 }
 
 export function wrapExport(node:ASTNode,wrap:boolean): ASTNode {

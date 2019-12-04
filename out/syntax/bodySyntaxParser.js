@@ -34,7 +34,7 @@ parser
     .usingType(Token_1.TokenType.SYMBOL)
     .fallback((iter, body) => {
     iter.skip(-1);
-    body.push(expressionSyntaxParser_1.expressionSyntaxParser(iter));
+    body.push(expressionSyntaxParser_1.expressionSyntaxParser(iter).ast);
 });
 parser
     .usingType(Token_1.TokenType.MARKER)
@@ -42,6 +42,6 @@ parser
     .case(';', () => { });
 parser
     .fallback((iter, body) => {
-    body.push(expressionSyntaxParser_1.expressionSyntaxParser(iter.skip(-1)));
+    body.push(expressionSyntaxParser_1.expressionSyntaxParser(iter.skip(-1)).ast);
 });
 //# sourceMappingURL=bodySyntaxParser.js.map

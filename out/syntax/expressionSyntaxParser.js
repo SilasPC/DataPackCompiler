@@ -11,7 +11,7 @@ var OpType;
 function expressionSyntaxParser(tokens) {
     let ops = [];
     let que = [];
-    let outTmp = [];
+    let postfix = [];
     let fncalls = []; // store astnodes instead?
     let lastWasOperand = false;
     tokenLoop: for (let t of tokens) {
@@ -52,7 +52,7 @@ function expressionSyntaxParser(tokens) {
                             t.throwDebug('cuts off other paren thing');
                         if (fncalls.pop()) {
                             if (que.length < 2)
-                                t.throwDebug('wth');
+                                t.throwDebug('wth'); // this doesn't work so well when there are no parameters xd
                             let argnode = que.pop();
                             if (argnode.type != AST_1.ASTNodeType.LIST) {
                                 let argAsList = {
@@ -60,7 +60,7 @@ function expressionSyntaxParser(tokens) {
                                     list: [argnode]
                                 };
                                 argnode = argAsList;
-                                outTmp.push(',1');
+                                postfix.push(',1');
                             }
                             let invnode = {
                                 type: AST_1.ASTNodeType.INVOKATION,
@@ -68,7 +68,7 @@ function expressionSyntaxParser(tokens) {
                                 parameters: argnode
                             };
                             que.push(invnode);
-                            outTmp.push('$');
+                            postfix.push('$');
                         }
                         lastWasOperand = true;
                         break;
@@ -97,7 +97,7 @@ function expressionSyntaxParser(tokens) {
                     t.throwDebug('Unexpected operand');
                 let symnode = { type: AST_1.ASTNodeType.IDENTIFIER, identifier: t };
                 que.push(symnode);
-                outTmp.push(t.value);
+                postfix.push(t.value);
                 lastWasOperand = true;
                 break;
             case Token_1.TokenType.PRIMITIVE:
@@ -105,10 +105,11 @@ function expressionSyntaxParser(tokens) {
                     t.throwDebug('Unexpected operand');
                 let prinode = { type: AST_1.ASTNodeType.PRIMITIVE, value: t };
                 que.push(prinode);
-                outTmp.push(t.value);
+                postfix.push(t.value);
                 lastWasOperand = true;
                 break;
             default:
+                // const exhaust: never = t.type
                 t.throwDebug('tokentype not implemented');
         }
     }
@@ -119,12 +120,11 @@ function expressionSyntaxParser(tokens) {
     }
     if (que.length > 1)
         throw 'hmm';
-    console.log(outTmp.join(' '));
-    return que[0];
+    return { ast: que[0], meta: { postfix } };
     function opTop() { return ops[ops.length - 1]; }
     function pushOperator(op, doPush = true) {
-        console.log('push out', outTmp.join(' '));
-        console.log('push ops', ops.map(o => o.token.value).join(' '));
+        // console.log('push out',postfix.join(' '))
+        // console.log('push ops',ops.map(o=>o.token.value).join(' '))
         while (ops.length) {
             let l = ops[ops.length - 1];
             if (!l.popable)
@@ -144,15 +144,16 @@ function expressionSyntaxParser(tokens) {
                 // is needed and it reads left to right
                 // then the unary is popped and applied even though it is a
                 // prefix, and the operand is not on the queue yet
+                // fix: prefix unaries must be sorted rather than popped
             }
             ops.pop();
-            console.log('push apply', l.token.value);
+            // console.log('push apply',l.token.value)
             applyOperator(l);
         }
         if (doPush)
             ops.push(op);
-        console.log('push ops2', ops.map(o => o.token.value).join(' '));
-        console.log('push out2', outTmp.join(' '));
+        // console.log('push ops2',ops.map(o=>o.token.value).join(' '))
+        // console.log('push out2',postfix.join(' '))
     }
     function applyOperator(op) {
         if (que.length < op.operands)
@@ -164,8 +165,9 @@ function expressionSyntaxParser(tokens) {
                     operator: op.token,
                     operands: que.splice(-op.operands, op.operands)
                 };
+                const map = { [OpType.POSTFIX]: ':post', [OpType.PREFIX]: ':pre', [OpType.INFIX]: '' };
                 que.push(node);
-                outTmp.push(op.token.value);
+                postfix.push(op.token.value + map[op.type]);
                 break;
             case Token_1.TokenType.MARKER:
                 switch (op.token.value) {
@@ -175,7 +177,7 @@ function expressionSyntaxParser(tokens) {
                             list: que.splice(-op.operands, op.operands)
                         };
                         que.push(list);
-                        outTmp.push(',' + op.operands);
+                        postfix.push(',' + op.operands);
                         break;
                     default:
                         throw new Error('could not use marker value');
@@ -189,7 +191,7 @@ function expressionSyntaxParser(tokens) {
 exports.expressionSyntaxParser = expressionSyntaxParser;
 function opInfo(token, prefix) {
     let [precedency, leftToRight, type] = p(token, prefix);
-    console.log('opinfo', token.value, precedency, leftToRight, OpType[type]);
+    // console.log('opinfo',token.value,precedency,leftToRight,OpType[type])
     return {
         token,
         precedency,

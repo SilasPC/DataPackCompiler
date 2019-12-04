@@ -8,7 +8,7 @@ import { TokenIterator } from "../../lexing/TokenIterator"
 export function parseConditional(iter:TokenIterator): ASTIfNode {
 
     iter.next().expectType(TokenType.MARKER).expectValue('(')
-    let expression = expressionSyntaxParser(iter) // expressionSyntaxParser(iter)
+    let expression = expressionSyntaxParser(iter).ast
     iter.next().expectType(TokenType.MARKER).expectValue(')')
     iter.next().expectType(TokenType.MARKER).expectValue('{') // or expression here
     let primaryBranch = bodySyntaxParser(iter)

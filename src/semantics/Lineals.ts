@@ -1,12 +1,20 @@
 
-import { unionize, ofType, UnionOf } from "unionize";
+import { IntESR } from './ESR'
 
-export type Lineal = UnionOf<typeof Lineals>
-export const Lineals = unionize({
-	ADD_SCORE: {},
-	SUB_SCORE: {},
-	MULT_SCORE: {},
-	DIV_SCORE: {},
-	MOD_SCORE: {},
-	CMD: {}
-})
+export type Lineal = INT_OP | CMDLineal
+
+export enum LinealType {
+	INT_OP,
+	CMD
+}
+
+export interface INT_OP {
+	type: LinealType.INT_OP
+	into: IntESR
+	from: IntESR
+	op: string
+}
+
+export interface CMDLineal {
+	type: LinealType.CMD
+}

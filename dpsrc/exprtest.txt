@@ -1,14 +1,23 @@
-/*
-(x+y)(a,b); // x y + a b 2, $
-a(1); // a 1 1, $
-((1,2,3),(4,5)); // 1 2 3 ,3 4 5 ,2 ,2
-(a+b)*c+-!2; // a b + c * 2 ! - +
-a+b+c; // a b + c +
-a = b = c; // a b c = =
-*/
+
+let a: int = 2;
+let b: int = 3;
+let c: bool = true;
 
 fn x(): void {
 	/from exprtest
+	a += a * b;
+}
+
+fn test(a:int): void {
+    /say abc
+    //let v1: int = 2;
+    //if (v1 == 2) {
+    //    let v2: int = 3;
+    //    /tellraw @s "Hello"
+    //} else {}
+    //let v3: int = 4;
+    //let v2: int = 0;
+    //debug(v3);
 }
 
 // e=a*b+c*d

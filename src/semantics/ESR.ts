@@ -1,12 +1,44 @@
-import unionize, { UnionOf, ofType } from "unionize";
-import { ASTFnNode } from "../syntax/AST";
-import { Declaration } from "./Declaration";
+import { ValueType, ElementaryValueType } from "./Types";
 
-// Expanded semantical representation
-// Linearization of expressions
+export type ESR = VoidESR | IntESR | BoolESR
 
-export type ESR = UnionOf<typeof ESRs>
-export const ESRs = unionize({
-	SCORE: ofType<{mutable:boolean,const:boolean,scoreboard:string,selector:string}>(),
-	VOID: {}
-})
+export interface ESRBase {
+	mutable: boolean
+	const: boolean
+}
+
+export enum ESRType {
+	VOID,
+	INT,
+	BOOL
+}
+
+export interface VoidESR extends ESRBase {
+	type: ESRType.VOID
+}
+
+export interface Scoreboard {
+	scoreboard?: string
+	selector?: string
+}
+
+export interface IntESR extends ESRBase {
+	type: ESRType.INT
+	scoreboard: Scoreboard
+}
+
+export interface BoolESR extends ESRBase {
+	type: ESRType.BOOL
+	scoreboard: Scoreboard
+}
+
+export function getESRType(esr:ESR): ValueType {
+	switch (esr.type) {
+		case ESRType.VOID: return {elementary:true,type:ElementaryValueType.VOID}
+		case ESRType.INT: return {elementary:true,type:ElementaryValueType.INT}
+		case ESRType.BOOL: return {elementary:true,type:ElementaryValueType.BOOL}
+		default:
+			const exhaust: never = esr
+	}
+	throw new Error('exhaustion')
+}

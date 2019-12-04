@@ -1,10 +1,10 @@
 
-const { lexer } = require('./out/syntax/lexer.js')
-const { fileSyntaxParser } = require('./out/syntax/fileSyntaxParser')
-const { expressionSyntaxParser } = require('./out/syntax/expressionSyntaxParser')
-const { astParser } = require('./out/semantics/astParser.js')
+//const { lexer } = require('./out/syntax/lexer.js')
+//const { fileSyntaxParser } = require('./out/syntax/fileSyntaxParser')
+//const { expressionSyntaxParser } = require('./out/syntax/expressionSyntaxParser')
+//const { astParser } = require('./out/semantics/astParser.js')
 const { Datapack } = require('./out/codegen/Datapack')
-const { generateCode } = require('./out/codegen/generate')
+//const { generateCode } = require('./out/codegen/generate')
 
 //require('source-map-support').install()
 
@@ -16,10 +16,13 @@ try {
 
 let dp = new Datapack('test pack 2020','./dpsrc','./emit')
 console.log(dp)
-try {
-    dp.compile()
-      .then(()=>dp.emit())
-      .then(()=>console.log('done!'))
-} catch(e) {console.error(e)}
+
+dp.compile()
+  .then(()=>dp.emit())
+  .then(()=>console.log('done!'))
+  .catch(e=>{
+    console.error(e)
+    console.trace()
+  })
 
 setInterval(()=>0,1000)
