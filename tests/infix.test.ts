@@ -20,6 +20,10 @@ describe('infix conversion', () => {
 		const result = postfix('f(g(a,b),h(c,d))')
 		expect(result).to.equal('f g a b ,2 $ h c d ,2 $ ,2 $')
 	})
+	it('functions without arguments', () => {
+		const result = postfix('f()+g()')
+		expect(result).to.equal('f ,0 $ g ,0 $ +')
+	})
 	it('function list argument', () => {
 		const result = postfix('f((a,b))')
 		expect(result).to.equal('f a b ,2 ,1 $')

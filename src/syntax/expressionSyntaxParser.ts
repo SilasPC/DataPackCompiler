@@ -40,6 +40,25 @@ export function expressionSyntaxParser(tokens:TokenIterator) {
                 switch (t.value) {
                     case '(':
                         let isFn = lastWasOperand
+                        if (isFn) {
+                            let next = tokens.peek()
+                            if (next.type == TokenType.MARKER && next.value == ')') {
+                                if (!que.length) t.throwDebug('no fn on queue?')
+                                let invnode: ASTCallNode = {
+                                    type: ASTNodeType.INVOKATION,
+                                    function: que.pop() as ASTNode,
+                                    parameters: {
+                                        type: ASTNodeType.LIST,
+                                        list: []
+                                    }
+                                }
+                                que.push(invnode)
+                                postfix.push(',0','$')
+                                tokens.skip(1)
+                                lastWasOperand = true
+                                break
+                            }
+                        }
                         fncalls.push(isFn)
                         pushOperator({
                             token: t,
@@ -48,6 +67,14 @@ export function expressionSyntaxParser(tokens:TokenIterator) {
                             type: OpType.PREFIX, // make sure we don't expect an operator
                             operands: 0,
                             popable: false
+                        })
+                        if (isFn) pushOperator({
+                            token: Token.fake(t,TokenType.MARKER,','), // change this
+                            precedency: 1,
+                            leftToRight: false, // this may break later
+                            type: OpType.INFIX,
+                            operands: 1,
+                            popable: true
                         })
                         lastWasOperand = false
                         break
@@ -142,7 +169,7 @@ export function expressionSyntaxParser(tokens:TokenIterator) {
             let d = op.precedency - l.precedency
             if (d > 0) break
             else if (d == 0) {
-                if (op.leftToRight != l.leftToRight) throw new Error('associativity must match')
+                if (op.leftToRight != l.leftToRight) throw new Error('associativity must match: '+op.token.value+' '+l.token.value)
                 if (!op.leftToRight) break
                 // there is a bug where unaries can be applied before
                 // the occurance of the actual operand when associativity
@@ -184,7 +211,7 @@ export function expressionSyntaxParser(tokens:TokenIterator) {
                         postfix.push(','+op.operands)
                         break
                     default:
-                        throw new Error('could not use marker value')
+                        throw new Error('could not use marker value '+op.token.value)
                 }
                 break
             default:
@@ -196,6 +223,7 @@ export function expressionSyntaxParser(tokens:TokenIterator) {
 
 function opInfo(token:Token,prefix:boolean): Op {
     let [precedency,leftToRight,type] = p(token,prefix)
+    if (prefix && type != OpType.PREFIX) token.throwDebug('Operator cannot be prefixed')
     // console.log('opinfo',token.value,precedency,leftToRight,OpType[type])
     return {
         token,

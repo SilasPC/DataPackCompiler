@@ -21,6 +21,10 @@ export interface Throwable {
 
 export class Token implements Throwable {
 
+    static fake(token:Token,type:TokenType,value:string) {
+        return new Token(token.line,token.index,type,value)
+    }
+
     constructor(
         public readonly line: SourceLine,
         public readonly index: number,
