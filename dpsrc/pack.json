@@ -13,7 +13,8 @@
 		"noUnused": false,
 		"verbose": false,
 		"noInference": true,
-		"noImplicitCast": true
+		"noImplicitCast": true,
+		"target": "1.15"
 	}
 
 }

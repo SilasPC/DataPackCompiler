@@ -93,7 +93,7 @@ function parseTree(tree:Tree,defs:Def[]): CMDNode[] {
 					newLast.push(subnode)
 					for (let n of last) n.children.push(subnode)
 				} else if (ps.nodes) {
-					for (let n of last) n.children.push(...ps.nodes)
+					for (let n of last) n.children = ps.nodes
 					if (subs.length - 1 > si) throw new Error('invokation must be last: '+vals.join(' '))
 					newLast = ps.nodes
 				} else throw new Error('should not happen')
@@ -117,7 +117,6 @@ function parseSpecial(sub:string,children:Tree,findDef:(str:string)=>CMDNode[]|u
 		} else if (spec.startsWith(':')) {
 			let nodes = findDef(spec.slice(1))
 			if (!nodes) throw new Error('invokatee not defined: '+spec)
-			console.log(children)
 			if (children.size) throw new Error('invokation cannot be followed by children: '+sub)
 			return {nodes}
 		} else if (spec.length) {
@@ -132,14 +131,25 @@ class CMDNode {
 	constructor(
 		public readonly token: string,
 		public readonly restOptional: boolean,
-		public readonly children: CMDNode[]
+		public children: CMDNode[]
 	) {}
 
 	test(cmd:string,i=0): boolean {
+		let j = cmd.indexOf(' ',i)
+		if (j == -1) j = cmd.length
+		if (!this.token.startsWith(cmd.slice(i,j))) return false
+		if (cmd.length == j) return this.restOptional || this.children.length == 0
+		let [s,...d] = this.children.filter(c=>c.testShallow(cmd,j+1))
+		if (d.length) this.children.filter(c=>c.testShallow(cmd,j+1,true)) // try strict equal
+		if (d.length) return false // cannot have more than one match
+		if (!s) return false
+		return s.test(cmd,j+1)
+	}
+
+	testShallow(cmd:string,i=0,se=false) {
 		if (cmd.length <= i) return this.restOptional
-		if (!cmd.slice(i).startsWith(this.token)) return false
-		if (!this.children.length) return cmd.endsWith(this.token)
-		return this.children.some(c=>c.test(cmd,i+this.token.length+1))
+		let x = cmd.slice(i).split(' ')[0]
+		return se ? this.token.startsWith(x) : this.token == x
 	}
 
 }
@@ -147,7 +157,14 @@ class CMDNode {
 class RootCMDNode extends CMDNode {
 
 	test(cmd:string,i=0) {
-		return this.children.some(c=>c.test(cmd,i))
+		let [s,...d] = this.children.filter(c=>c.testShallow(cmd,i))
+		if (d.length) return false // cannot have more than one match
+		if (!s) return false
+		return s.test(cmd,i)
+	}
+
+	testShallow() {
+		return true
 	}
 
 }

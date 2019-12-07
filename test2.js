@@ -13,6 +13,7 @@ fs.readFile('./src/syntax/commands/syntaxsheet.txt')
 	console.log(n.test('bossbar add'),0)
 	console.log(n.test('bossbar get id value'),1)
 	console.log(n.test('advancement revoke player from id'),1)
+	console.log(n.test('execute align x run debug start'),1)
 })
 .catch(e=>console.error(e))
 
