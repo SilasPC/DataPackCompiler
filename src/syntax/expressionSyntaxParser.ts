@@ -172,9 +172,8 @@ export function expressionSyntaxParser(tokens:TokenIterator) {
                 if (op.leftToRight != l.leftToRight) throw new Error('associativity must match: '+op.token.value+' '+l.token.value)
                 if (!op.leftToRight) break
                 // there is a bug where unaries can be applied before
-                // the occurance of the actual operand when associativity
-                // is needed and it reads left to right
-                // then the unary is popped and applied even though it is a
+                // the occurance of the actual operand.
+                // the unary is popped and applied even though it is a
                 // prefix, and the operand is not on the queue yet
                 // fix: prefix unaries must be sorted rather than popped
             }

@@ -1,0 +1,121 @@
+
+advancement grant|revoke <player>
+  only <id> [<id>]
+  until|from|through <id>
+  everything
+
+bossbar
+  add <id> <json>
+  get <id> max|players|value|visible
+  list
+  remove <id>
+  set <id>
+    color <color>
+    max <pint>
+    name <id>
+    players <selector>
+    style progress|notched_6|notched_10|notched_12|notched20
+    value <uint>
+    visible true|false
+
+clear [<selector>] [<id>] [<uint>]
+
+clone <cords> <cords> <cords> [
+  filtered [force|move|normal]
+  masked|replace [force|move|normal]
+
+:dataval
+  value <json>
+  from
+    block <cords> <nbtpath>
+    entity <selector> <nbtpath>
+
+data
+  get
+    block <cords> [<nbtpath>] [<float>]
+    entity <selector> [<nbtpath>] [<float>]
+  merge
+    block <cords> <nbt>
+    entity <selector> <nbt>
+  remove
+    block <cords> <nbtpath>
+    entity <selector> <nbtpath>
+  modify
+    block <cords> <nbtpath>
+      append <:dataval>
+      insert after|before <uint> <:dataval>
+      merge <:dataval>
+      prepend <:dataval>
+      set <:dataval>
+
+datapack
+  enable <id> [
+    first|last
+    after|before <id>
+  disable <id>
+  list [available|enabled]
+
+debug start|stop
+
+defaultgamemode adventure|creative|spectator|survival
+
+difficulty [peaceful|easy|normal|hard]
+
+effect
+  give <entity> <id> [<pint>] [<uint>] [true|false]
+  clear <entity> [<id>]
+
+enchant <player> <id> [uint]
+
+experience
+  add <player> <int> [points|levels]
+  set <players> <uint> [points|levels]
+  query <player> points|levels
+
+:exe
+  at <selector> <:exe>
+  as <selector> <:exe>
+  positioned
+    as <selector> <:exe>
+    <cords> <:exe>
+  align x|y|z|xy|xz|yx|yz|zx|zy|xyz|xzy|yxz|yzx|zxy|zyx <:exe>
+  facing
+    entity <selector> eyes|feet <:exe>
+    <cords> <:exe>
+  rotated
+    as <selector> <:exe>
+    <cord> <cord> <:exe>
+  in <id> <:exe>
+  achored feet|eyes <:exe>
+  if|unless
+    block <cords> <id> <:exe>
+    blocks <cords> <cords> <cords> all|masked <:exe>
+    data
+      block <cords> <nbtpath> <:exe>
+      entity <selector> <nbtpath> <:exe>
+    entity <selector> <:exe>
+    score <selector> <name>
+      <|<=|=|>|>= <selector> <name> <:exe>
+      matches <range> <:exe>
+    store result|success
+      score <selector> <name> <:exe>
+      block <cords> <nbtpath> byte|double|float|int|long|short <float> <:exe>
+      entity <selector> <nbtpath> byte|double|float|int|long|short <float <:exe>
+      bossbar <id> value|max <:exe>
+  run <:>
+
+execute <:exe>
+
+fill <cords> <cords> <id> [
+  destroy|hollow|keep|outline
+  replace <id>
+
+forceload
+  add <cord> <cord> [<cord> <cord>]
+  remove <cord> <cord> [<cord> <cord>]
+  query [<cord> <cord>]
+
+function <id>
+
+gamemode adventure|creative|spectator|survival [player]
+gamerule <name> [true|false|<int>]

@@ -25,6 +25,26 @@ function expressionSyntaxParser(tokens) {
                 switch (t.value) {
                     case '(':
                         let isFn = lastWasOperand;
+                        if (isFn) {
+                            let next = tokens.peek();
+                            if (next.type == Token_1.TokenType.MARKER && next.value == ')') {
+                                if (!que.length)
+                                    t.throwDebug('no fn on queue?');
+                                let invnode = {
+                                    type: AST_1.ASTNodeType.INVOKATION,
+                                    function: que.pop(),
+                                    parameters: {
+                                        type: AST_1.ASTNodeType.LIST,
+                                        list: []
+                                    }
+                                };
+                                que.push(invnode);
+                                postfix.push(',0', '$');
+                                tokens.skip(1);
+                                lastWasOperand = true;
+                                break;
+                            }
+                        }
                         fncalls.push(isFn);
                         pushOperator({
                             token: t,
@@ -34,6 +54,15 @@ function expressionSyntaxParser(tokens) {
                             operands: 0,
                             popable: false
                         });
+                        if (isFn)
+                            pushOperator({
+                                token: Token_1.Token.fake(t, Token_1.TokenType.MARKER, ','),
+                                precedency: 1,
+                                leftToRight: false,
+                                type: OpType.INFIX,
+                                operands: 1,
+                                popable: true
+                            });
                         lastWasOperand = false;
                         break;
                     case ')':
@@ -136,13 +165,12 @@ function expressionSyntaxParser(tokens) {
                 break;
             else if (d == 0) {
                 if (op.leftToRight != l.leftToRight)
-                    throw new Error('associativity must match');
+                    throw new Error('associativity must match: ' + op.token.value + ' ' + l.token.value);
                 if (!op.leftToRight)
                     break;
                 // there is a bug where unaries can be applied before
-                // the occurance of the actual operand when associativity
-                // is needed and it reads left to right
-                // then the unary is popped and applied even though it is a
+                // the occurance of the actual operand.
+                // the unary is popped and applied even though it is a
                 // prefix, and the operand is not on the queue yet
                 // fix: prefix unaries must be sorted rather than popped
             }
@@ -180,7 +208,7 @@ function expressionSyntaxParser(tokens) {
                         postfix.push(',' + op.operands);
                         break;
                     default:
-                        throw new Error('could not use marker value');
+                        throw new Error('could not use marker value ' + op.token.value);
                 }
                 break;
             default:
@@ -191,6 +219,8 @@ function expressionSyntaxParser(tokens) {
 exports.expressionSyntaxParser = expressionSyntaxParser;
 function opInfo(token, prefix) {
     let [precedency, leftToRight, type] = p(token, prefix);
+    if (prefix && type != OpType.PREFIX)
+        token.throwDebug('Operator cannot be prefixed');
     // console.log('opinfo',token.value,precedency,leftToRight,OpType[type])
     return {
         token,

@@ -18,6 +18,9 @@ class Token {
         this.type = type;
         this.value = value;
     }
+    static fake(token, type, value) {
+        return new Token(token.line, token.index, type, value);
+    }
     expectType(...t) {
         if (!t.includes(this.type))
             return this.throw('expected type(s) ' + t.map(t => TokenType[t]).toString());
