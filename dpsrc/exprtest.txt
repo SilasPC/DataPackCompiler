@@ -8,6 +8,32 @@ fn x(): void {
 	a += a * b;
 }
 
+/*
+
+// ideas:
+
+export namespace math {
+
+    fn dif(a:int,b:int): int {
+        return (a-b).abs(); // functional approach
+    }
+
+    fn isEven(x:int): bool {
+        return x % 2 == 0;
+    }
+
+    // function overloading
+    fn len(a:int,b:int): int {
+        return sqrt(a**2+b**2);
+    }
+    fn len(a:int,b:int,c:int): int {
+        return sqrt(a**2+b**2+c**2);
+    }
+
+}
+
+*/
+
 fn test(a:int): void {
     /say abc
     //let v1: int = 2;
