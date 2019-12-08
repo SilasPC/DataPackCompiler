@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const AST_1 = require("../syntax/AST");
 const Declaration_1 = require("./Declaration");
 const Types_1 = require("./Types");
+const other_1 = require("../toolbox/other");
 function hoist(pfile) {
     let symbols = pfile.getSymbolTable();
     let ast = pfile.getAST();
@@ -42,7 +43,7 @@ function hoist(pfile) {
             case AST_1.ASTNodeType.PRIMITIVE:
                 throw new Error('invalid ast structure in hoisting');
             default:
-                const exhaust = node;
+                return other_1.exhaust(node);
         }
     }
 }

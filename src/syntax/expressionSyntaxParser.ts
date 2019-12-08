@@ -13,6 +13,7 @@ enum OpType {
 
 type Op = {
     token: Token
+    op: string
     precedency: number
     leftToRight: boolean
     type: OpType
@@ -29,7 +30,6 @@ export function expressionSyntaxParser(tokens:TokenIterator) {
     let fncalls: boolean[] = [] // store astnodes instead?
 
     let lastWasOperand = false
-    tokenLoop:
     for (let t of tokens) {
         switch (t.type) {
             case TokenType.OPERATOR:
@@ -63,6 +63,7 @@ export function expressionSyntaxParser(tokens:TokenIterator) {
                         fncalls.push(isFn)
                         pushOperator({
                             token: t,
+                            op: t.value,
                             precedency: 20 + (isFn?0:1),
                             leftToRight: true,
                             type: OpType.PREFIX, // make sure we don't expect an operator
@@ -70,7 +71,8 @@ export function expressionSyntaxParser(tokens:TokenIterator) {
                             popable: false
                         })
                         if (isFn) pushOperator({
-                            token: Token.fake(t,TokenType.MARKER,','), // change this
+                            token: t, // change this
+                            op: ',',
                             precedency: 1,
                             leftToRight: false, // this may break later
                             type: OpType.INFIX,
@@ -88,7 +90,7 @@ export function expressionSyntaxParser(tokens:TokenIterator) {
                             if (!openOp.popable) break
                             applyOperator(openOp)
                         } while (ops.length)
-                        if (openOp.token.type != TokenType.MARKER || openOp.token.value != '(') t.throwDebug('cuts off other paren thing')
+                        if (openOp.op != '(') t.throwDebug('cuts off other paren thing')
                         if (fncalls.pop()) {
                             if (que.length<2) t.throwDebug('wth') // this doesn't work so well when there are no parameters xd
                             let argnode = que.pop() as ASTNode
@@ -118,14 +120,14 @@ export function expressionSyntaxParser(tokens:TokenIterator) {
                         let coptopush = opInfo(t,false)
                         pushOperator(coptopush,false)
                         let cop = opTop()
-                        if (cop && cop.token.type == TokenType.MARKER && cop.token.value == ',')
+                        if (cop && cop.token.type == TokenType.MARKER && cop.op == ',')
                             cop.operands++
                         else
                             ops.push(coptopush)
                         lastWasOperand = false
                         break
                     case ';':
-                        break tokenLoop
+                        return finish()
                     default:
                         t.throwDebug('marker not implemented')
                 }
@@ -149,14 +151,19 @@ export function expressionSyntaxParser(tokens:TokenIterator) {
                 t.throwDebug('tokentype not implemented')
         }
     }
-    for (let op of ops.reverse()) {
-        if (!op.popable) op.token.throwDebug('possible parenthesis mismatch')
-        applyOperator(op)
+
+    throw new Error('no end here thanks')
+
+    function finish() {
+        for (let op of ops.reverse()) {
+            if (!op.popable) op.token.throwDebug('possible parenthesis mismatch')
+            applyOperator(op)
+        }
+    
+        if (que.length > 1) throw 'hmm'
+    
+        return {ast:que[0],meta:{postfix}}
     }
-
-    if (que.length > 1) throw 'hmm'
-
-    return {ast:que[0],meta:{postfix}}
 
     function opTop() {return ops[ops.length-1]}
 
@@ -170,7 +177,7 @@ export function expressionSyntaxParser(tokens:TokenIterator) {
             let d = op.precedency - l.precedency
             if (d > 0) break
             else if (d == 0) {
-                if (op.leftToRight != l.leftToRight) throw new Error('associativity must match: '+op.token.value+' '+l.token.value)
+                if (op.leftToRight != l.leftToRight) throw new Error('associativity must match: '+op.op+' '+l.op)
                 if (!op.leftToRight) break
                 // there is a bug where unaries can be applied before
                 // the occurance of the actual operand.
@@ -198,10 +205,10 @@ export function expressionSyntaxParser(tokens:TokenIterator) {
                 }
                 const map = {[OpType.POSTFIX]:':post',[OpType.PREFIX]:':pre',[OpType.INFIX]:''}
                 que.push(node)
-                postfix.push(op.token.value+map[op.type])
+                postfix.push(op.op+map[op.type])
                 break
             case TokenType.MARKER:
-                switch (op.token.value) {
+                switch (op.op) {
                     case ',':
                         let list: ASTListNode = {
                             type: ASTNodeType.LIST,
@@ -211,7 +218,7 @@ export function expressionSyntaxParser(tokens:TokenIterator) {
                         postfix.push(','+op.operands)
                         break
                     default:
-                        throw new Error('could not use marker value '+op.token.value)
+                        throw new Error('could not use marker value '+op.op)
                 }
                 break
             default:
@@ -227,6 +234,7 @@ function opInfo(token:Token,prefix:boolean): Op {
     // console.log('opinfo',token.value,precedency,leftToRight,OpType[type])
     return {
         token,
+        op: token.value,
         precedency,
         leftToRight,
         type,

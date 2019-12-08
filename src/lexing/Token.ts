@@ -43,13 +43,8 @@ export class SourceLine implements Errorable {
 
 export class Token implements Errorable {
 
-    static fake(token:Token,type:TokenType,value:string) {
-        return new Token(token.line,token.index,type,value)
-    }
-
     constructor(
-        public readonly line: SourceLine,
-        public readonly index: number,
+        public readonly file: ParsingFile,
         public readonly type: TokenType,
         public readonly value: string
     ) {}
@@ -70,11 +65,27 @@ export class Token implements Errorable {
 
     throwDebug(e:string) {return this.fatal('DEBUG: '+e)}
 
-    fatal(e:string): never {return this.line.fatal(e,this.index,this.value.length)}
-    warn(e:string) {this.line.warn(e,this.index,this.value.length)}
+    fatal(e:string): never {throw new Error('Fatal: '+e)}
+    warn(e:string) {console.log('Warning: '+e)}
 
     throwUnexpectedKeyWord() {return this.fatal('Unexpected keyword: '+this.value)}
     throwNotDefined() {return this.fatal('Identifier not defined in this scope')}
+
+}
+
+export class TrueToken extends Token {
+
+    constructor(
+        public readonly line: SourceLine,
+        public readonly index: number,
+        type: TokenType,
+        value: string
+    ) {
+        super(line.file,type,value)
+    }
+
+    fatal(e:string) {return this.line.fatal(e,this.index,this.value.length)}
+    warn(e:string) {this.line.warn(e,this.index,this.value.length)}
 
 }
 

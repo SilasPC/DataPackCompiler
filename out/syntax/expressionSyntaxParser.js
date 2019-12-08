@@ -14,7 +14,7 @@ function expressionSyntaxParser(tokens) {
     let postfix = [];
     let fncalls = []; // store astnodes instead?
     let lastWasOperand = false;
-    tokenLoop: for (let t of tokens) {
+    for (let t of tokens) {
         switch (t.type) {
             case Token_1.TokenType.OPERATOR:
                 let opop = opInfo(t, !lastWasOperand);
@@ -48,6 +48,7 @@ function expressionSyntaxParser(tokens) {
                         fncalls.push(isFn);
                         pushOperator({
                             token: t,
+                            op: t.value,
                             precedency: 20 + (isFn ? 0 : 1),
                             leftToRight: true,
                             type: OpType.PREFIX,
@@ -56,7 +57,8 @@ function expressionSyntaxParser(tokens) {
                         });
                         if (isFn)
                             pushOperator({
-                                token: Token_1.Token.fake(t, Token_1.TokenType.MARKER, ','),
+                                token: t,
+                                op: ',',
                                 precedency: 1,
                                 leftToRight: false,
                                 type: OpType.INFIX,
@@ -77,7 +79,7 @@ function expressionSyntaxParser(tokens) {
                                 break;
                             applyOperator(openOp);
                         } while (ops.length);
-                        if (openOp.token.type != Token_1.TokenType.MARKER || openOp.token.value != '(')
+                        if (openOp.op != '(')
                             t.throwDebug('cuts off other paren thing');
                         if (fncalls.pop()) {
                             if (que.length < 2)
@@ -109,14 +111,14 @@ function expressionSyntaxParser(tokens) {
                         let coptopush = opInfo(t, false);
                         pushOperator(coptopush, false);
                         let cop = opTop();
-                        if (cop && cop.token.type == Token_1.TokenType.MARKER && cop.token.value == ',')
+                        if (cop && cop.token.type == Token_1.TokenType.MARKER && cop.op == ',')
                             cop.operands++;
                         else
                             ops.push(coptopush);
                         lastWasOperand = false;
                         break;
                     case ';':
-                        break tokenLoop;
+                        return finish();
                     default:
                         t.throwDebug('marker not implemented');
                 }
@@ -138,18 +140,21 @@ function expressionSyntaxParser(tokens) {
                 lastWasOperand = true;
                 break;
             default:
-                // const exhaust: never = t.type
+                //return exhaust(t.type)
                 t.throwDebug('tokentype not implemented');
         }
     }
-    for (let op of ops.reverse()) {
-        if (!op.popable)
-            op.token.throwDebug('possible parenthesis mismatch');
-        applyOperator(op);
+    throw new Error('no end here thanks');
+    function finish() {
+        for (let op of ops.reverse()) {
+            if (!op.popable)
+                op.token.throwDebug('possible parenthesis mismatch');
+            applyOperator(op);
+        }
+        if (que.length > 1)
+            throw 'hmm';
+        return { ast: que[0], meta: { postfix } };
     }
-    if (que.length > 1)
-        throw 'hmm';
-    return { ast: que[0], meta: { postfix } };
     function opTop() { return ops[ops.length - 1]; }
     function pushOperator(op, doPush = true) {
         // console.log('push out',postfix.join(' '))
@@ -165,7 +170,7 @@ function expressionSyntaxParser(tokens) {
                 break;
             else if (d == 0) {
                 if (op.leftToRight != l.leftToRight)
-                    throw new Error('associativity must match: ' + op.token.value + ' ' + l.token.value);
+                    throw new Error('associativity must match: ' + op.op + ' ' + l.op);
                 if (!op.leftToRight)
                     break;
                 // there is a bug where unaries can be applied before
@@ -195,10 +200,10 @@ function expressionSyntaxParser(tokens) {
                 };
                 const map = { [OpType.POSTFIX]: ':post', [OpType.PREFIX]: ':pre', [OpType.INFIX]: '' };
                 que.push(node);
-                postfix.push(op.token.value + map[op.type]);
+                postfix.push(op.op + map[op.type]);
                 break;
             case Token_1.TokenType.MARKER:
-                switch (op.token.value) {
+                switch (op.op) {
                     case ',':
                         let list = {
                             type: AST_1.ASTNodeType.LIST,
@@ -208,7 +213,7 @@ function expressionSyntaxParser(tokens) {
                         postfix.push(',' + op.operands);
                         break;
                     default:
-                        throw new Error('could not use marker value ' + op.token.value);
+                        throw new Error('could not use marker value ' + op.op);
                 }
                 break;
             default:
@@ -224,6 +229,7 @@ function opInfo(token, prefix) {
     // console.log('opinfo',token.value,precedency,leftToRight,OpType[type])
     return {
         token,
+        op: token.value,
         precedency,
         leftToRight,
         type,

@@ -6,6 +6,7 @@ const Types_1 = require("./Types");
 const Declaration_1 = require("./Declaration");
 const Lineals_1 = require("./Lineals");
 const expressionParser_1 = require("./expressionParser");
+const other_1 = require("../toolbox/other");
 function semanticsParser(pfile) {
     if (pfile.status == 'parsed')
         return;
@@ -52,7 +53,7 @@ function semanticsParser(pfile) {
             case AST_1.ASTNodeType.LIST:
                 throw new Error('wth man');
             default:
-                const exhaust = node;
+                return other_1.exhaust(node);
         }
     }
     pfile.status = 'parsed';
@@ -80,7 +81,7 @@ function parseBody(nodes, symbols, body) {
             case AST_1.ASTNodeType.EXPORT:
                 throw new Error('invalid ast structure');
             default:
-                const exhaust = node;
+                return other_1.exhaust(node);
         }
     }
 }

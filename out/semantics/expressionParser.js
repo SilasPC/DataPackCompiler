@@ -5,6 +5,7 @@ const Lineals_1 = require("./Lineals");
 const ESR_1 = require("./ESR");
 const Declaration_1 = require("./Declaration");
 const Types_1 = require("./Types");
+const other_1 = require("../toolbox/other");
 function exprParser(node, symbols, body) {
     switch (node.type) {
         case AST_1.ASTNodeType.IDENTIFIER: {
@@ -21,7 +22,7 @@ function exprParser(node, symbols, body) {
                             case Types_1.ElementaryValueType.VOID:
                                 return node.identifier.throwDebug('void var type wtf?');
                             default:
-                                const exhaust = iddecl.varType.type;
+                                return other_1.exhaust(iddecl.varType.type);
                         }
                     }
                     else {
@@ -30,7 +31,7 @@ function exprParser(node, symbols, body) {
                 case Declaration_1.DeclarationType.FUNCTION:
                     return node.identifier.throwDebug('non-invocation fn ref not implemented');
                 default:
-                    const exhaust = iddecl;
+                    return other_1.exhaust(iddecl);
             }
             throw new Error('should be unreachable?');
         }
@@ -66,7 +67,7 @@ function exprParser(node, symbols, body) {
                     case Types_1.ElementaryValueType.BOOL:
                         throw new Error('no bool ret rn');
                     default:
-                        const exhaust = fndecl.returnType.type;
+                        return other_1.exhaust(fndecl.returnType.type);
                 }
             }
             else {
@@ -81,10 +82,8 @@ function exprParser(node, symbols, body) {
         case AST_1.ASTNodeType.LIST:
             throw new Error('ohkayy');
         default:
-            const exhaust = node;
+            return other_1.exhaust(node);
     }
-    const exhaust = node;
-    throw new Error('exhaustion');
 }
 exports.exprParser = exprParser;
 function operator(node, symbols, body) {

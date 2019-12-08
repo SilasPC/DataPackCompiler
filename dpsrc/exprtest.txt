@@ -3,6 +3,11 @@ let a: int = 2;
 let b: int = 3;
 let c: bool = true;
 
+fn part(): void {
+    /particle smoke ${a+0} ${b+1} ${c+2}
+    /particle smoke ${a,b,c}
+}
+
 fn x(): void {
 	/from exprtest
 	a += a * b;

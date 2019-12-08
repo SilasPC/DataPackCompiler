@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Types_1 = require("./Types");
+const other_1 = require("../toolbox/other");
 var ESRType;
 (function (ESRType) {
     ESRType[ESRType["VOID"] = 0] = "VOID";
@@ -13,9 +14,8 @@ function getESRType(esr) {
         case ESRType.INT: return { elementary: true, type: Types_1.ElementaryValueType.INT };
         case ESRType.BOOL: return { elementary: true, type: Types_1.ElementaryValueType.BOOL };
         default:
-            const exhaust = esr;
+            return other_1.exhaust(esr);
     }
-    throw new Error('exhaustion');
 }
 exports.getESRType = getESRType;
 //# sourceMappingURL=ESR.js.map

@@ -5,7 +5,7 @@ import { Declaration, FnDeclaration, DeclarationType, VarDeclaration } from "./D
 import { tokenToType } from "./Types";
 import { exhaust } from "../toolbox/other";
 
-export function hoist(pfile:ParsingFile) {
+export function hoist(pfile:ParsingFile): void {
 
 	let symbols = pfile.getSymbolTable()
 	let ast = pfile.getAST()

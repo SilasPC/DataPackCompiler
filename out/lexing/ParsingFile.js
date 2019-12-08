@@ -53,7 +53,7 @@ class ParsingFile {
         return this.exports.get(identifier.value);
     }
     throwUnexpectedEOF() {
-        return this.tokens.pop().throw('Unexpected EOF');
+        return this.tokens.pop().fatal('Unexpected EOF');
     }
 }
 ParsingFile.files = new Map();

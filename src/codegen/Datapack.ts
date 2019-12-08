@@ -8,6 +8,7 @@ import { lexer as lexicalAnalysis } from "../lexing/lexer";
 import { fileSyntaxParser } from "../syntax/fileSyntaxParser";
 import { WeakCompilerOptions, CompilerOptions, compilerOptionDefaults } from "../toolbox/config";
 import { semanticsParser } from "../semantics/semanticsParser";
+import { ParsingFile } from "../lexing/ParsingFile";
 
 interface WeakPackJSON {
 	name?: string
@@ -56,7 +57,8 @@ export class Datapack {
 		let pfiles = files
 			.filter(f=>f.endsWith('.txt'))
 			.sort()
-			.map(lexicalAnalysis)
+			.map(ParsingFile.loadFile)
+		pfiles.forEach(lexicalAnalysis)
 		pfiles.forEach(fileSyntaxParser)
 		pfiles.forEach(semanticsParser)
 		throw new Error('no generator')

@@ -1,8 +1,9 @@
 
-import { Token, TokenType, SourceLine } from './Token'
+import { Token, TokenType, SourceLine, TrueToken } from './Token'
 import { ParsingFile } from './ParsingFile'
 import { exhaust } from '../toolbox/other'
 import 'array-flat-polyfill'
+import { LiveIterator } from './TokenIterator'
 
 const keywords = "fn|let|var|break|for|event|while|return|if|else|class|tick|import|const|from|export"
 const types = 'int|void|bool'
@@ -13,18 +14,20 @@ const symbol = "[a-zA-Z][a-zA-Z0-9]*"
 const markers = ";|:|\\.|,|\\(|\\)|\\[|\\]|\\{|\\}"
 const cmd = '/\\w.*?(?=\r?\n)'
 
-const regex = RegExp(
-    '(?<cmd>'+    cmd          +')|'+   // 1
-    '(?<cmt>'+    comments     +')|'+   // 2
-    '(?<ops>'+    operators    +')|'+   // 3
-    '(?<kwd>'+  keywords       +')|'+ // 4
-    '(?<typ>'+  types          +')|'+ // 5
-    '(?<pri>'+  primitives     +')|'+ // 6
-    '(?<sym>'+  symbol	     +')|'+ // 7
-    '(?<mrk>'+    markers	     +')|'+   // 8
-    '(?<nwl>\n)|(?<bad>\\S)', // 9, 10
-    'g'
-)
+function getRgx() {
+    return RegExp(
+        '(?<cmd>'+    cmd          +')|'+   // 1
+        '(?<cmt>'+    comments     +')|'+   // 2
+        '(?<ops>'+    operators    +')|'+   // 3
+        '(?<kwd>'+  keywords       +')|'+ // 4
+        '(?<typ>'+  types          +')|'+ // 5
+        '(?<pri>'+  primitives     +')|'+ // 6
+        '(?<sym>'+  symbol	     +')|'+ // 7
+        '(?<mrk>'+    markers	     +')|'+   // 8
+        '(?<nwl>\n)|(?<bad>\\S)', // 9, 10
+        'g'
+    )
+}
 
 type RgxGroup = 'cmd'|'cmt'|'ops'|'kwd'|'typ'|'pri'|'sym'|'mrk'|'nwl'|'bad'
 
@@ -42,51 +45,64 @@ function groupToType(g:Exclude<RgxGroup,'cmt'|'nwl'|'bad'>): TokenType {
     }
 }
 
-export function lexer(file:string): ParsingFile {
-    return lexRaw(ParsingFile.loadFile(file))
+export function lexer(pfile:ParsingFile): void {
+
+    for (let token of baseLex(pfile,pfile.source)) {
+        if (!token) throw new Error('wtf')
+        pfile.addToken(token)
+    }
+
 }
 
-export function lexRaw(pfile:ParsingFile): ParsingFile {
+function* baseLex(pfile:ParsingFile,source:string)/*: Generator<TrueToken,void>*/ {
 
-    let linesRaw = pfile.source.split('\n')
+    let linesRaw = source.split('\n')
 
-    regex.lastIndex = 0
     let line = new SourceLine(null,pfile,0,linesRaw[0],1)
-    let match
     let lineComment = false, inlineComment = false
-    while (match = regex.exec(pfile.source)) {
-        match.index
-        let t = match[0]
-        let groups = Object.entries(match.groups||{}).flatMap<string>(([k,v])=>v?k:[])
-        if (groups.length != 1) throw new Error('Regex should capture exactly one group')
-        let g = groups[0] as RgxGroup
-        if (g == 'nwl') {
+    for (let {group,value,index} of regexLexer(pfile.source)) {
+        if (group == 'nwl') {
             let oldLine = line
-            line = new SourceLine(line,pfile,match.index+1,linesRaw[line.nr],line.nr+1)
+            line = new SourceLine(line,pfile,index+1,linesRaw[line.nr],line.nr+1)
             oldLine.next = line
             lineComment = false
             continue
         }
         if (lineComment) continue
-        if (g == 'bad') {
-            return line.fatal('Invalid token',match.index-line.startIndex,t.length)
+        if (group == 'bad') {
+            return line.fatal('Invalid token',index-line.startIndex,value.length)
         }
-        if (g == 'cmt') {
-            if (t == '//') lineComment = true
-            if (t == '/*') inlineComment = true
-            if (t == '*/') {
+        if (group == 'cmt') {
+            if (value == '//') lineComment = true
+            if (value == '/*') inlineComment = true
+            if (value == '*/') {
                 if (!inlineComment) {
-                    return line.fatal('Unmatched',match.index-line.startIndex,t.length)
+                    return line.fatal('Unmatched',index-line.startIndex,value.length)
                 }
                 inlineComment = false
             }
             continue
         }
         if (inlineComment) continue
-        pfile.addToken(new Token(line,match.index-line.startIndex,groupToType(g),t))
+        yield new TrueToken(line,index-line.startIndex,groupToType(group),value)
     }
-    if (inlineComment) line.fatal('Unexpected EOF')
+    return
+}
 
-    return pfile
+// type LexYield = {group:RgxGroup,value:string,index:number}
+
+function* regexLexer(src:string)/*: Generator<LexYield,void>*/ {
+
+    let match: RegExpExecArray|null
+    let rgx = getRgx()
+    while (match = rgx.exec(src)) {
+        let value = match[0]
+        let groups = Object.entries(match.groups||{}).flatMap<string>(([k,v])=>v?k:[])
+        if (groups.length != 1) throw new Error('Regex should capture exactly one group')
+        let group = groups[0] as RgxGroup
+        yield {group,value,index:match.index}
+    }
+
+    return
 
 }

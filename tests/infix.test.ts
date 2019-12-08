@@ -1,7 +1,7 @@
 import { ParsingFile } from "../src/lexing/ParsingFile";
 import { expressionSyntaxParser } from "../src/syntax/expressionSyntaxParser";
 import { expect } from "chai";
-import { lexRaw } from "../src/lexing/lexer";
+import { lexer } from "../src/lexing/lexer";
 
 describe('infix conversion', () => {
 	it('left associativity', () => {
@@ -40,7 +40,7 @@ describe('infix conversion', () => {
 
 function postfix(infix:string): string {
 	const pfile = ParsingFile.fromSource(infix+';')
-	lexRaw(pfile)
+	lexer(pfile)
 	const iter = pfile.getTokenIterator()
 	const res = expressionSyntaxParser(
 		iter

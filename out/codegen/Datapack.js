@@ -8,6 +8,7 @@ const lexer_1 = require("../lexing/lexer");
 const fileSyntaxParser_1 = require("../syntax/fileSyntaxParser");
 const config_1 = require("../toolbox/config");
 const semanticsParser_1 = require("../semantics/semanticsParser");
+const ParsingFile_1 = require("../lexing/ParsingFile");
 class Datapack {
     constructor(name, srcDir, emitDir) {
         this.name = name;
@@ -32,7 +33,8 @@ class Datapack {
         let pfiles = files
             .filter(f => f.endsWith('.txt'))
             .sort()
-            .map(lexer_1.lexer);
+            .map(ParsingFile_1.ParsingFile.loadFile);
+        pfiles.forEach(lexer_1.lexer);
         pfiles.forEach(fileSyntaxParser_1.fileSyntaxParser);
         pfiles.forEach(semanticsParser_1.semanticsParser);
         throw new Error('no generator');

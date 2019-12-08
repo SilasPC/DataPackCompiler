@@ -9,7 +9,7 @@ import { Lineal, LinealType, INT_OP } from "./Lineals"
 import { exprParser } from "./expressionParser"
 import { exhaust } from "../toolbox/other"
 
-export function semanticsParser(pfile:ParsingFile) {
+export function semanticsParser(pfile:ParsingFile): void {
 	
 	if (pfile.status == 'parsed') return
 	if (pfile.status == 'parsing') throw new Error('circular parsing')
@@ -71,7 +71,7 @@ export function semanticsParser(pfile:ParsingFile) {
 
 }
 
-function parseBody(nodes:ASTNode[],symbols:SymbolTable,body:Lineal[]) {
+function parseBody(nodes:ASTNode[],symbols:SymbolTable,body:Lineal[]): void {
 	for (let node of nodes) {
 		switch (node.type) {
 			case ASTNodeType.COMMAND:
