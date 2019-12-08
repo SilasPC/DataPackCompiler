@@ -7,6 +7,7 @@ import { tokenToType, ElementaryValueType, ValueType, hasSharedType } from "./Ty
 import { DeclarationType, VarDeclaration, FnDeclaration } from "./Declaration"
 import { Lineal, LinealType, INT_OP } from "./Lineals"
 import { exprParser } from "./expressionParser"
+import { exhaust } from "../toolbox/other"
 
 export function semanticsParser(pfile:ParsingFile) {
 	
@@ -60,7 +61,7 @@ export function semanticsParser(pfile:ParsingFile) {
 					throw new Error('wth man')
 
 			default:
-				const exhaust: never = node
+				return exhaust(node)
 	
 		}
 
@@ -92,7 +93,7 @@ function parseBody(nodes:ASTNode[],symbols:SymbolTable,body:Lineal[]) {
 			case ASTNodeType.EXPORT:
 				throw new Error('invalid ast structure')
 			default:
-				const exhaust: never = node
+				return exhaust(node)
 		}
 	}
 }

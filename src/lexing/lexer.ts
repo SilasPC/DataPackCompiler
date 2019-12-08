@@ -1,6 +1,7 @@
 
 import { Token, TokenType, SourceLine } from './Token'
 import { ParsingFile } from './ParsingFile'
+import { exhaust } from '../toolbox/other'
 
 const keywords = "fn|let|var|break|for|event|while|return|if|else|class|tick|import|const|from|export"
 const types = 'int|void|bool'
@@ -12,38 +13,32 @@ const markers = ";|:|\\.|,|\\(|\\)|\\[|\\]|\\{|\\}"
 const cmd = '/\\w.*?(?=\r?\n)'
 
 const regex = RegExp(
-    '('+    cmd          +')|'+   // 1
-    '('+    comments     +')|'+   // 2
-    '('+    operators    +')|'+   // 3
-    '('+  keywords       +')|'+ // 4
-    '('+  types          +')|'+ // 5
-    '('+  primitives     +')|'+ // 6
-    '('+  symbol	     +')|'+ // 7
-    '('+    markers	     +')|'+   // 8
-    '(\n)|(\\S)', // 9, 10
+    '(?<cmd>'+    cmd          +')|'+   // 1
+    '(?<cmt>'+    comments     +')|'+   // 2
+    '(?<ops>'+    operators    +')|'+   // 3
+    '(?<kwd>'+  keywords       +')|'+ // 4
+    '(?<typ>'+  types          +')|'+ // 5
+    '(?<pri>'+  primitives     +')|'+ // 6
+    '(?<sym>'+  symbol	     +')|'+ // 7
+    '(?<mrk>'+    markers	     +')|'+   // 8
+    '(?<nwl>\n)|(?<bad>\\S)', // 9, 10
     'g'
 )
 
-function groupIndexToType(i:number): TokenType|ControlLexemes {
-    switch (i) {
-        case 1: return TokenType.COMMAND
-        case 2: return ControlLexemes.COMMENTS
-        case 3: return TokenType.OPERATOR
-        case 4: return TokenType.KEYWORD
-        case 5: return TokenType.TYPE
-        case 6: return TokenType.PRIMITIVE
-        case 7: return TokenType.SYMBOL
-        case 8: return TokenType.MARKER
-        case 9: return ControlLexemes.NEW_LINE
-        case 10: return ControlLexemes.INVALID
-        default: throw console.error(i)
-    }
-}
+type RgxGroup = 'cmd'|'cmt'|'ops'|'kwd'|'typ'|'pri'|'sym'|'mrk'|'nwl'|'bad'
 
-enum ControlLexemes {
-    COMMENTS = 'COMMENT',
-    NEW_LINE = 'NEW_LINE',
-    INVALID = 'INVALID'
+function groupToType(g:Exclude<RgxGroup,'cmt'|'nwl'|'bad'>): TokenType {
+    switch (g) {
+        case 'cmd': return TokenType.COMMAND
+        case 'ops': return TokenType.OPERATOR
+        case 'kwd': return TokenType.KEYWORD
+        case 'typ': return TokenType.TYPE
+        case 'pri': return TokenType.PRIMITIVE
+        case 'sym': return TokenType.SYMBOL
+        case 'mrk': return TokenType.MARKER
+        default:
+            return exhaust(g)
+    }
 }
 
 export function lexer(file:string): ParsingFile {
@@ -61,8 +56,10 @@ export function lexRaw(pfile:ParsingFile): ParsingFile {
     while (match = regex.exec(pfile.source)) {
         match.index
         let t = match[0]
-        let tt = groupIndexToType(match.indexOf(t,1))
-        if (tt == ControlLexemes.NEW_LINE) {
+        let groups = Object.keys(match.groups||{})
+        if (groups.length != 1) throw new Error('Regex should capture exactly one group')
+        let g = groups[0] as RgxGroup
+        if (g == 'nwl') {
             let oldLine = line
             line = new SourceLine(line,pfile,match.index+1,linesRaw[line.nr],line.nr+1)
             oldLine.next = line
@@ -70,26 +67,24 @@ export function lexRaw(pfile:ParsingFile): ParsingFile {
             continue
         }
         if (lineComment) continue
-        if (tt == ControlLexemes.INVALID) {
-            console.error(tt,line,match)
-            return new Token(line,match.index-line.startIndex,TokenType.MARKER,t).throwDebug('invalid char')
+        if (g == 'bad') {
+            return line.fatal('Invalid token',match.index-line.startIndex,t.length)
         }
-        if (tt == ControlLexemes.COMMENTS) {
+        if (g == 'cmt') {
             if (t == '//') lineComment = true
             if (t == '/*') inlineComment = true
             if (t == '*/') {
                 if (!inlineComment) {
-                    console.error(tt,line,match)
-                    return new Token(line,match.index-line.startIndex,TokenType.MARKER,t).throwDebug('not in comment')
+                    return line.fatal('Unmatched',match.index-line.startIndex,t.length)
                 }
                 inlineComment = false
             }
             continue
         }
         if (inlineComment) continue
-        pfile.addToken(new Token(line,match.index-line.startIndex,tt,t))
+        pfile.addToken(new Token(line,match.index-line.startIndex,groupToType(g),t))
     }
-    if (inlineComment) throw 'unexpected end of input in inline comment'
+    if (inlineComment) line.fatal('Unexpected EOF')
 
     return pfile
 

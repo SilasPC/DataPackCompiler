@@ -3,6 +3,7 @@ import { ParsingFile } from "../lexing/ParsingFile";
 import { ASTNodeType, ASTFnNode, ASTLetNode } from "../syntax/AST";
 import { Declaration, FnDeclaration, DeclarationType, VarDeclaration } from "./Declaration";
 import { tokenToType } from "./Types";
+import { exhaust } from "../toolbox/other";
 
 export function hoist(pfile:ParsingFile) {
 
@@ -52,7 +53,7 @@ export function hoist(pfile:ParsingFile) {
 				throw new Error('invalid ast structure in hoisting')
 
 			default:
-				const exhaust: never = node
+				return exhaust(node)
 		}
 
 	}

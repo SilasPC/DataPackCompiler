@@ -4,6 +4,7 @@ import { Lineal, INT_OP, LinealType } from "./Lineals"
 import { ESR, ESRType, IntESR } from "./ESR"
 import { DeclarationType } from "./Declaration"
 import { ElementaryValueType } from "./Types"
+import { exhaust } from "../toolbox/other"
 
 export function exprParser(node:ASTNode,symbols:SymbolTable,body:Lineal[]): ESR {
 
@@ -23,7 +24,7 @@ export function exprParser(node:ASTNode,symbols:SymbolTable,body:Lineal[]): ESR 
 							case ElementaryValueType.VOID:
 								return node.identifier.throwDebug('void var type wtf?')
 							default:
-								const exhaust: never = iddecl.varType.type
+								return exhaust(iddecl.varType.type)
 						}
 					} else {
 						return node.identifier.throwDebug('non-elementary ref not implemented')
@@ -31,7 +32,7 @@ export function exprParser(node:ASTNode,symbols:SymbolTable,body:Lineal[]): ESR 
 				case DeclarationType.FUNCTION:
 						return node.identifier.throwDebug('non-invocation fn ref not implemented')
 				default:
-					const exhaust: never = iddecl
+					return exhaust(iddecl)
 			}
 			throw new Error('should be unreachable?')
 		}
@@ -65,7 +66,7 @@ export function exprParser(node:ASTNode,symbols:SymbolTable,body:Lineal[]): ESR 
 					case ElementaryValueType.BOOL:
 						throw new Error('no bool ret rn')
 					default:
-						const exhaust: never = fndecl.returnType.type
+						return exhaust(fndecl.returnType.type)
 				}
 			} else {
 				throw new Error('non elementary return value not supported yet')
@@ -81,12 +82,9 @@ export function exprParser(node:ASTNode,symbols:SymbolTable,body:Lineal[]): ESR 
 			throw new Error('ohkayy')
 		
 		default:
-			const exhaust: never = node
+			return exhaust(node)
 
 	}
-
-	const exhaust: never = node
-	throw new Error('exhaustion')
 
 }
 

@@ -65,7 +65,7 @@ export class ParsingFile {
     }
 
     throwUnexpectedEOF() {
-        return (<Token>this.tokens.pop()).throw('Unexpected EOF')
+        return (<Token>this.tokens.pop()).fatal('Unexpected EOF')
     }
 
 }

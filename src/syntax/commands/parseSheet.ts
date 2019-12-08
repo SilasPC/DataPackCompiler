@@ -6,6 +6,7 @@ Array.prototype.flatMap = function flatMap(this: any, cb:any) {
 	return (this as any).map(cb).reduce((acc:any[],v:any)=>acc.concat(v),[] as any[])
 } as any
 
+// It's actually more an arbitrary directed graph than a tree
 type Tree = Map<string,[string[],Tree_]>
 interface Tree_ extends Tree {}
 

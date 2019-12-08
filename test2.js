@@ -2,7 +2,7 @@
 const { parseSheet } = require('./out/syntax/commands/validateCommand')
 const { promises: fs } = require('fs')
 
-fs.readFile('./src/syntax/commands/syntaxsheet.txt')
+fs.readFile('./src/syntax/commands/sheets/1.15.txt')
 .then(String)
 .then(parseSheet)
 .then(n=>{

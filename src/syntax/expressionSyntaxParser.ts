@@ -3,6 +3,7 @@ import { Token, TokenType } from "../lexing/Token";
 import { ASTNode, ASTNodeType, ASTIdentifierNode, ASTPrimitiveNode, ASTOpNode, ASTCallNode, ASTListNode } from "./AST";
 import { TokenIterator } from "../lexing/TokenIterator";
 import { CompilerOptions } from "../toolbox/config";
+import { exhaust } from "../toolbox/other";
 
 enum OpType {
     INFIX,
@@ -144,7 +145,7 @@ export function expressionSyntaxParser(tokens:TokenIterator) {
                 lastWasOperand = true
                 break
             default:
-                // const exhaust: never = t.type
+                //return exhaust(t.type)
                 t.throwDebug('tokentype not implemented')
         }
     }

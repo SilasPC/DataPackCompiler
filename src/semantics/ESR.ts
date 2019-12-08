@@ -1,4 +1,5 @@
 import { ValueType, ElementaryValueType } from "./Types";
+import { exhaust } from "../toolbox/other";
 
 export type ESR = VoidESR | IntESR | BoolESR
 
@@ -38,7 +39,6 @@ export function getESRType(esr:ESR): ValueType {
 		case ESRType.INT: return {elementary:true,type:ElementaryValueType.INT}
 		case ESRType.BOOL: return {elementary:true,type:ElementaryValueType.BOOL}
 		default:
-			const exhaust: never = esr
+			return exhaust(esr)
 	}
-	throw new Error('exhaustion')
 }
