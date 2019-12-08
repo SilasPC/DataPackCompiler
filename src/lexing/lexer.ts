@@ -2,6 +2,7 @@
 import { Token, TokenType, SourceLine } from './Token'
 import { ParsingFile } from './ParsingFile'
 import { exhaust } from '../toolbox/other'
+import 'array-flat-polyfill'
 
 const keywords = "fn|let|var|break|for|event|while|return|if|else|class|tick|import|const|from|export"
 const types = 'int|void|bool'
@@ -56,7 +57,7 @@ export function lexRaw(pfile:ParsingFile): ParsingFile {
     while (match = regex.exec(pfile.source)) {
         match.index
         let t = match[0]
-        let groups = Object.keys(match.groups||{})
+        let groups = Object.entries(match.groups||{}).flatMap<string>(([k,v])=>v?k:[])
         if (groups.length != 1) throw new Error('Regex should capture exactly one group')
         let g = groups[0] as RgxGroup
         if (g == 'nwl') {

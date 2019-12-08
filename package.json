@@ -12,6 +12,7 @@
   "dependencies": {
     "@types/chai": "^4.2.6",
     "@types/mocha": "^5.2.7",
+    "array-flat-polyfill": "^1.0.1",
     "chai": "^4.2.0",
     "cross-env": "^6.0.3",
     "mocha": "^6.2.2",
