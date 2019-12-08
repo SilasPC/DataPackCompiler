@@ -16,7 +16,7 @@ bossbar
     players <selector>
     style progress|notched_6|notched_10|notched_12|notched20
     value <uint>
-    visible true|false
+    visible  true|false
 
 clear [<selector>] [<id>] [<uint>]
 
@@ -67,11 +67,6 @@ effect
 
 enchant <player> <id> [uint]
 
-experience
-  add <player> <int> [points|levels]
-  set <players> <uint> [points|levels]
-  query <player> points|levels
-
 :exe
   at <selector> <:exe>
   as <selector> <:exe>
@@ -106,6 +101,11 @@ experience
 
 execute <:exe>
 
+experience
+  add <player> <int> [points|levels]
+  set <players> <uint> [points|levels]
+  query <player> points|levels
+
 fill <cords> <cords> <id> [
   destroy|hollow|keep|outline
   replace <id>
@@ -118,4 +118,94 @@ forceload
 function <id>
 
 gamemode adventure|creative|spectator|survival [player]
+
 gamerule <name> [true|false|<int>]
+
+help [<text>]
+
+give <players> <id> [<pint>]
+
+kick <players> [<text>]
+
+kill [<entities>]
+
+list [uuids]
+
+# add possibilities here
+locate
+
+:lootarg
+  fish <id> <coords> [<id>]
+  kill <entity>
+  loot <id>
+  mine <coords> [<id>]
+
+
+loot
+  give <players> <:lootarg>
+  insert|spawn <coords> <:lootarg>
+  replace
+    block <coords> <id> <:lootarg>
+    entity <entities> <id> <:lootarg>
+
+me <text>
+
+msg|w|tell <players> <text>
+
+particle <id> [<coords>] [<coords>] [<ufloat>] [<pint>] [force|normal]
+
+playsound <id> [ambient|block|hostile|master|music|neutral|player|record|voice|weather] [<players>] [<coords>] [<ufloat>] [<ufloat>]
+
+publish [<uint>]
+
+recipe give|take <players> *|<id>
+
+reload
+
+#replaceitem
+
+say <text>
+
+schedule
+  clear <id>
+  function <id> <time> [append|replace]
+
+#scoreboard
+
+schedule
+
+#setblock
+
+setworldspawn [<coords>]
+
+spectate [<entity>]
+
+#spreadplayers
+
+#stopsound
+
+#summon
+
+tag <entities>
+  add|remove <text>
+  list
+
+#team
+
+#teammsg|tm
+
+#teleport|tp
+
+#tellraw
+
+#time
+
+#title
+
+#trigger
+
+#weather
+
+#worldborder
+
+#experience|xp

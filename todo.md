@@ -10,3 +10,4 @@
 - Functional appraoch like (-123).abs()
 - Oregenerators
 - Classes or something
+- Events

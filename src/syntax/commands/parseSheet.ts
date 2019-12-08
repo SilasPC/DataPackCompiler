@@ -14,7 +14,7 @@ function buildTree(src:string): Tree {
 	let lines = src
 		.replace(/\r/g,'')
 		.split('\n')
-		.flatMap((l,i)=>l.trim().length?[{l,i}]:[] as {l:string,i:number}[])
+		.flatMap((l,i)=>!l.startsWith('#')&&l.trim().length?[{l,i}]:[] as {l:string,i:number}[])
 
 	let tree: Tree = new Map()
 	let stack: Tree[] = [tree]
