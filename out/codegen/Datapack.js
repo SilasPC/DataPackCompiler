@@ -9,12 +9,13 @@ const fileSyntaxParser_1 = require("../syntax/fileSyntaxParser");
 const config_1 = require("../toolbox/config");
 const semanticsParser_1 = require("../semantics/semanticsParser");
 const ParsingFile_1 = require("../lexing/ParsingFile");
+const CompileContext_1 = require("../toolbox/CompileContext");
+const SyntaxSheet_1 = require("../commands/SyntaxSheet");
 class Datapack {
     constructor(name, srcDir, emitDir) {
         this.name = name;
         this.srcDir = srcDir;
         this.emitDir = emitDir;
-        this.config = null;
         this.tickFile = [];
         this.loadFile = [];
         //public readonly publicVariableScoreboard = generateIdentifier()
@@ -26,11 +27,12 @@ class Datapack {
     addFnFile(f) { this.files.push(f); }
     async compile() {
         const files = await recursiveSearch(this.srcDir);
-        let packJson = path_1.join(this.srcDir, 'pack.json');
+        const packJson = path_1.join(this.srcDir, 'pack.json');
         if (!files.includes(packJson))
             throw new Error('pack.json not found');
-        this.setConfigDefaults(JSON.parse((await fs_1.promises.readFile(packJson)).toString()));
-        let pfiles = files
+        const cfg = this.configDefaults(JSON.parse((await fs_1.promises.readFile(packJson)).toString()));
+        const ctx = new CompileContext_1.CompileContext(cfg.compilerOptions, await SyntaxSheet_1.SyntaxSheet.load(cfg.compilerOptions.targetVersion));
+        const pfiles = files
             .filter(f => f.endsWith('.txt'))
             .sort()
             .map(ParsingFile_1.ParsingFile.loadFile);
@@ -41,15 +43,13 @@ class Datapack {
         //pfiles.forEach(pf=>generateCode(pf,this))
     }
     async emit() {
-        if (this.config == null)
-            throw new Error('Config not set');
         let delPath = path_1.resolve(this.emitDir);
         let cmd = 'rmdir /Q /S ' + delPath;
         await execp(cmd); // this is vulnerable to shell code injection
         await fs_1.promises.mkdir(this.emitDir);
         await fs_1.promises.writeFile(this.emitDir + '/pack.mcmeta', JSON.stringify({
             pack: {
-                description: this.config.description
+                description: 'hello' //this.config.description
             }
         }));
         await fs_1.promises.mkdir(this.emitDir + '/data');
@@ -71,8 +71,8 @@ class Datapack {
             values: ['tmp/load']
         }));
     }
-    setConfigDefaults(cfg) {
-        this.config = {
+    configDefaults(cfg) {
+        return {
             name: def(cfg.name, 'A compiled datapack'),
             description: def(cfg.description, 'A description'),
             compilerOptions: config_1.compilerOptionDefaults(cfg.compilerOptions),

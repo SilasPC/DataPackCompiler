@@ -14,6 +14,7 @@ function compilerOptionDefaults(cfg) {
         optimize: def(cfg.optimize, false),
         noUnused: def(cfg.noUnused, false),
         verbose: def(cfg.verbose, false),
+        targetVersion: def(cfg.targetVersion, 'latest')
     };
 }
 exports.compilerOptionDefaults = compilerOptionDefaults;

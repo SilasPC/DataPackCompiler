@@ -44,7 +44,6 @@ export class SourceLine implements Errorable {
 export class Token implements Errorable {
 
     constructor(
-        public readonly file: ParsingFile,
         public readonly type: TokenType,
         public readonly value: string
     ) {}
@@ -81,7 +80,7 @@ export class TrueToken extends Token {
         type: TokenType,
         value: string
     ) {
-        super(line.file,type,value)
+        super(type,value)
     }
 
     fatal(e:string) {return this.line.fatal(e,this.index,this.value.length)}

@@ -78,11 +78,13 @@ function* baseLex(pfile, source) {
             continue;
         yield new Token_1.TrueToken(line, index - line.startIndex, groupToType(group), value);
     }
+    return;
 }
 // type LexYield = {group:RgxGroup,value:string,index:number}
 function* regexLexer(src) {
     let match;
-    while (match = getRgx().exec(src)) {
+    let rgx = getRgx();
+    while (match = rgx.exec(src)) {
         let value = match[0];
         let groups = Object.entries(match.groups || {}).flatMap(([k, v]) => v ? k : []);
         if (groups.length != 1)
@@ -90,5 +92,6 @@ function* regexLexer(src) {
         let group = groups[0];
         yield { group, value, index: match.index };
     }
+    return;
 }
 //# sourceMappingURL=lexer.js.map

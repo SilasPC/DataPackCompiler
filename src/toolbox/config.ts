@@ -11,6 +11,7 @@ export interface WeakCompilerOptions {
 	noInference?: boolean
 	noImplicitCast?: boolean
 	ignoreUnreachable?: boolean
+	targetVersion?: string
 }
 
 export function compilerOptionDefaults(cfg?:WeakCompilerOptions): CompilerOptions {
@@ -26,6 +27,7 @@ export function compilerOptionDefaults(cfg?:WeakCompilerOptions): CompilerOption
 		optimize: def(cfg.optimize,false),
 		noUnused: def(cfg.noUnused,false),
 		verbose: def(cfg.verbose,false),
+		targetVersion: def(cfg.targetVersion,'latest')
 	}
 }
 

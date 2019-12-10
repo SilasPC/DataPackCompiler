@@ -1,21 +1,69 @@
-import { ASTCmdNode } from "../AST";
-import { Token } from "../../lexing/Token";
+import { ASTCmdNode } from "../syntax/AST";
+import { Token } from "../lexing/Token";
 import { callbackify } from "util";
+import { promises as fs } from 'fs'
+import { dirname } from "path";
+import { CMDNode, RootCMDNode } from "./CMDNode";
+import 'array-flat-polyfill'
 
-Array.prototype.flatMap = function flatMap(this: any, cb:any) {
-	return (this as any).map(cb).reduce((acc:any[],v:any)=>acc.concat(v),[] as any[])
-} as any
+export function fromString(string:string): RootCMDNode {
+	let root = new RootCMDNode('',false,[])
+	let def: Def = new Map([['',[root]]])
+	let lines = transformString(string)
+	if (lines.some(l=>l.l.startsWith('@include'))) throw new Error('no includes in string sheet')
+	root.children.push(...parseTree(buildTree(transformString(string)),[def]))
+	return root
+}
+
+export async function fromSheet(sheet:string): Promise<RootCMDNode> {
+	let root = new RootCMDNode('',false,[])
+	let def: Def = new Map([['',[root]]])
+	root.children.push(...parseTree(buildTree(await readSheet('./sheets/'+sheet+'.txt')),[def]))
+	return root
+}
 
 // It's actually more an arbitrary directed graph than a tree
 type Tree = Map<string,[string[],Tree_]>
 interface Tree_ extends Tree {}
 
-function buildTree(src:string): Tree {
+type IndexedLines = {i:number,l:string}[]
 
-	let lines = src
+function transformString(source:string): IndexedLines {
+	return source
 		.replace(/\r/g,'')
 		.split('\n')
 		.flatMap((l,i)=>!l.startsWith('#')&&l.trim().length?[{l,i}]:[] as {l:string,i:number}[])
+}
+
+async function readSheet(file:string): Promise<IndexedLines> {
+	
+	let dir = dirname(file)
+	let lines = transformString((await fs.readFile(file)).toString())
+
+	let includes: [number,{l:string,i:number}[]][] = []
+	for (let i = 0; i < lines.length; i++) {
+		let line = lines[i]
+		if (line.l.startsWith('@include')) {
+			let files = line.l.split(' ').slice(1)
+			for await (let file of files) {
+				includes.push([
+					i,
+					await readSheet(dir+'/'+file+'.txt')
+				])
+			}
+		}
+	}
+	
+	for (let [index,ins] of includes.reverse()) {
+		if (!lines[index].l.startsWith('@include')) throw new Error('include error?')
+		lines.splice(index,1,...ins)
+	}
+
+	return lines
+
+}
+
+function buildTree(lines:IndexedLines): Tree {	
 
 	let tree: Tree = new Map()
 	let stack: Tree[] = [tree]
@@ -42,16 +90,6 @@ function buildTree(src:string): Tree {
 }
 
 type Def = Map<string,CMDNode[]>
-
-export function parseSheet(src:string) {
-
-	let root = new RootCMDNode('',false,[])
-	let def: Def = new Map([['',[root]]])
-	root.children.push(...parseTree(buildTree(src),[def]))
-
-	return root
-
-}
 
 function parseTree(tree:Tree,defs:Def[]): CMDNode[] {
 
@@ -125,47 +163,4 @@ function parseSpecial(sub:string,children:Tree,findDef:(str:string)=>CMDNode[]|u
 		}
 	}
 	return {sub}
-}
-
-class CMDNode {
-
-	constructor(
-		public readonly token: string,
-		public readonly restOptional: boolean,
-		public children: CMDNode[]
-	) {}
-
-	test(cmd:string,i=0): boolean {
-		let j = cmd.indexOf(' ',i)
-		if (j == -1) j = cmd.length
-		if (!this.token.startsWith(cmd.slice(i,j))) return false
-		if (cmd.length == j) return this.restOptional || this.children.length == 0
-		let [s,...d] = this.children.filter(c=>c.testShallow(cmd,j+1))
-		if (d.length) this.children.filter(c=>c.testShallow(cmd,j+1,true)) // try strict equal
-		if (d.length) return false // cannot have more than one match
-		if (!s) return false
-		return s.test(cmd,j+1)
-	}
-
-	testShallow(cmd:string,i=0,se=false) {
-		if (cmd.length <= i) return this.restOptional
-		let x = cmd.slice(i).split(' ')[0]
-		return se ? this.token.startsWith(x) : this.token == x
-	}
-
-}
-
-class RootCMDNode extends CMDNode {
-
-	test(cmd:string,i=0) {
-		let [s,...d] = this.children.filter(c=>c.testShallow(cmd,i))
-		if (d.length) return false // cannot have more than one match
-		if (!s) return false
-		return s.test(cmd,i)
-	}
-
-	testShallow() {
-		return true
-	}
-
 }

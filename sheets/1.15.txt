@@ -1,4 +1,6 @@
 
+@include latest
+
 advancement grant|revoke <player>
   only <id> [<id>]
   until|from|through <id>

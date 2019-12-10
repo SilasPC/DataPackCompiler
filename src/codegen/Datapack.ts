@@ -9,6 +9,8 @@ import { fileSyntaxParser } from "../syntax/fileSyntaxParser";
 import { WeakCompilerOptions, CompilerOptions, compilerOptionDefaults } from "../toolbox/config";
 import { semanticsParser } from "../semantics/semanticsParser";
 import { ParsingFile } from "../lexing/ParsingFile";
+import { CompileContext } from "../toolbox/CompileContext";
+import { SyntaxSheet } from "../commands/SyntaxSheet";
 
 interface WeakPackJSON {
 	name?: string
@@ -22,8 +24,6 @@ interface PackJSON extends Required<WeakPackJSON> {
 }
 
 export class Datapack {
-
-	public config: PackJSON|null = null
 
 	private tickFile: string[] = []
 	private loadFile: string[] = []
@@ -50,11 +50,16 @@ export class Datapack {
 	async compile() {
 
 		const files = await recursiveSearch(this.srcDir)
-		let packJson = join(this.srcDir,'pack.json')
+		const packJson = join(this.srcDir,'pack.json')
 		if (!files.includes(packJson)) throw new Error('pack.json not found')
-		this.setConfigDefaults(JSON.parse((await fs.readFile(packJson)).toString()))
+		const cfg = this.configDefaults(JSON.parse((await fs.readFile(packJson)).toString()))
 
-		let pfiles = files
+		const ctx = new CompileContext(
+			cfg.compilerOptions,
+			await SyntaxSheet.load(cfg.compilerOptions.targetVersion)
+		)
+
+		const pfiles = files
 			.filter(f=>f.endsWith('.txt'))
 			.sort()
 			.map(ParsingFile.loadFile)
@@ -67,14 +72,13 @@ export class Datapack {
 	}
 
 	async emit() {
-		if (this.config == null) throw new Error('Config not set')
 		let delPath = resolvePath(this.emitDir)
 		let cmd = 'rmdir /Q /S '+delPath
 		await execp(cmd) // this is vulnerable to shell code injection
 		await fs.mkdir(this.emitDir)
 		await fs.writeFile(this.emitDir+'/pack.mcmeta',JSON.stringify({
 			pack: {
-				description: this.config.description
+				description: 'hello' //this.config.description
 			}
 		}))
 		await fs.mkdir(this.emitDir+'/data')
@@ -99,8 +103,8 @@ export class Datapack {
 		}))
 	}
 
-	private setConfigDefaults(cfg:WeakPackJSON) {
-		this.config = {
+	private configDefaults(cfg:WeakPackJSON): PackJSON {
+		return {
 			name: def(cfg.name,'A compiled datapack'),
 			description: def(cfg.description,'A description'),
 			compilerOptions: compilerOptionDefaults(cfg.compilerOptions),

@@ -40,8 +40,7 @@ class SourceLine {
 }
 exports.SourceLine = SourceLine;
 class Token {
-    constructor(file, type, value) {
-        this.file = file;
+    constructor(type, value) {
         this.type = type;
         this.value = value;
     }
@@ -67,7 +66,7 @@ class Token {
 exports.Token = Token;
 class TrueToken extends Token {
     constructor(line, index, type, value) {
-        super(line.file, type, value);
+        super(type, value);
         this.line = line;
         this.index = index;
     }
