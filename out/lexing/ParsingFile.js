@@ -17,21 +17,21 @@ class ParsingFile {
     }
     static isLoaded(path) {
         let fullPath = path_1.resolve(path);
-        return this.files.has(fullPath);
+        return ParsingFile.files.has(fullPath);
     }
     static getFile(path) {
-        if (!this.isLoaded(path))
+        if (!ParsingFile.isLoaded(path))
             throw new Error('Tried getting a non-loaded file');
         let fullPath = path_1.resolve(path);
-        return this.files.get(fullPath);
+        return ParsingFile.files.get(fullPath);
     }
     static loadFile(path) {
-        if (this.isLoaded(path))
+        if (ParsingFile.isLoaded(path))
             throw new Error('Tried re-loading a file');
         let fullPath = path_1.resolve(path);
         let relativePath = './' + path_1.relative('./', fullPath).replace('\\', '/').split('.').slice(0, -1).join('.');
         let file = new ParsingFile(fullPath, relativePath, fs_1.readFileSync(fullPath).toString());
-        this.files.set(fullPath, file);
+        ParsingFile.files.set(fullPath, file);
         return file;
     }
     static fromSource(source) {

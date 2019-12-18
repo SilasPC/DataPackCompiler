@@ -3,14 +3,26 @@ let a: int = 2;
 let b: int = 3;
 let c: bool = true;
 
+    /**************/
+    /* Hiya there */
+    /*    ()()    */
+    /*  \(^.^)/   */
+    /*    ( . )   */
+    /*     ¨ ¨    */
+    /* You like.. */
+    /*  ..coding? */
+    /* I sure do! */
+    /**************/
+
+fn x(y:bool): void {
+	/from exprtest
+	a += a * b;
+}
+
 fn part(): void {
     /particle smoke ${a+0} ${b+1} ${c+2}
     /particle smoke ${a,b,c}
-}
-
-fn x(): void {
-	/from exprtest
-	a += a * b;
+    x(true);
 }
 
 /*

@@ -7,7 +7,7 @@ const Declaration_1 = require("./Declaration");
 const Lineals_1 = require("./Lineals");
 const expressionParser_1 = require("./expressionParser");
 const other_1 = require("../toolbox/other");
-function semanticsParser(pfile) {
+function semanticsParser(pfile, ctx) {
     if (pfile.status == 'parsed')
         return;
     if (pfile.status == 'parsing')

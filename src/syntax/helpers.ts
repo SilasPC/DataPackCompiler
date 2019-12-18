@@ -1,9 +1,9 @@
 
 import { TokenType, Token } from "../lexing/Token";
 import { ASTNode, ASTExportNode, ASTNodeType } from "./AST";
-import { TokenIterator } from "../lexing/TokenIterator";
+import { TokenIterator, TokenIteratorI } from "../lexing/TokenIterator";
 
-export function getType(iter:TokenIterator): Token {
+export function getType(iter:TokenIteratorI): Token {
     iter.next().expectType(TokenType.MARKER).expectValue(':')
     return iter.next().expectType(TokenType.SYMBOL,TokenType.TYPE)
 }

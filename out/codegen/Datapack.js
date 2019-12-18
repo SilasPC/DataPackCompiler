@@ -31,14 +31,19 @@ class Datapack {
         if (!files.includes(packJson))
             throw new Error('pack.json not found');
         const cfg = this.configDefaults(JSON.parse((await fs_1.promises.readFile(packJson)).toString()));
+        const srcFiles = files.filter(f => f.endsWith('.txt'));
         const ctx = new CompileContext_1.CompileContext(cfg.compilerOptions, await SyntaxSheet_1.SyntaxSheet.load(cfg.compilerOptions.targetVersion));
-        const pfiles = files
-            .filter(f => f.endsWith('.txt'))
-            .sort()
+        ctx.log(1, `Begin compilation`);
+        const pfiles = srcFiles
+            .sort() // ensure same load order every run
             .map(ParsingFile_1.ParsingFile.loadFile);
-        pfiles.forEach(lexer_1.lexer);
-        pfiles.forEach(fileSyntaxParser_1.fileSyntaxParser);
-        pfiles.forEach(semanticsParser_1.semanticsParser);
+        ctx.log(1, `Loaded ${srcFiles.length} file(s)`);
+        pfiles.forEach(pf => lexer_1.lexer(pf, ctx));
+        ctx.log(1, `Lexical analysis complete`);
+        pfiles.forEach(pf => fileSyntaxParser_1.fileSyntaxParser(pf, ctx));
+        ctx.log(1, `Syntax analysis complete`);
+        pfiles.forEach(pf => semanticsParser_1.semanticsParser(pf, ctx));
+        ctx.log(1, `Semantic analysis complete`);
         throw new Error('no generator');
         //pfiles.forEach(pf=>generateCode(pf,this))
     }

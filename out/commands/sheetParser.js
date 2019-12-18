@@ -3,16 +3,33 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const fs_1 = require("fs");
 const path_1 = require("path");
 const CMDNode_1 = require("./CMDNode");
-Array.prototype.flatMap = function flatMap(cb) {
-    return this.map(cb).reduce((acc, v) => acc.concat(v), []);
-};
-async function readSheet(file) {
-    let dir = path_1.dirname(file);
-    let lines = (await fs_1.promises.readFile(file))
-        .toString()
+require("array-flat-polyfill");
+function fromString(string) {
+    let root = new CMDNode_1.RootCMDNode('', false, []);
+    let def = new Map([['', [root]]]);
+    let lines = transformString(string);
+    if (lines.some(l => l.l.startsWith('@include')))
+        throw new Error('no includes in string sheet');
+    root.children.push(...parseTree(buildTree(transformString(string)), [def]));
+    return root;
+}
+exports.fromString = fromString;
+async function fromSheet(sheet) {
+    let root = new CMDNode_1.RootCMDNode('', false, []);
+    let def = new Map([['', [root]]]);
+    root.children.push(...parseTree(buildTree(await readSheet('./sheets/' + sheet + '.txt')), [def]));
+    return root;
+}
+exports.fromSheet = fromSheet;
+function transformString(source) {
+    return source
         .replace(/\r/g, '')
         .split('\n')
         .flatMap((l, i) => !l.startsWith('#') && l.trim().length ? [{ l, i }] : []);
+}
+async function readSheet(file) {
+    let dir = path_1.dirname(file);
+    let lines = transformString((await fs_1.promises.readFile(file)).toString());
     let includes = [];
     for (let i = 0; i < lines.length; i++) {
         let line = lines[i];
@@ -33,8 +50,7 @@ async function readSheet(file) {
     }
     return lines;
 }
-async function buildTree(file) {
-    let lines = await readSheet(file);
+function buildTree(lines) {
     let tree = new Map();
     let stack = [tree];
     for (let { l: line, i } of lines) {
@@ -61,7 +77,6 @@ async function buildTree(file) {
     }
     return stack[0];
 }
-exports.buildTree = buildTree;
 function parseTree(tree, defs) {
     let localDefs = new Map();
     defs = [...defs, localDefs];
@@ -123,7 +138,6 @@ function parseTree(tree, defs) {
     }
     return ret;
 }
-exports.parseTree = parseTree;
 function parseSpecial(sub, children, findDef) {
     if (sub.startsWith('<') && sub.endsWith('>')) {
         let spec = sub.slice(1, -1);

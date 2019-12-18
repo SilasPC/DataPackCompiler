@@ -11,7 +11,7 @@
 		"emitComments": false,
 		"optimize": false,
 		"noUnused": false,
-		"verbose": false,
+		"verbosity": 5,
 		"noInference": true,
 		"noImplicitCast": true,
 		"target": "1.15"

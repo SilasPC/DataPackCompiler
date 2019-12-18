@@ -12,6 +12,10 @@ export class SyntaxSheet {
 		return new SyntaxSheet(await fromSheet(version))
 	}
 
+	public static getNullSheet() {
+		return new SyntaxSheet(new RootCMDNode('',false,[]))
+	}
+
 	private constructor(
 		private readonly root: RootCMDNode
 	) {}

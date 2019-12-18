@@ -1,9 +1,10 @@
 
 import { Token, TokenType } from "../lexing/Token";
 import { ASTNode, ASTNodeType, ASTIdentifierNode, ASTPrimitiveNode, ASTOpNode, ASTCallNode, ASTListNode } from "./AST";
-import { TokenIterator } from "../lexing/TokenIterator";
+import { TokenIterator, TokenIteratorI } from "../lexing/TokenIterator";
 import { CompilerOptions } from "../toolbox/config";
 import { exhaust } from "../toolbox/other";
+import { CompileContext } from "../toolbox/CompileContext";
 
 enum OpType {
     INFIX,
@@ -21,7 +22,7 @@ type Op = {
     popable: boolean
 }
 
-export function expressionSyntaxParser(tokens:TokenIterator) {
+export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext) {
 
     let ops: Op[] = []
     let que: ASTNode[] = []

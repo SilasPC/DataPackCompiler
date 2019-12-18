@@ -8,8 +8,9 @@ import { DeclarationType, VarDeclaration, FnDeclaration } from "./Declaration"
 import { Lineal, LinealType, INT_OP } from "./Lineals"
 import { exprParser } from "./expressionParser"
 import { exhaust } from "../toolbox/other"
+import { CompileContext } from "../toolbox/CompileContext"
 
-export function semanticsParser(pfile:ParsingFile): void {
+export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): void {
 	
 	if (pfile.status == 'parsed') return
 	if (pfile.status == 'parsing') throw new Error('circular parsing')

@@ -2,6 +2,7 @@ import { ParsingFile } from "../src/lexing/ParsingFile";
 import { expressionSyntaxParser } from "../src/syntax/expressionSyntaxParser";
 import { expect } from "chai";
 import { lexer } from "../src/lexing/lexer";
+import { CompileContext } from "../src/toolbox/CompileContext";
 
 describe('infix conversion', () => {
 	it('left associativity', () => {
@@ -40,10 +41,11 @@ describe('infix conversion', () => {
 
 function postfix(infix:string): string {
 	const pfile = ParsingFile.fromSource(infix+';')
-	lexer(pfile)
+	const ctx = CompileContext.getDefaultWithNullSheet()
+	lexer(pfile, ctx)
 	const iter = pfile.getTokenIterator()
 	const res = expressionSyntaxParser(
-		iter
+		iter, ctx
 	).meta.postfix.join(' ')
 	expect(iter.isDone()).to.be.true
 	return res

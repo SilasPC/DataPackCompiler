@@ -36,7 +36,7 @@ function transformString(source:string): IndexedLines {
 }
 
 async function readSheet(file:string): Promise<IndexedLines> {
-	
+
 	let dir = dirname(file)
 	let lines = transformString((await fs.readFile(file)).toString())
 

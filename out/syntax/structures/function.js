@@ -4,7 +4,7 @@ const AST_1 = require("../AST");
 const Token_1 = require("../../lexing/Token");
 const bodySyntaxParser_1 = require("../bodySyntaxParser");
 const helpers_1 = require("../helpers");
-function parseFunction(iter) {
+function parseFunction(iter, ctx) {
     let fnSymbol = iter.next().expectType(Token_1.TokenType.SYMBOL);
     let parameters = [];
     iter.next().expectType(Token_1.TokenType.MARKER).expectValue('(');
@@ -20,7 +20,7 @@ function parseFunction(iter) {
     iter.next().expectType(Token_1.TokenType.MARKER).expectValue(')');
     let returnType = helpers_1.getType(iter);
     iter.next().expectType(Token_1.TokenType.MARKER).expectValue('{');
-    let body = bodySyntaxParser_1.bodySyntaxParser(iter);
+    let body = bodySyntaxParser_1.bodySyntaxParser(iter, ctx);
     return {
         type: AST_1.ASTNodeType.FUNCTION,
         identifier: fnSymbol,

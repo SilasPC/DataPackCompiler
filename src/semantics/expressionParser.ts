@@ -1,9 +1,9 @@
 import { ASTNode, ASTNodeType, ASTOpNode } from "../syntax/AST"
 import { SymbolTable } from "./SymbolTable"
 import { Lineal, INT_OP, LinealType } from "./Lineals"
-import { ESR, ESRType, IntESR } from "./ESR"
+import { ESR, ESRType, IntESR, getESRType } from "./ESR"
 import { DeclarationType } from "./Declaration"
-import { ElementaryValueType } from "./Types"
+import { ElementaryValueType, tokenToType, hasSharedType } from "./Types"
 import { exhaust } from "../toolbox/other"
 
 export function exprParser(node:ASTNode,symbols:SymbolTable,body:Lineal[]): ESR {
@@ -55,8 +55,14 @@ export function exprParser(node:ASTNode,symbols:SymbolTable,body:Lineal[]): ESR 
 			if (!fndecl) return node.function.identifier.throwDebug('fn not declared')
 			if (fndecl.type != DeclarationType.FUNCTION)
 				return node.function.identifier.throwDebug('not a fn')
-			// compare fndecl.node.parameters and params,
-			// and add lineals to copy into params
+			let paramTypes = fndecl.node.parameters.map(({type})=>tokenToType(type,symbols))
+			if (params.length != paramTypes.length) return node.function.identifier.throwDebug('param length unmatched')
+			for (let i = 0; i < params.length; i++) {
+				let param = params[i]
+				let type = paramTypes[i]
+				if (!hasSharedType(getESRType(param),type)) node.function.identifier.throwDebug('param type mismatch')
+				// TODO: add lineals to copy into param
+			}
 			if (fndecl.returnType.elementary) {
 				switch (fndecl.returnType.type) {
 					case ElementaryValueType.INT:

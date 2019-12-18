@@ -36,7 +36,7 @@ function groupToType(g) {
             return other_1.exhaust(g);
     }
 }
-function lexer(pfile) {
+function lexer(pfile, ctx) {
     for (let token of baseLex(pfile, pfile.source)) {
         if (!token)
             throw new Error('wtf');
@@ -56,13 +56,8 @@ function* baseLex(pfile, source) {
             lineComment = false;
             continue;
         }
-        if (lineComment)
-            continue;
-        if (group == 'bad') {
-            return line.fatal('Invalid token', index - line.startIndex, value.length);
-        }
         if (group == 'cmt') {
-            if (value == '//')
+            if (value == '//' && !inlineComment)
                 lineComment = true;
             if (value == '/*')
                 inlineComment = true;
@@ -74,8 +69,11 @@ function* baseLex(pfile, source) {
             }
             continue;
         }
-        if (inlineComment)
+        if (lineComment || inlineComment)
             continue;
+        if (group == 'bad') {
+            return line.fatal('Invalid token', index - line.startIndex, value.length);
+        }
         yield new Token_1.TrueToken(line, index - line.startIndex, groupToType(group), value);
     }
     return;

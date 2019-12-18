@@ -13,21 +13,21 @@ export class ParsingFile {
 
     static isLoaded(path:string) {
         let fullPath = resolve(path)
-        return this.files.has(fullPath)
+        return ParsingFile.files.has(fullPath)
     }
 
     static getFile(path:string) {
-        if (!this.isLoaded(path)) throw new Error('Tried getting a non-loaded file')
+        if (!ParsingFile.isLoaded(path)) throw new Error('Tried getting a non-loaded file')
         let fullPath = resolve(path)
-        return this.files.get(fullPath)
+        return ParsingFile.files.get(fullPath)
     }
 
     static loadFile(path:string) {
-        if (this.isLoaded(path)) throw new Error('Tried re-loading a file')
+        if (ParsingFile.isLoaded(path)) throw new Error('Tried re-loading a file')
         let fullPath = resolve(path)
         let relativePath = './'+relative('./',fullPath).replace('\\','/').split('.').slice(0,-1).join('.')
         let file = new ParsingFile(fullPath,relativePath,readFileSync(fullPath).toString())
-        this.files.set(fullPath,file)
+        ParsingFile.files.set(fullPath,file)
         return file
     }
 

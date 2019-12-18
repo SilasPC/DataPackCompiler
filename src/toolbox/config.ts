@@ -7,7 +7,7 @@ export interface WeakCompilerOptions {
 	emitComments?: boolean
 	optimize?: boolean
 	noUnused?: boolean
-	verbose?: boolean
+	verbosity?: number
 	noInference?: boolean
 	noImplicitCast?: boolean
 	ignoreUnreachable?: boolean
@@ -26,7 +26,7 @@ export function compilerOptionDefaults(cfg?:WeakCompilerOptions): CompilerOption
 		emitComments: def(cfg.emitComments,false),
 		optimize: def(cfg.optimize,false),
 		noUnused: def(cfg.noUnused,false),
-		verbose: def(cfg.verbose,false),
+		verbosity: def(cfg.verbosity,0),
 		targetVersion: def(cfg.targetVersion,'latest')
 	}
 }

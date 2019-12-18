@@ -3,7 +3,7 @@ import { Token, TokenType, SourceLine, TrueToken } from './Token'
 import { ParsingFile } from './ParsingFile'
 import { exhaust } from '../toolbox/other'
 import 'array-flat-polyfill'
-import { LiveIterator } from './TokenIterator'
+import { CompileContext } from '../toolbox/CompileContext'
 
 const keywords = "fn|let|var|break|for|event|while|return|if|else|class|tick|import|const|from|export"
 const types = 'int|void|bool'
@@ -45,7 +45,7 @@ function groupToType(g:Exclude<RgxGroup,'cmt'|'nwl'|'bad'>): TokenType {
     }
 }
 
-export function lexer(pfile:ParsingFile): void {
+export function lexer(pfile:ParsingFile,ctx:CompileContext): void {
 
     for (let token of baseLex(pfile,pfile.source)) {
         if (!token) throw new Error('wtf')
@@ -68,12 +68,8 @@ function* baseLex(pfile:ParsingFile,source:string)/*: Generator<TrueToken,void>*
             lineComment = false
             continue
         }
-        if (lineComment) continue
-        if (group == 'bad') {
-            return line.fatal('Invalid token',index-line.startIndex,value.length)
-        }
         if (group == 'cmt') {
-            if (value == '//') lineComment = true
+            if (value == '//' && !inlineComment) lineComment = true
             if (value == '/*') inlineComment = true
             if (value == '*/') {
                 if (!inlineComment) {
@@ -83,7 +79,10 @@ function* baseLex(pfile:ParsingFile,source:string)/*: Generator<TrueToken,void>*
             }
             continue
         }
-        if (inlineComment) continue
+        if (lineComment || inlineComment) continue
+        if (group == 'bad') {
+            return line.fatal('Invalid token',index-line.startIndex,value.length)
+        }
         yield new TrueToken(line,index-line.startIndex,groupToType(group),value)
     }
     return

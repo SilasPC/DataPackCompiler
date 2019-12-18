@@ -8,7 +8,7 @@ var OpType;
     OpType[OpType["PREFIX"] = 1] = "PREFIX";
     OpType[OpType["POSTFIX"] = 2] = "POSTFIX";
 })(OpType || (OpType = {}));
-function expressionSyntaxParser(tokens) {
+function expressionSyntaxParser(tokens, ctx) {
     let ops = [];
     let que = [];
     let postfix = [];

@@ -54,18 +54,30 @@ export class Datapack {
 		if (!files.includes(packJson)) throw new Error('pack.json not found')
 		const cfg = this.configDefaults(JSON.parse((await fs.readFile(packJson)).toString()))
 
+		const srcFiles = files.filter(f=>f.endsWith('.txt'))
+
 		const ctx = new CompileContext(
 			cfg.compilerOptions,
 			await SyntaxSheet.load(cfg.compilerOptions.targetVersion)
 		)
 
-		const pfiles = files
-			.filter(f=>f.endsWith('.txt'))
-			.sort()
+		ctx.log(1,`Begin compilation`)
+
+		const pfiles =
+			srcFiles
+			.sort() // ensure same load order every run
 			.map(ParsingFile.loadFile)
-		pfiles.forEach(lexicalAnalysis)
-		pfiles.forEach(fileSyntaxParser)
-		pfiles.forEach(semanticsParser)
+		ctx.log(1,`Loaded ${srcFiles.length} file(s)`)
+		
+		pfiles.forEach(pf=>lexicalAnalysis(pf,ctx))
+		ctx.log(1,`Lexical analysis complete`)
+
+		pfiles.forEach(pf=>fileSyntaxParser(pf,ctx))
+		ctx.log(1,`Syntax analysis complete`)
+
+		pfiles.forEach(pf=>semanticsParser(pf,ctx))
+		ctx.log(1,`Semantic analysis complete`)
+
 		throw new Error('no generator')
 		//pfiles.forEach(pf=>generateCode(pf,this))
 

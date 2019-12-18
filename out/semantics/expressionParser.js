@@ -56,8 +56,16 @@ function exprParser(node, symbols, body) {
                 return node.function.identifier.throwDebug('fn not declared');
             if (fndecl.type != Declaration_1.DeclarationType.FUNCTION)
                 return node.function.identifier.throwDebug('not a fn');
-            // compare fndecl.node.parameters and params,
-            // and add lineals to copy into params
+            let paramTypes = fndecl.node.parameters.map(({ type }) => Types_1.tokenToType(type, symbols));
+            if (params.length != paramTypes.length)
+                return node.function.identifier.throwDebug('param length unmatched');
+            for (let i = 0; i < params.length; i++) {
+                let param = params[i];
+                let type = paramTypes[i];
+                if (!Types_1.hasSharedType(ESR_1.getESRType(param), type))
+                    node.function.identifier.throwDebug('param type mismatch');
+                // TODO: add lineals to copy into param
+            }
             if (fndecl.returnType.elementary) {
                 switch (fndecl.returnType.type) {
                     case Types_1.ElementaryValueType.INT:

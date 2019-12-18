@@ -1,6 +1,4 @@
 
-@include latest
-
 advancement grant|revoke <player>
   only <id> [<id>]
   until|from|through <id>
@@ -18,7 +16,7 @@ bossbar
     players <selector>
     style progress|notched_6|notched_10|notched_12|notched20
     value <uint>
-    visible  true|false
+    visible true|false
 
 clear [<selector>] [<id>] [<uint>]
 
@@ -173,8 +171,6 @@ schedule
   function <id> <time> [append|replace]
 
 #scoreboard
-
-schedule
 
 #setblock
 

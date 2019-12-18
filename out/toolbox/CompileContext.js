@@ -5,6 +5,10 @@ class CompileContext {
         this.options = options;
         this.syntaxSheet = syntaxSheet;
     }
+    log(level, msg) {
+        if (level <= this.options.verbosity)
+            console.log(msg);
+    }
 }
 exports.CompileContext = CompileContext;
 //# sourceMappingURL=CompileContext.js.map
