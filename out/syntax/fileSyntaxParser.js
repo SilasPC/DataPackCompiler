@@ -27,6 +27,7 @@ function fileSyntaxParser(pfile, ctx) {
                     default:
                         return token.throwUnexpectedKeyWord();
                 }
+                break;
             }
             default:
                 return token.throwDebug('only expected keywords in root scope');

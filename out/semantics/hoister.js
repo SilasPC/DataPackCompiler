@@ -20,7 +20,8 @@ function hoist(pfile) {
                 let fndecl = {
                     type: Declaration_1.DeclarationType.FUNCTION,
                     node: node,
-                    returnType: Types_1.tokenToType(node.returnType, symbols)
+                    returnType: Types_1.tokenToType(node.returnType, symbols),
+                    instructions: []
                 };
                 symbols.declare(node.identifier, fndecl);
                 pfile.addExport(node.identifier.value, fndecl);

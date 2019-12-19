@@ -27,7 +27,8 @@ export function hoist(pfile:ParsingFile): void {
 				let fndecl: FnDeclaration = {
 					type: DeclarationType.FUNCTION,
 					node: node,
-					returnType: tokenToType(node.returnType,symbols)
+					returnType: tokenToType(node.returnType,symbols),
+					instructions: []
 				}
 				symbols.declare(node.identifier,fndecl)
 				pfile.addExport(node.identifier.value,fndecl)

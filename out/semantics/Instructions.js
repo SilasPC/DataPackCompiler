@@ -7,4 +7,4 @@ var InstrType;
     InstrType[InstrType["INT_OP"] = 2] = "INT_OP";
     InstrType[InstrType["CMD"] = 3] = "CMD";
 })(InstrType = exports.InstrType || (exports.InstrType = {}));
-//# sourceMappingURL=Lineals.js.map
+//# sourceMappingURL=Instructions.js.map

@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const AST_1 = require("../syntax/AST");
-const Lineals_1 = require("./Lineals");
+const Instructions_1 = require("./Instructions");
 const ESR_1 = require("./ESR");
 const Declaration_1 = require("./Declaration");
 const Types_1 = require("./Types");
@@ -47,16 +47,16 @@ function exprParser(node, symbols, body) {
             return { type: ESR_1.ESRType.INT, mutable: false, const: true, scoreboard: {} };
         case AST_1.ASTNodeType.OPERATION:
             return operator(node, symbols, body);
-        case AST_1.ASTNodeType.INVOKATION:
+        case AST_1.ASTNodeType.INVOKATION: {
             if (node.function.type != AST_1.ASTNodeType.IDENTIFIER)
                 throw new Error('only direct calls for now');
             let params = node.parameters.list.map(p => exprParser(p, symbols, body));
-            let fndecl = symbols.getDeclaration(node.function.identifier.value);
-            if (!fndecl)
+            let decl = symbols.getDeclaration(node.function.identifier.value);
+            if (!decl)
                 return node.function.identifier.throwDebug('fn not declared');
-            if (fndecl.type != Declaration_1.DeclarationType.FUNCTION)
+            if (decl.type != Declaration_1.DeclarationType.FUNCTION)
                 return node.function.identifier.throwDebug('not a fn');
-            let paramTypes = fndecl.node.parameters.map(({ type }) => Types_1.tokenToType(type, symbols));
+            let paramTypes = decl.node.parameters.map(({ type }) => Types_1.tokenToType(type, symbols));
             if (params.length != paramTypes.length)
                 return node.function.identifier.throwDebug('param length unmatched');
             for (let i = 0; i < params.length; i++) {
@@ -64,23 +64,31 @@ function exprParser(node, symbols, body) {
                 let type = paramTypes[i];
                 if (!Types_1.hasSharedType(ESR_1.getESRType(param), type))
                     node.function.identifier.throwDebug('param type mismatch');
-                // TODO: add lineals to copy into param
+                // TODO: add instructions to copy into param
             }
-            if (fndecl.returnType.elementary) {
-                switch (fndecl.returnType.type) {
-                    case Types_1.ElementaryValueType.INT:
-                        return { type: ESR_1.ESRType.INT, mutable: false, const: false, scoreboard: {} };
-                    case Types_1.ElementaryValueType.VOID:
+            if (decl.returnType.elementary) {
+                switch (decl.returnType.type) {
+                    case Types_1.ElementaryValueType.INT: {
+                        let into = { type: ESR_1.ESRType.INT, mutable: false, const: false, scoreboard: {} };
+                        let instr = { type: Instructions_1.InstrType.INVOKE_INT, fn: decl, into };
+                        body.push(instr);
+                        return into;
+                    }
+                    case Types_1.ElementaryValueType.VOID: {
+                        let instr = { type: Instructions_1.InstrType.INVOKE_VOID, fn: decl };
+                        body.push(instr);
                         return { type: ESR_1.ESRType.VOID, mutable: false, const: false };
+                    }
                     case Types_1.ElementaryValueType.BOOL:
                         throw new Error('no bool ret rn');
                     default:
-                        return other_1.exhaust(fndecl.returnType.type);
+                        return other_1.exhaust(decl.returnType.type);
                 }
             }
             else {
                 throw new Error('non elementary return value not supported yet');
             }
+        }
         // Invalid cases. These should never occur
         case AST_1.ASTNodeType.CONDITIONAL:
         case AST_1.ASTNodeType.DEFINE:
@@ -109,8 +117,8 @@ function operator(node, symbols, body) {
                 return node.operator.throwDebug('no op casting for now');
             let res = { type: ESR_1.ESRType.INT, mutable: false, const: false, scoreboard: {} };
             // ???
-            let op1 = { type: Lineals_1.LinealType.INT_OP, into: res, from: o0, op: '=' };
-            let op2 = { type: Lineals_1.LinealType.INT_OP, into: res, from: o1, op: node.operator.value + '=' };
+            let op1 = { type: Instructions_1.InstrType.INT_OP, into: res, from: o0, op: '=' };
+            let op2 = { type: Instructions_1.InstrType.INT_OP, into: res, from: o1, op: node.operator.value + '=' };
             body.push(op1, op2);
             return res;
         }
@@ -124,7 +132,7 @@ function operator(node, symbols, body) {
             if (o0.type != o1.type)
                 return node.operator.throwDebug('no op casting for now');
             let res = { type: ESR_1.ESRType.INT, mutable: false, const: false, scoreboard: {} };
-            let op = { type: Lineals_1.LinealType.INT_OP, into: res, from: o1, op: '=' };
+            let op = { type: Instructions_1.InstrType.INT_OP, into: res, from: o1, op: '=' };
             body.push(op);
             return res;
         }
@@ -142,8 +150,8 @@ function operator(node, symbols, body) {
             if (o0.type != o1.type)
                 return node.operator.throwDebug('no op casting for now');
             let res = { type: ESR_1.ESRType.INT, mutable: false, const: false, scoreboard: {} };
-            let op1 = { type: Lineals_1.LinealType.INT_OP, into: res, from: o0, op: '=' };
-            let op2 = { type: Lineals_1.LinealType.INT_OP, into: res, from: o1, op: node.operator.value };
+            let op1 = { type: Instructions_1.InstrType.INT_OP, into: res, from: o0, op: '=' };
+            let op2 = { type: Instructions_1.InstrType.INT_OP, into: res, from: o1, op: node.operator.value };
             body.push(op1, op2);
             return res;
         }

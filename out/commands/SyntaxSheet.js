@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const CMDNode_1 = require("./CMDNode");
 const sheetParser_1 = require("./sheetParser");
 class SyntaxSheet {
     constructor(root) {
@@ -10,6 +11,9 @@ class SyntaxSheet {
     }
     static async load(version) {
         return new SyntaxSheet(await sheetParser_1.fromSheet(version));
+    }
+    static getNullSheet() {
+        return new SyntaxSheet(new CMDNode_1.RootCMDNode('', false, []));
     }
     verifySyntax(token) {
         if (typeof token == 'string')

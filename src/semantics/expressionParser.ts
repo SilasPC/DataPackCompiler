@@ -1,12 +1,12 @@
 import { ASTNode, ASTNodeType, ASTOpNode } from "../syntax/AST"
 import { SymbolTable } from "./SymbolTable"
-import { Lineal, INT_OP, LinealType } from "./Lineals"
+import { Instruction, INT_OP, InstrType, INVOKE_INT, INVOKE_VOID } from "./Instructions"
 import { ESR, ESRType, IntESR, getESRType } from "./ESR"
 import { DeclarationType } from "./Declaration"
 import { ElementaryValueType, tokenToType, hasSharedType } from "./Types"
 import { exhaust } from "../toolbox/other"
 
-export function exprParser(node:ASTNode,symbols:SymbolTable,body:Lineal[]): ESR {
+export function exprParser(node:ASTNode,symbols:SymbolTable,body:Instruction[]): ESR {
 
 	switch (node.type) {
 
@@ -48,35 +48,43 @@ export function exprParser(node:ASTNode,symbols:SymbolTable,body:Lineal[]): ESR 
 		case ASTNodeType.OPERATION:
 			return operator(node,symbols,body)
 
-		case ASTNodeType.INVOKATION:
+		case ASTNodeType.INVOKATION: {
 			if (node.function.type != ASTNodeType.IDENTIFIER) throw new Error('only direct calls for now')
 			let params = node.parameters.list.map(p=>exprParser(p,symbols,body))
-			let fndecl = symbols.getDeclaration(node.function.identifier.value)
-			if (!fndecl) return node.function.identifier.throwDebug('fn not declared')
-			if (fndecl.type != DeclarationType.FUNCTION)
+			let decl = symbols.getDeclaration(node.function.identifier.value)
+			if (!decl) return node.function.identifier.throwDebug('fn not declared')
+			if (decl.type != DeclarationType.FUNCTION)
 				return node.function.identifier.throwDebug('not a fn')
-			let paramTypes = fndecl.node.parameters.map(({type})=>tokenToType(type,symbols))
+			let paramTypes = decl.node.parameters.map(({type})=>tokenToType(type,symbols))
 			if (params.length != paramTypes.length) return node.function.identifier.throwDebug('param length unmatched')
 			for (let i = 0; i < params.length; i++) {
 				let param = params[i]
 				let type = paramTypes[i]
 				if (!hasSharedType(getESRType(param),type)) node.function.identifier.throwDebug('param type mismatch')
-				// TODO: add lineals to copy into param
+				// TODO: add instructions to copy into param
 			}
-			if (fndecl.returnType.elementary) {
-				switch (fndecl.returnType.type) {
-					case ElementaryValueType.INT:
-						return {type:ESRType.INT,mutable:false,const:false,scoreboard:{}}
-					case ElementaryValueType.VOID:
+			if (decl.returnType.elementary) {
+				switch (decl.returnType.type) {
+					case ElementaryValueType.INT: {
+						let into: IntESR = {type:ESRType.INT,mutable:false,const:false,scoreboard:{}}
+						let instr: INVOKE_INT = {type:InstrType.INVOKE_INT,fn:decl,into}
+						body.push(instr)
+						return into
+					}
+					case ElementaryValueType.VOID: {
+						let instr: INVOKE_VOID = {type:InstrType.INVOKE_VOID,fn:decl}
+						body.push(instr)
 						return {type:ESRType.VOID,mutable:false,const:false}
+					}
 					case ElementaryValueType.BOOL:
 						throw new Error('no bool ret rn')
 					default:
-						return exhaust(fndecl.returnType.type)
+						return exhaust(decl.returnType.type)
 				}
 			} else {
 				throw new Error('non elementary return value not supported yet')
 			}
+		}
 
 		// Invalid cases. These should never occur
 		case ASTNodeType.CONDITIONAL:
@@ -94,7 +102,7 @@ export function exprParser(node:ASTNode,symbols:SymbolTable,body:Lineal[]): ESR 
 
 }
 
-function operator(node:ASTOpNode,symbols:SymbolTable,body:Lineal[]) {
+function operator(node:ASTOpNode,symbols:SymbolTable,body:Instruction[]) {
 	switch (node.operator.value) {
 		case '+':
 		case '-':
@@ -107,8 +115,8 @@ function operator(node:ASTOpNode,symbols:SymbolTable,body:Lineal[]) {
 			if (o0.type != o1.type) return node.operator.throwDebug('no op casting for now')
 			let res: IntESR = {type:ESRType.INT,mutable:false,const:false,scoreboard:{}}
 			// ???
-			let op1: INT_OP = {type:LinealType.INT_OP,into:res,from:o0,op:'='}
-			let op2: INT_OP = {type:LinealType.INT_OP,into:res,from:o1,op:node.operator.value+'='}
+			let op1: INT_OP = {type:InstrType.INT_OP,into:res,from:o0,op:'='}
+			let op2: INT_OP = {type:InstrType.INT_OP,into:res,from:o1,op:node.operator.value+'='}
 			body.push(op1,op2)
 			return res
 		}
@@ -120,7 +128,7 @@ function operator(node:ASTOpNode,symbols:SymbolTable,body:Lineal[]) {
 			if (o0.type != ESRType.INT) return node.operator.throwDebug('only int op for now')
 			if (o0.type != o1.type) return node.operator.throwDebug('no op casting for now')
 			let res: IntESR = {type:ESRType.INT,mutable:false,const:false,scoreboard:{}}
-			let op: INT_OP = {type:LinealType.INT_OP,into:res,from:o1,op:'='}
+			let op: INT_OP = {type:InstrType.INT_OP,into:res,from:o1,op:'='}
 			body.push(op)
 			return res
 		}
@@ -136,8 +144,8 @@ function operator(node:ASTOpNode,symbols:SymbolTable,body:Lineal[]) {
 			if (o0.type != ESRType.INT) return node.operator.throwDebug('only int op for now')
 			if (o0.type != o1.type) return node.operator.throwDebug('no op casting for now')
 			let res: IntESR = {type:ESRType.INT,mutable:false,const:false,scoreboard:{}}
-			let op1: INT_OP = {type:LinealType.INT_OP,into:res,from:o0,op:'='}
-			let op2: INT_OP = {type:LinealType.INT_OP,into:res,from:o1,op:node.operator.value}
+			let op1: INT_OP = {type:InstrType.INT_OP,into:res,from:o0,op:'='}
+			let op2: INT_OP = {type:InstrType.INT_OP,into:res,from:o1,op:node.operator.value}
 			body.push(op1,op2)
 			return res
 		}

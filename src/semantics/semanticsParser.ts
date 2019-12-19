@@ -5,10 +5,11 @@ import { SymbolTable } from "./SymbolTable"
 import { ESR, ESRType, getESRType, IntESR } from "./ESR"
 import { tokenToType, ElementaryValueType, ValueType, hasSharedType } from "./Types"
 import { DeclarationType, VarDeclaration, FnDeclaration } from "./Declaration"
-import { Lineal, LinealType, INT_OP } from "./Lineals"
+import { Instruction, InstrType, INT_OP } from "./Instructions"
 import { exprParser } from "./expressionParser"
 import { exhaust } from "../toolbox/other"
 import { CompileContext } from "../toolbox/CompileContext"
+import { generateTest } from "../codegen/generate"
 
 export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): void {
 	
@@ -20,7 +21,7 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): void {
 	let symbols = pfile.getSymbolTable()
 	let ast = pfile.getAST() as ASTNode[]
 
-	let load: Lineal[] = []
+	let load: Instruction[] = []
 	
 	for (let node of ast) {
 		let shouldExport = false
@@ -43,11 +44,17 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): void {
 				}
 	
 			case ASTNodeType.FUNCTION: {
-					let body: Lineal[] = []
-					let decl: FnDeclaration = {type:DeclarationType.FUNCTION,returnType:tokenToType(node.returnType,symbols),node}
+					let body: Instruction[] = []
+					let decl: FnDeclaration = {
+						type: DeclarationType.FUNCTION,
+						returnType: tokenToType(node.returnType,symbols),
+						node,
+						instructions: body
+					}
 					symbols.declare(node.identifier,decl)
 					parseBody(node.body,symbols.branch(),body)
-					console.log(node.identifier.value,body)
+					console.log(node.identifier.value)
+					console.log(generateTest(decl,ctx))
 					break
 				}
 
@@ -72,12 +79,12 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): void {
 
 }
 
-function parseBody(nodes:ASTNode[],symbols:SymbolTable,body:Lineal[]): void {
+function parseBody(nodes:ASTNode[],symbols:SymbolTable,body:Instruction[]): void {
 	for (let node of nodes) {
 		switch (node.type) {
 			case ASTNodeType.COMMAND:
 				// here we should probably parse the command
-				body.push({type:LinealType.CMD})
+				body.push({type:InstrType.CMD})
 				break
 			case ASTNodeType.INVOKATION:
 			case ASTNodeType.OPERATION:

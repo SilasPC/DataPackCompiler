@@ -4,9 +4,10 @@ const AST_1 = require("../syntax/AST");
 const ESR_1 = require("./ESR");
 const Types_1 = require("./Types");
 const Declaration_1 = require("./Declaration");
-const Lineals_1 = require("./Lineals");
+const Instructions_1 = require("./Instructions");
 const expressionParser_1 = require("./expressionParser");
 const other_1 = require("../toolbox/other");
+const generate_1 = require("../codegen/generate");
 function semanticsParser(pfile, ctx) {
     if (pfile.status == 'parsed')
         return;
@@ -37,10 +38,16 @@ function semanticsParser(pfile, ctx) {
             }
             case AST_1.ASTNodeType.FUNCTION: {
                 let body = [];
-                let decl = { type: Declaration_1.DeclarationType.FUNCTION, returnType: Types_1.tokenToType(node.returnType, symbols), node };
+                let decl = {
+                    type: Declaration_1.DeclarationType.FUNCTION,
+                    returnType: Types_1.tokenToType(node.returnType, symbols),
+                    node,
+                    instructions: body
+                };
                 symbols.declare(node.identifier, decl);
                 parseBody(node.body, symbols.branch(), body);
-                console.log(node.identifier.value, body);
+                console.log(node.identifier.value, body.length);
+                console.log(generate_1.generateTest(decl, ctx));
                 break;
             }
             case AST_1.ASTNodeType.IDENTIFIER:
@@ -64,7 +71,7 @@ function parseBody(nodes, symbols, body) {
         switch (node.type) {
             case AST_1.ASTNodeType.COMMAND:
                 // here we should probably parse the command
-                body.push({ type: Lineals_1.LinealType.CMD });
+                body.push({ type: Instructions_1.InstrType.CMD });
                 break;
             case AST_1.ASTNodeType.INVOKATION:
             case AST_1.ASTNodeType.OPERATION:

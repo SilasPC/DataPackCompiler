@@ -1,49 +1,36 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const SymbolTable_1 = require("../semantics/SymbolTable");
-const FnFile_1 = require("./FnFile");
-const AST_1 = require("../syntax/AST");
-function generateCode(pfile, datapack) {
-    for (let decl of SymbolTable_1.SymbolTable.getAllDeclarations()) {
-        switch (decl.type) {
-            case DeclarationType.FUNCTION:
-                let fndecl = decl;
-                generateFunction(fndecl, datapack);
+const other_1 = require("../toolbox/other");
+const Instructions_1 = require("../semantics/Instructions");
+function generate(pf, ctx) {
+    // ...
+}
+exports.generate = generate;
+function generateTest(fn, ctx) {
+    console.log(fn.instructions.length);
+    let output = [];
+    for (let instr of fn.instructions) {
+        switch (instr.type) {
+            case Instructions_1.InstrType.INT_OP:
+                if (!['=', '+=', '-=', '*=', '/=', '%='])
+                    throw new Error('invalid int op');
+                // if (!instr.into.mutable) throw new Error('not mutable boi')
+                output.push(`scoreboard players operation ${instr.into.scoreboard.selector} ${instr.into.scoreboard.scoreboard} ${instr.op} ${instr.from.scoreboard.selector} ${instr.from.scoreboard.scoreboard}`);
                 break;
-            case DeclarationType.VARIABLE:
-                let vardecl = decl;
-                datapack.addLoadCode(`scoreboard objectives add ${vardecl.identifier} dummy`);
+            case Instructions_1.InstrType.INVOKE_INT:
+                // TODO
+                break;
+            case Instructions_1.InstrType.INVOKE_VOID:
+                // TODO
+                break;
+            case Instructions_1.InstrType.CMD:
+                // TODO
                 break;
             default:
-                const exhaust = decl.type;
+                other_1.exhaust(instr);
         }
     }
-    pfile.status = 'generated';
+    return output;
 }
-exports.generateCode = generateCode;
-function generateFunction(fn, dp) {
-    let fnf = new FnFile_1.FnFile(fn.identifier);
-    for (let node of fn.node.body) {
-        switch (node.type) {
-            case AST_1.ASTNodeType.COMMAND:
-                let cmdnode = node;
-                fnf.addLines(cmdnode.cmd);
-                break;
-            case AST_1.ASTNodeType.CONDITIONAL:
-                let ifnode = node;
-                generateExpression(ifnode.expression, fnf, dp);
-                break;
-            case AST_1.ASTNodeType.OPERATION:
-                generateExpression(node, fnf, dp);
-                break;
-            default:
-                throw 'hello hello hello';
-            // const exhaust: never = node.type
-        }
-    }
-    dp.addFnFile(fnf);
-}
-function generateExpression(node, fnf, dp) {
-    // recursively generate code
-}
+exports.generateTest = generateTest;
 //# sourceMappingURL=generate.js.map
