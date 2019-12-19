@@ -40,6 +40,7 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): void {
 					if (!hasSharedType(getESRType(esr),type)) node.identifier.throwDebug('type mismatch')
 					let decl: VarDeclaration = {type: DeclarationType.VARIABLE,varType:type,node}
 					symbols.declare(node.identifier,decl)
+					if (shouldExport) pfile.addExport(node.identifier.value,decl)
 					break
 				}
 	
@@ -52,6 +53,7 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): void {
 						instructions: body
 					}
 					symbols.declare(node.identifier,decl)
+					if (shouldExport) pfile.addExport(node.identifier.value,decl)
 					parseBody(node.body,symbols.branch(),body)
 					console.log(node.identifier.value)
 					console.log(generateTest(decl,ctx))

@@ -20,9 +20,11 @@ function fileSyntaxParser(pfile, ctx) {
                         break;
                     case 'fn':
                         pfile.addASTNode(helpers_1.wrapExport(function_1.parseFunction(iter, ctx), doExport));
+                        doExport = false;
                         break;
                     case 'let':
                         pfile.addASTNode(helpers_1.wrapExport(declaration_1.parseDeclaration(iter, ctx), doExport));
+                        doExport = false;
                         break;
                     default:
                         return token.throwUnexpectedKeyWord();

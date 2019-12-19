@@ -7,7 +7,6 @@ function generate(pf, ctx) {
 }
 exports.generate = generate;
 function generateTest(fn, ctx) {
-    console.log(fn.instructions.length);
     let output = [];
     for (let instr of fn.instructions) {
         switch (instr.type) {

@@ -1,5 +1,5 @@
 
-let a: int = 2;
+export let a: int = 2;
 let b: int = 3;
 let c: bool = true;
 

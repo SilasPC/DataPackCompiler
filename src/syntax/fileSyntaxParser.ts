@@ -22,9 +22,11 @@ export function fileSyntaxParser(pfile: ParsingFile, ctx: CompileContext): void 
                         break
                     case 'fn':
                         pfile.addASTNode(wrapExport(parseFunction(iter,ctx),doExport))
+                        doExport = false
                         break
                     case 'let':
                         pfile.addASTNode(wrapExport(parseDeclaration(iter,ctx),doExport))
+                        doExport = false
                         break
                     default:
                         return token.throwUnexpectedKeyWord()

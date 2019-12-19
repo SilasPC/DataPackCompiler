@@ -34,6 +34,8 @@ function semanticsParser(pfile, ctx) {
                     node.identifier.throwDebug('type mismatch');
                 let decl = { type: Declaration_1.DeclarationType.VARIABLE, varType: type, node };
                 symbols.declare(node.identifier, decl);
+                if (shouldExport)
+                    pfile.addExport(node.identifier.value, decl);
                 break;
             }
             case AST_1.ASTNodeType.FUNCTION: {
@@ -45,8 +47,10 @@ function semanticsParser(pfile, ctx) {
                     instructions: body
                 };
                 symbols.declare(node.identifier, decl);
+                if (shouldExport)
+                    pfile.addExport(node.identifier.value, decl);
                 parseBody(node.body, symbols.branch(), body);
-                console.log(node.identifier.value, body.length);
+                console.log(node.identifier.value);
                 console.log(generate_1.generateTest(decl, ctx));
                 break;
             }
