@@ -88,7 +88,7 @@ export class Datapack {
 		//pfiles.forEach(pf=>generateCode(pf,this))
 
 		ctx.log(1,`Compilation complete`)
-		ctx.log(2,`Elapsed time: ${(moment.duration(start.diff(moment())) as any).format()}`)
+		ctx.log(2,`Elapsed time: ${(moment.duration(moment().diff(start)) as any).format()}`)
 
 		throw new Error('not yet boi')
 

@@ -57,7 +57,7 @@ class Datapack {
         // throw new Error('no generator')
         //pfiles.forEach(pf=>generateCode(pf,this))
         ctx.log(1, `Compilation complete`);
-        ctx.log(2, `Elapsed time: ${moment_1.default.duration(start.diff(moment_1.default())).format()}`);
+        ctx.log(2, `Elapsed time: ${moment_1.default.duration(moment_1.default().diff(start)).format()}`);
         throw new Error('not yet boi');
     }
     async emit() {
