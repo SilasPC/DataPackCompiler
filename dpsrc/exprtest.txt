@@ -14,7 +14,7 @@ let c: bool = true;
     /* I sure do! */
     /**************/
 
-fn x(y:bool): void {
+fn x(y:int): void {
 	/from exprtest
 	a += a * b;
 }
@@ -22,7 +22,7 @@ fn x(y:bool): void {
 fn part(): void {
     /particle smoke ${a+0} ${b+1} ${c+2}
     /particle smoke ${a,b,c}
-    x(true);
+    x(1);
 }
 
 /*

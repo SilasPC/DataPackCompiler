@@ -54,7 +54,7 @@ export function bodySyntaxParser(iter:TokenIteratorI,ctx:CompileContext): ASTNod
             case TokenType.TYPE:
                 return token.throwDebug('unexpected')
             default:
-                exhaust(token.type)
+                return exhaust(token.type)
         }
     }
     throw new Error('ran out of tokens lol')

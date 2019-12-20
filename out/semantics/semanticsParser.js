@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+// import { hoist } from "./hoister"
 const AST_1 = require("../syntax/AST");
 const ESR_1 = require("./ESR");
 const Types_1 = require("./Types");
@@ -40,11 +41,52 @@ function semanticsParser(pfile, ctx) {
             }
             case AST_1.ASTNodeType.FUNCTION: {
                 let body = [];
+                let parameters = [];
+                for (let param of node.parameters) {
+                    let type = Types_1.tokenToType(param.type, symbols);
+                    if (!type.elementary)
+                        return param.type.throwDebug('elementary only thx');
+                    switch (type.type) {
+                        case Types_1.ElementaryValueType.VOID:
+                            return param.type.throwDebug('not valid');
+                        case Types_1.ElementaryValueType.INT:
+                            let esr = {
+                                type: ESR_1.ESRType.INT,
+                                scoreboard: {},
+                                mutable: false,
+                                const: false
+                            };
+                            parameters.push(esr);
+                            break;
+                        case Types_1.ElementaryValueType.BOOL:
+                            return param.type.throwDebug('no bool yet thx');
+                        default:
+                            return other_1.exhaust(type.type);
+                    }
+                }
+                let type = Types_1.tokenToType(node.returnType, symbols);
+                if (!type.elementary)
+                    return node.returnType.throwDebug('nop thx');
+                let esr;
+                switch (type.type) {
+                    case Types_1.ElementaryValueType.VOID:
+                        esr = { type: ESR_1.ESRType.VOID, mutable: false, const: false };
+                        break;
+                    case Types_1.ElementaryValueType.INT:
+                        esr = { type: ESR_1.ESRType.INT, mutable: false, const: false, scoreboard: {} };
+                        break;
+                    case Types_1.ElementaryValueType.BOOL:
+                        esr = { type: ESR_1.ESRType.BOOL, mutable: false, const: false, scoreboard: {} };
+                        break;
+                    default:
+                        return other_1.exhaust(type.type);
+                }
                 let decl = {
                     type: Declaration_1.DeclarationType.FUNCTION,
-                    returnType: Types_1.tokenToType(node.returnType, symbols),
+                    returns: esr,
                     node,
-                    instructions: body
+                    instructions: body,
+                    parameters
                 };
                 symbols.declare(node.identifier, decl);
                 if (shouldExport)

@@ -1,5 +1,5 @@
 import { ParsingFile } from "../lexing/ParsingFile"
-import { hoist } from "./hoister"
+// import { hoist } from "./hoister"
 import { ASTNode, ASTNodeType, ASTOpNode } from "../syntax/AST"
 import { SymbolTable } from "./SymbolTable"
 import { ESR, ESRType, getESRType, IntESR } from "./ESR"
@@ -46,11 +46,50 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): void {
 	
 			case ASTNodeType.FUNCTION: {
 					let body: Instruction[] = []
+					let parameters: ESR[] = []
+					for (let param of node.parameters) {
+						let type = tokenToType(param.type,symbols)
+						if (!type.elementary) return param.type.throwDebug('elementary only thx')
+						switch (type.type) {
+							case ElementaryValueType.VOID:
+								return param.type.throwDebug('not valid')
+							case ElementaryValueType.INT:
+								let esr: IntESR = {
+									type: ESRType.INT,
+									scoreboard: {},
+									mutable: false, // this controls if function parameters are mutable
+									const: false
+								}
+								parameters.push(esr)
+								break
+							case ElementaryValueType.BOOL:
+								return param.type.throwDebug('no bool yet thx')
+							default:
+								return exhaust(type.type)
+						}
+					}
+					let type = tokenToType(node.returnType,symbols)
+					if (!type.elementary) return node.returnType.throwDebug('nop thx')
+					let esr: ESR
+					switch (type.type) {
+						case ElementaryValueType.VOID:
+							esr = {type:ESRType.VOID, mutable: false, const: false}
+							break
+						case ElementaryValueType.INT:
+							esr = {type:ESRType.INT, mutable: false, const: false, scoreboard: {}}
+							break
+						case ElementaryValueType.BOOL:
+							esr = {type:ESRType.BOOL, mutable: false, const: false, scoreboard: {}}
+							break
+						default:
+							return exhaust(type.type)
+					}
 					let decl: FnDeclaration = {
 						type: DeclarationType.FUNCTION,
-						returnType: tokenToType(node.returnType,symbols),
+						returns: esr,
 						node,
-						instructions: body
+						instructions: body,
+						parameters
 					}
 					symbols.declare(node.identifier,decl)
 					if (shouldExport) pfile.addExport(node.identifier.value,decl)

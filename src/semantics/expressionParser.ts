@@ -5,6 +5,7 @@ import { ESR, ESRType, IntESR, getESRType } from "./ESR"
 import { DeclarationType } from "./Declaration"
 import { ElementaryValueType, tokenToType, hasSharedType } from "./Types"
 import { exhaust } from "../toolbox/other"
+import { exec } from "child_process"
 
 export function exprParser(node:ASTNode,symbols:SymbolTable,body:Instruction[]): ESR {
 
@@ -55,16 +56,34 @@ export function exprParser(node:ASTNode,symbols:SymbolTable,body:Instruction[]):
 			if (!decl) return node.function.identifier.throwDebug('fn not declared')
 			if (decl.type != DeclarationType.FUNCTION)
 				return node.function.identifier.throwDebug('not a fn')
-			let paramTypes = decl.node.parameters.map(({type})=>tokenToType(type,symbols))
+			let paramTypes = decl.parameters.map(getESRType)
 			if (params.length != paramTypes.length) return node.function.identifier.throwDebug('param length unmatched')
 			for (let i = 0; i < params.length; i++) {
 				let param = params[i]
-				let type = paramTypes[i]
-				if (!hasSharedType(getESRType(param),type)) node.function.identifier.throwDebug('param type mismatch')
+				let esr = decl.parameters[i]
+				if (!hasSharedType(getESRType(param),getESRType(esr))) node.function.identifier.throwDebug('param type mismatch')
+				switch (esr.type) {
+					case ESRType.BOOL:
+						throw new Error('no impl')
+					case ESRType.INT:
+						let instr: INT_OP = {
+							type: InstrType.INT_OP,
+							from: param as IntESR,
+							into: esr,
+							op: '='
+						}
+						body.push(instr)
+						break
+					case ESRType.VOID:
+						throw new Error(`this can't happen`)
+					default:
+						return exhaust(esr)
+				}
 				// TODO: add instructions to copy into param
 			}
-			if (decl.returnType.elementary) {
-				switch (decl.returnType.type) {
+			let returnType = getESRType(decl.returns)
+			if (returnType.elementary) {
+				switch (returnType.type) {
 					case ElementaryValueType.INT: {
 						let into: IntESR = {type:ESRType.INT,mutable:false,const:false,scoreboard:{}}
 						let instr: INVOKE_INT = {type:InstrType.INVOKE_INT,fn:decl,into}
@@ -79,7 +98,7 @@ export function exprParser(node:ASTNode,symbols:SymbolTable,body:Instruction[]):
 					case ElementaryValueType.BOOL:
 						throw new Error('no bool ret rn')
 					default:
-						return exhaust(decl.returnType.type)
+						return exhaust(returnType.type)
 				}
 			} else {
 				throw new Error('non elementary return value not supported yet')

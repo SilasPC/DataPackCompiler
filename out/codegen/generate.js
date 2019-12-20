@@ -26,7 +26,7 @@ function generateTest(fn, ctx) {
                 // TODO
                 break;
             default:
-                other_1.exhaust(instr);
+                return other_1.exhaust(instr);
         }
     }
     return output;

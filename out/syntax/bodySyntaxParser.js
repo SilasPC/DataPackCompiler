@@ -51,7 +51,7 @@ function bodySyntaxParser(iter, ctx) {
             case Token_1.TokenType.TYPE:
                 return token.throwDebug('unexpected');
             default:
-                other_1.exhaust(token.type);
+                return other_1.exhaust(token.type);
         }
     }
     throw new Error('ran out of tokens lol');

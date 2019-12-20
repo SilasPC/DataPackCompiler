@@ -2,6 +2,7 @@
 import { ASTFnNode, ASTLetNode } from "../syntax/AST";
 import { ValueType } from "./Types";
 import { Instruction } from "./Instructions";
+import { ESR } from "./ESR";
 
 export type Declaration = VarDeclaration | FnDeclaration
 
@@ -19,6 +20,7 @@ export interface VarDeclaration {
 export interface FnDeclaration {
 	type: DeclarationType.FUNCTION
 	node: ASTFnNode
-	returnType: ValueType,
+	returns: ESR
+	parameters: ESR[]
 	instructions: Instruction[]
 }

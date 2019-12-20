@@ -56,18 +56,36 @@ function exprParser(node, symbols, body) {
                 return node.function.identifier.throwDebug('fn not declared');
             if (decl.type != Declaration_1.DeclarationType.FUNCTION)
                 return node.function.identifier.throwDebug('not a fn');
-            let paramTypes = decl.node.parameters.map(({ type }) => Types_1.tokenToType(type, symbols));
+            let paramTypes = decl.parameters.map(ESR_1.getESRType);
             if (params.length != paramTypes.length)
                 return node.function.identifier.throwDebug('param length unmatched');
             for (let i = 0; i < params.length; i++) {
                 let param = params[i];
-                let type = paramTypes[i];
-                if (!Types_1.hasSharedType(ESR_1.getESRType(param), type))
+                let esr = decl.parameters[i];
+                if (!Types_1.hasSharedType(ESR_1.getESRType(param), ESR_1.getESRType(esr)))
                     node.function.identifier.throwDebug('param type mismatch');
+                switch (esr.type) {
+                    case ESR_1.ESRType.BOOL:
+                        throw new Error('no impl');
+                    case ESR_1.ESRType.INT:
+                        let instr = {
+                            type: Instructions_1.InstrType.INT_OP,
+                            from: param,
+                            into: esr,
+                            op: '='
+                        };
+                        body.push(instr);
+                        break;
+                    case ESR_1.ESRType.VOID:
+                        throw new Error(`this can't happen`);
+                    default:
+                        return other_1.exhaust(esr);
+                }
                 // TODO: add instructions to copy into param
             }
-            if (decl.returnType.elementary) {
-                switch (decl.returnType.type) {
+            let returnType = ESR_1.getESRType(decl.returns);
+            if (returnType.elementary) {
+                switch (returnType.type) {
                     case Types_1.ElementaryValueType.INT: {
                         let into = { type: ESR_1.ESRType.INT, mutable: false, const: false, scoreboard: {} };
                         let instr = { type: Instructions_1.InstrType.INVOKE_INT, fn: decl, into };
@@ -82,7 +100,7 @@ function exprParser(node, symbols, body) {
                     case Types_1.ElementaryValueType.BOOL:
                         throw new Error('no bool ret rn');
                     default:
-                        return other_1.exhaust(decl.returnType.type);
+                        return other_1.exhaust(returnType.type);
                 }
             }
             else {

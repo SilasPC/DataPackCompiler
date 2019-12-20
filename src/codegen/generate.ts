@@ -41,8 +41,8 @@ export function generateTest(fn: FnDeclaration, ctx: CompileContext) {
 				// TODO
 				break
 			default:
-				exhaust(instr)
-
+				return exhaust(instr)
+				
 		}
 
 	}
