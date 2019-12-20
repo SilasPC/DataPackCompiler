@@ -14,7 +14,7 @@ try {
   console.log(res=yard(pfile.getTokenIterator()))
 } catch (e) {console.error(e)}*/
 
-let dp = new Datapack('test pack 2020','./dpsrc','./emit')
+let dp = new Datapack('./dpsrc','./emit')
 // console.log(dp)
 
 dp.compile()

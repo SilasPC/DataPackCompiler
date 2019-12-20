@@ -34,9 +34,8 @@ export class Datapack {
 	private files: FnFile[] = []
 
 	constructor(
-		public readonly name: string,
 		public readonly srcDir: string,
-		public readonly emitDir: string
+		public readonly emitDir: string = srcDir
 	) {
 		this.addInit(
 			// `tellraw @a Loaded my first compiled datapack!`,
@@ -52,8 +51,9 @@ export class Datapack {
 
 		const files = await recursiveSearch(this.srcDir)
 		const packJson = join(this.srcDir,'pack.json')
-		if (!files.includes(packJson)) throw new Error('pack.json not found')
-		const cfg = this.configDefaults(JSON.parse((await fs.readFile(packJson)).toString()))
+		let cfg: PackJSON
+		if (!files.includes(packJson)) cfg = this.configDefaults({})
+		else cfg = this.configDefaults(JSON.parse((await fs.readFile(packJson)).toString()))
 
 		const srcFiles = files.filter(f=>f.endsWith('.txt'))
 
@@ -95,8 +95,8 @@ export class Datapack {
 	}
 
 	async emit() {
-		let delPath = resolvePath(this.emitDir)
-		let cmd = 'rmdir /Q /S '+delPath
+		let delPath = resolvePath(this.emitDir+'/data')
+		let cmd = 'rmdir /Q /S ' + delPath
 		await execp(cmd) // this is vulnerable to shell code injection
 		await fs.mkdir(this.emitDir)
 		await fs.writeFile(this.emitDir+'/pack.mcmeta',JSON.stringify({

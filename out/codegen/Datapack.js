@@ -18,8 +18,7 @@ const instructionOptimizer_1 = require("../optimization/instructionOptimizer");
 const moment_1 = __importDefault(require("moment"));
 require("moment-duration-format");
 class Datapack {
-    constructor(name, srcDir, emitDir) {
-        this.name = name;
+    constructor(srcDir, emitDir = srcDir) {
         this.srcDir = srcDir;
         this.emitDir = emitDir;
         this.init = [];
@@ -34,9 +33,11 @@ class Datapack {
     async compile() {
         const files = await recursiveSearch(this.srcDir);
         const packJson = path_1.join(this.srcDir, 'pack.json');
+        let cfg;
         if (!files.includes(packJson))
-            throw new Error('pack.json not found');
-        const cfg = this.configDefaults(JSON.parse((await fs_1.promises.readFile(packJson)).toString()));
+            cfg = this.configDefaults({});
+        else
+            cfg = this.configDefaults(JSON.parse((await fs_1.promises.readFile(packJson)).toString()));
         const srcFiles = files.filter(f => f.endsWith('.txt'));
         const ctx = new CompileContext_1.CompileContext(cfg.compilerOptions, await SyntaxSheet_1.SyntaxSheet.load(cfg.compilerOptions.targetVersion));
         ctx.log(1, `Begin compilation`);
@@ -61,7 +62,7 @@ class Datapack {
         throw new Error('not yet boi');
     }
     async emit() {
-        let delPath = path_1.resolve(this.emitDir);
+        let delPath = path_1.resolve(this.emitDir + '/data');
         let cmd = 'rmdir /Q /S ' + delPath;
         await execp(cmd); // this is vulnerable to shell code injection
         await fs_1.promises.mkdir(this.emitDir);
