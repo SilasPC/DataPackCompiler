@@ -31,13 +31,12 @@ export function generateTest(fn: FnDeclaration, ctx: CompileContext) {
 					instr.from.scoreboard.scoreboard
 				}`)
 				break
-			case InstrType.INVOKE_INT:
-				// TODO
-				break
-			case InstrType.INVOKE_VOID:
+			case InstrType.INVOKE:
+				output.push('#invoke')
 				// TODO
 				break
 			case InstrType.CMD:
+				output.push('#cmd')
 				// TODO
 				break
 			default:

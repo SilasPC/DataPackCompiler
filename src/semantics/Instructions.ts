@@ -2,11 +2,10 @@
 import { IntESR } from './ESR'
 import { FnDeclaration } from './Declaration'
 
-export type Instruction = INT_OP | CMDInstr | INVOKE_INT | INVOKE_VOID
+export type Instruction = INT_OP | CMDInstr | INVOKE
 
 export enum InstrType {
-	INVOKE_INT,
-	INVOKE_VOID,
+	INVOKE,
 	INT_OP,
 	CMD
 }
@@ -18,15 +17,9 @@ export interface INT_OP {
 	op: string
 }
 
-export interface INVOKE_VOID {
-	type: InstrType.INVOKE_VOID,
+export interface INVOKE {
+	type: InstrType.INVOKE,
 	fn: FnDeclaration
-}
-
-export interface INVOKE_INT {
-	type: InstrType.INVOKE_INT,
-	fn: FnDeclaration
-	into: IntESR
 }
 
 export interface CMDInstr {

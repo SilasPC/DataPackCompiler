@@ -4,6 +4,10 @@ import { Declaration } from "./Declaration"
 
 export class SymbolTable {
 
+    public static createRoot() {
+        return new SymbolTable(null)
+    }
+
     private static allDeclarations: Declaration[] = []
 
     public static getAllDeclarations() {return this.allDeclarations}
@@ -11,7 +15,7 @@ export class SymbolTable {
     private readonly children: SymbolTable[] = []
     private readonly declarations: Map<string,{decl:Declaration,refCounter:number}> = new Map()
 
-    constructor(
+    private constructor(
         public readonly parent: SymbolTable|null
     ) {}
 

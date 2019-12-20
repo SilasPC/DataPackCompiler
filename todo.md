@@ -8,6 +8,8 @@
 	- Version control
 	- Extend | destroy from older versions
 - Replace symboltable with scope
+- Differentiate between datapack loading and initialization
+- Actually use ref-counter in symbol table
 
 # FUTURE
 - Make use of compiler options

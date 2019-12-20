@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const Types_1 = require("./Types");
 const other_1 = require("../toolbox/other");
+const Instructions_1 = require("./Instructions");
 var ESRType;
 (function (ESRType) {
     ESRType[ESRType["VOID"] = 0] = "VOID";
@@ -18,4 +19,20 @@ function getESRType(esr) {
     }
 }
 exports.getESRType = getESRType;
+/** Copies esr into a new esr (with the returned instruction) */
+function copyESRToLocal(esr, ctx, scope, name) {
+    switch (esr.type) {
+        case ESRType.VOID:
+            throw new Error('cannot copy void esr');
+        case ESRType.BOOL:
+            throw new Error('bool copy not supported yet');
+        case ESRType.INT:
+            let retEsr = { type: ESRType.INT, mutable: false, const: false, tmp: false, scoreboard: ctx.scoreboards.getStatic(name, scope) };
+            let copyInstr = { type: Instructions_1.InstrType.INT_OP, into: retEsr, from: esr, op: '=' };
+            return { copyInstr, esr: retEsr };
+        default:
+            return other_1.exhaust(esr);
+    }
+}
+exports.copyESRToLocal = copyESRToLocal;
 //# sourceMappingURL=ESR.js.map

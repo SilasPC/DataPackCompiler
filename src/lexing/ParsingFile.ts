@@ -2,10 +2,11 @@
 import { Token } from "./Token";
 import { ASTNode } from "../syntax/AST";
 import { readFileSync } from "fs";
-import { resolve, relative } from 'path'
+import { resolve, relative, basename } from 'path'
 import { SymbolTable } from "../semantics/SymbolTable";
 import { TokenIterator } from "./TokenIterator";
 import { Declaration } from "../semantics/Declaration";
+import { Scope } from "../semantics/Scope";
 
 export class ParsingFile {
 
@@ -26,18 +27,23 @@ export class ParsingFile {
         if (ParsingFile.isLoaded(path)) throw new Error('Tried re-loading a file')
         let fullPath = resolve(path)
         let relativePath = './'+relative('./',fullPath).replace('\\','/').split('.').slice(0,-1).join('.')
-        let file = new ParsingFile(fullPath,relativePath,readFileSync(fullPath).toString())
+        let file = new ParsingFile(
+            fullPath,
+            relativePath,
+            readFileSync(fullPath).
+            toString(),
+            Scope.createRoot(basename(fullPath).split('.').slice(0,-1).join('.'))
+        )
         ParsingFile.files.set(fullPath,file)
         return file
     }
 
     static fromSource(source:string) {
-        return new ParsingFile('','',source)
+        return new ParsingFile('','',source,Scope.createRoot('source'))
     }
 
     private readonly tokens: Token[] = []
     private readonly ast: ASTNode[] = []
-    private readonly symbolTable: SymbolTable = new SymbolTable(null)
     private readonly exports: Map<string,Declaration> = new Map()
 
     public status: 'lexed'|'parsing'|'parsed'|'generating'|'generated' = 'lexed'
@@ -45,7 +51,9 @@ export class ParsingFile {
     private constructor(
         public readonly fullPath: string,
         public readonly relativePath: string,
-        public readonly source: string
+        public readonly source: string,
+        public readonly scope: Scope
+        
     ) {}
     addToken(t:Token) {this.tokens.push(t)}
     getTokenIterator() {return new TokenIterator(this,this.tokens)}
@@ -53,7 +61,7 @@ export class ParsingFile {
     addASTNode(n:ASTNode) {this.ast.push(n)}
     getAST() {return this.ast}
 
-    getSymbolTable() {return this.symbolTable}
+    getSymbolTable() {return this.scope.symbols}
     addExport(identifier:string,declaration:Declaration) {
         if (this.exports.has(identifier)) throw new Error('export duplicate identifier')
         this.exports.set(identifier,declaration)

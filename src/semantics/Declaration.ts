@@ -4,11 +4,18 @@ import { ValueType } from "./Types";
 import { Instruction } from "./Instructions";
 import { ESR } from "./ESR";
 
-export type Declaration = VarDeclaration | FnDeclaration
+export type Declaration = ImplicitVarDeclaration | VarDeclaration | FnDeclaration
 
 export enum DeclarationType {
 	VARIABLE,
+	IMPLICIT_VARIABLE,
 	FUNCTION
+}
+
+export interface ImplicitVarDeclaration {
+	type: DeclarationType.IMPLICIT_VARIABLE,
+	varType: ValueType,
+	esr: ESR
 }
 
 export interface VarDeclaration {

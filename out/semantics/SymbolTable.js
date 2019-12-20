@@ -7,6 +7,9 @@ class SymbolTable {
         this.children = [];
         this.declarations = new Map();
     }
+    static createRoot() {
+        return new SymbolTable(null);
+    }
     static getAllDeclarations() { return this.allDeclarations; }
     branch() {
         let child = new SymbolTable(this);

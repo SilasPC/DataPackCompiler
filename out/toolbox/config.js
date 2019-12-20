@@ -4,7 +4,7 @@ function compilerOptionDefaults(cfg) {
     if (!cfg)
         cfg = {};
     return {
-        obscureNames: def(cfg.obscureNames, true),
+        obscureNames: def(cfg.obscureNames, false),
         obscureSeed: def(cfg.obscureSeed, ''),
         noInference: def(cfg.noInference, true),
         noImplicitCast: def(cfg.noImplicitCast, true),

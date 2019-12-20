@@ -2,16 +2,16 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const fs_1 = require("fs");
 const path_1 = require("path");
-const SymbolTable_1 = require("../semantics/SymbolTable");
 const TokenIterator_1 = require("./TokenIterator");
+const Scope_1 = require("../semantics/Scope");
 class ParsingFile {
-    constructor(fullPath, relativePath, source) {
+    constructor(fullPath, relativePath, source, scope) {
         this.fullPath = fullPath;
         this.relativePath = relativePath;
         this.source = source;
+        this.scope = scope;
         this.tokens = [];
         this.ast = [];
-        this.symbolTable = new SymbolTable_1.SymbolTable(null);
         this.exports = new Map();
         this.status = 'lexed';
     }
@@ -30,18 +30,19 @@ class ParsingFile {
             throw new Error('Tried re-loading a file');
         let fullPath = path_1.resolve(path);
         let relativePath = './' + path_1.relative('./', fullPath).replace('\\', '/').split('.').slice(0, -1).join('.');
-        let file = new ParsingFile(fullPath, relativePath, fs_1.readFileSync(fullPath).toString());
+        let file = new ParsingFile(fullPath, relativePath, fs_1.readFileSync(fullPath).
+            toString(), Scope_1.Scope.createRoot(path_1.basename(fullPath).split('.').slice(0, -1).join('.')));
         ParsingFile.files.set(fullPath, file);
         return file;
     }
     static fromSource(source) {
-        return new ParsingFile('', '', source);
+        return new ParsingFile('', '', source, Scope_1.Scope.createRoot('source'));
     }
     addToken(t) { this.tokens.push(t); }
     getTokenIterator() { return new TokenIterator_1.TokenIterator(this, this.tokens); }
     addASTNode(n) { this.ast.push(n); }
     getAST() { return this.ast; }
-    getSymbolTable() { return this.symbolTable; }
+    getSymbolTable() { return this.scope.symbols; }
     addExport(identifier, declaration) {
         if (this.exports.has(identifier))
             throw new Error('export duplicate identifier');

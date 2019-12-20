@@ -2,14 +2,16 @@ import { ParsingFile } from "../lexing/ParsingFile"
 // import { hoist } from "./hoister"
 import { ASTNode, ASTNodeType, ASTOpNode } from "../syntax/AST"
 import { SymbolTable } from "./SymbolTable"
-import { ESR, ESRType, getESRType, IntESR } from "./ESR"
+import { ESR, ESRType, getESRType, IntESR, copyESRToLocal } from "./ESR"
 import { tokenToType, ElementaryValueType, ValueType, hasSharedType } from "./Types"
-import { DeclarationType, VarDeclaration, FnDeclaration } from "./Declaration"
+import { DeclarationType, VarDeclaration, FnDeclaration, ImplicitVarDeclaration } from "./Declaration"
 import { Instruction, InstrType, INT_OP } from "./Instructions"
 import { exprParser } from "./expressionParser"
 import { exhaust } from "../toolbox/other"
 import { CompileContext } from "../toolbox/CompileContext"
 import { generateTest } from "../codegen/generate"
+import { test } from "../optimization/antiAlias"
+import { Scope } from "./Scope"
 
 export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): void {
 	
@@ -19,6 +21,7 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): void {
 	pfile.status = 'parsing'
 
 	let symbols = pfile.getSymbolTable()
+	let scope = pfile.scope
 	let ast = pfile.getAST() as ASTNode[]
 
 	let load: Instruction[] = []
@@ -35,71 +38,93 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): void {
 					if (type.elementary && type.type == ElementaryValueType.VOID)
 						node.varType.throwDebug(`Cannot declare a variable of type 'void'`)
 					if (!type.elementary) node.varType.throwDebug('no non-elemn rn k')
-					let esr = exprParser(node.initial,symbols,load,ctx)
-					getESRType(esr)
+					let esr = exprParser(node.initial,scope,load,ctx)
+					// the above cannot be used for the variables esr
+					// we must create a new esr, then assign the above to that
+					// file-level declarations are assigned during init, so
+					// we must add the assignations instruction to datapack init
+					let res = copyESRToLocal(esr,ctx,scope,node.identifier.value)
+					esr = res.esr
+					// do something with res.copyInstr
+					
+					// tmp test
+					if (esr.type == ESRType.INT) console.log(node.identifier.value,'=>',esr.scoreboard.selector)
+
 					if (!hasSharedType(getESRType(esr),type)) node.identifier.throwDebug('type mismatch')
-					let decl: VarDeclaration = {type: DeclarationType.VARIABLE,varType:type,node,esr}
-					// We write directly to what would otherwise be a tmp variable               ^^^
-					// For now this shouldn't be a problem
+					let decl: VarDeclaration = {type:DeclarationType.VARIABLE,varType:type,node,esr}
 					symbols.declare(node.identifier,decl)
 					if (shouldExport) pfile.addExport(node.identifier.value,decl)
 					break
 				}
 	
 			case ASTNodeType.FUNCTION: {
-					let body: Instruction[] = []
-					let parameters: ESR[] = []
-					for (let param of node.parameters) {
-						let type = tokenToType(param.type,symbols)
-						if (!type.elementary) return param.type.throwDebug('elementary only thx')
-						switch (type.type) {
-							case ElementaryValueType.VOID:
-								return param.type.throwDebug('not valid')
-							case ElementaryValueType.INT:
-								let esr: IntESR = {
-									type: ESRType.INT,
-									scoreboard: ctx.scoreboards.getStatic(),
-									mutable: false, // this controls if function parameters are mutable
-									const: false
-								}
-								parameters.push(esr)
-								break
-							case ElementaryValueType.BOOL:
-								return param.type.throwDebug('no bool yet thx')
-							default:
-								return exhaust(type.type)
-						}
-					}
-					let type = tokenToType(node.returnType,symbols)
-					if (!type.elementary) return node.returnType.throwDebug('nop thx')
-					let esr: ESR
+				let body: Instruction[] = []
+				let parameters: ESR[] = []
+				let branch = scope.branch(node.identifier.value)
+				let type = tokenToType(node.returnType,symbols)
+				if (!type.elementary) return node.returnType.throwDebug('nop thx')
+				let esr: ESR
+				switch (type.type) {
+					case ElementaryValueType.VOID:
+						esr = {type:ESRType.VOID, mutable: false, const: false, tmp: false}
+						break
+					case ElementaryValueType.INT:
+						esr = {type:ESRType.INT, mutable: false, const: false, tmp: false, scoreboard: ctx.scoreboards.getStatic('return',branch)}
+						break
+					case ElementaryValueType.BOOL:
+						esr = {type:ESRType.BOOL, mutable: false, const: false, tmp: false, scoreboard: ctx.scoreboards.getStatic('return',branch)}
+						break
+					default:
+						return exhaust(type.type)
+				}
+				let decl: FnDeclaration = {
+					type: DeclarationType.FUNCTION,
+					returns: esr,
+					node,
+					instructions: body,
+					parameters
+				}
+				symbols.declare(node.identifier,decl)
+				for (let param of node.parameters) {
+					let type = tokenToType(param.type,symbols)
+					if (!type.elementary) return param.type.throwDebug('elementary only thx')
+					let esr
 					switch (type.type) {
 						case ElementaryValueType.VOID:
-							esr = {type:ESRType.VOID, mutable: false, const: false}
-							break
+							return param.type.throwDebug('not valid')
 						case ElementaryValueType.INT:
-							esr = {type:ESRType.INT, mutable: false, const: false, scoreboard: ctx.scoreboards.getStatic()}
+							let iesr: IntESR = {
+								type: ESRType.INT,
+								scoreboard: ctx.scoreboards.getStatic(param.symbol.value,branch),
+								mutable: false, // this controls if function parameters are mutable
+								const: false,
+								tmp: false
+							}
+							esr = iesr
 							break
 						case ElementaryValueType.BOOL:
-							esr = {type:ESRType.BOOL, mutable: false, const: false, scoreboard: ctx.scoreboards.getStatic()}
-							break
+							return param.type.throwDebug('no bool yet thx')
 						default:
 							return exhaust(type.type)
 					}
-					let decl: FnDeclaration = {
-						type: DeclarationType.FUNCTION,
-						returns: esr,
-						node,
-						instructions: body,
-						parameters
+					let decl: ImplicitVarDeclaration = {
+						type: DeclarationType.IMPLICIT_VARIABLE,
+						varType: type,
+						esr
 					}
-					symbols.declare(node.identifier,decl)
-					if (shouldExport) pfile.addExport(node.identifier.value,decl)
-					parseBody(node.body,symbols.branch(),body,ctx)
-					console.log(node.identifier.value)
-					console.log(generateTest(decl,ctx))
-					break
+					parameters.push(esr)
+					branch.symbols.declare(param.symbol,decl)
 				}
+				if (shouldExport) pfile.addExport(node.identifier.value,decl)
+				parseBody(node.body,branch,body,ctx)
+
+				// test anti alias optimization
+				test(decl.instructions)
+				console.log(node.identifier.value)
+				console.log(generateTest(decl,ctx))
+				
+				break
+			}
 
 			case ASTNodeType.IDENTIFIER:
 			case ASTNodeType.INVOKATION:
@@ -122,7 +147,7 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): void {
 
 }
 
-function parseBody(nodes:ASTNode[],symbols:SymbolTable,body:Instruction[],ctx:CompileContext): void {
+function parseBody(nodes:ASTNode[],scope:Scope,body:Instruction[],ctx:CompileContext): void {
 	for (let node of nodes) {
 		switch (node.type) {
 			case ASTNodeType.COMMAND:
@@ -131,7 +156,7 @@ function parseBody(nodes:ASTNode[],symbols:SymbolTable,body:Instruction[],ctx:Co
 				break
 			case ASTNodeType.INVOKATION:
 			case ASTNodeType.OPERATION:
-				exprParser(node,symbols,body,ctx)
+				exprParser(node,scope,body,ctx)
 				break
 			case ASTNodeType.PRIMITIVE:
 			case ASTNodeType.IDENTIFIER:

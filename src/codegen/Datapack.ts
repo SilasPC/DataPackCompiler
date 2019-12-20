@@ -11,6 +11,10 @@ import { semanticsParser } from "../semantics/semanticsParser";
 import { ParsingFile } from "../lexing/ParsingFile";
 import { CompileContext } from "../toolbox/CompileContext";
 import { SyntaxSheet } from "../commands/SyntaxSheet";
+import { optimize } from "../optimization/instructionOptimizer";
+import moment from "moment"
+import 'moment-duration-format'
+import { Instruction } from "../semantics/Instructions";
 
 interface WeakPackJSON {
 	name?: string
@@ -25,10 +29,8 @@ interface PackJSON extends Required<WeakPackJSON> {
 
 export class Datapack {
 
-	private tickFile: string[] = []
-	private loadFile: string[] = []
+	private init: Instruction[] = []
 
-	//public readonly publicVariableScoreboard = generateIdentifier()
 	private files: FnFile[] = []
 
 	constructor(
@@ -36,14 +38,13 @@ export class Datapack {
 		public readonly srcDir: string,
 		public readonly emitDir: string
 	) {
-		this.addLoadCode(
-			`tellraw @a Loaded my first compiled datapack!`,
+		this.addInit(
+			// `tellraw @a Loaded my first compiled datapack!`,
 			//`scoreboard objectives add ${this.publicVariableScoreboard} dummy`
 		)
 	}
 
-	addLoadCode(...lines:string[]) {this.loadFile.push(...lines)}
-	addTickCode(...lines:string[]) {this.tickFile.push(...lines)}
+	addInit(...instrs:Instruction[]) {this.init.push(...instrs)}
 
 	addFnFile(f:FnFile) {this.files.push(f)}
 
@@ -62,6 +63,7 @@ export class Datapack {
 		)
 
 		ctx.log(1,`Begin compilation`)
+		let start = moment()
 
 		const pfiles =
 			srcFiles
@@ -78,8 +80,17 @@ export class Datapack {
 		pfiles.forEach(pf=>semanticsParser(pf,ctx))
 		ctx.log(1,`Semantic analysis complete`)
 
-		throw new Error('no generator')
+		let optres = optimize(this,ctx)
+		ctx.log(1,`Optimization complete`)
+		ctx.log(2,`Sucessful passes: ${optres.meta.passes}`)
+
+		// throw new Error('no generator')
 		//pfiles.forEach(pf=>generateCode(pf,this))
+
+		ctx.log(1,`Compilation complete`)
+		ctx.log(2,`Elapsed time: ${(moment.duration(start.diff(moment())) as any).format()}`)
+
+		throw new Error('not yet boi')
 
 	}
 
@@ -101,8 +112,8 @@ export class Datapack {
 		await Promise.all(
 			this.files.map(f=>fs.writeFile(fns+'/'+f.name+'.mcfunction',f.getCode().join('\n')))
 		)
-		await fs.writeFile(fns+'/tick',this.tickFile.join('\n'))
-		await fs.writeFile(fns+'/load',this.loadFile.join('\n'))
+		// await fs.writeFile(fns+'/tick',this.tickFile.join('\n'))
+		// await fs.writeFile(fns+'/load',this.loadFile.join('\n'))
 		ns = this.emitDir+'/data/minecraft'
 		await fs.mkdir(ns)
 		await fs.mkdir(ns+'/tags')

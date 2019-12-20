@@ -1,1 +1,1 @@
-{"version":3,"file":"Declaration.js","sourceRoot":"","sources":["../../src/semantics/Declaration.ts"],"names":[],"mappings":";;AAQA,IAAY,eAGX;AAHD,WAAY,eAAe;IAC1B,6DAAQ,CAAA;IACR,6DAAQ,CAAA;AACT,CAAC,EAHW,eAAe,GAAf,uBAAe,KAAf,uBAAe,QAG1B"}
+{"version":3,"file":"Declaration.js","sourceRoot":"","sources":["../../src/semantics/Declaration.ts"],"names":[],"mappings":";;AAQA,IAAY,eAIX;AAJD,WAAY,eAAe;IAC1B,6DAAQ,CAAA;IACR,+EAAiB,CAAA;IACjB,6DAAQ,CAAA;AACT,CAAC,EAJW,eAAe,GAAf,uBAAe,KAAf,uBAAe,QAI1B"}

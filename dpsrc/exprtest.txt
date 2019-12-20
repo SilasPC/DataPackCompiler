@@ -1,7 +1,7 @@
 
 export let a: int = 2;
 let b: int = 3;
-let c: bool = true;
+// let c: bool = true;
 
     /**************/
     /* Hiya there */
@@ -51,7 +51,7 @@ export namespace math {
 
 */
 
-fn test(a:int): void {
+fn test(xxx:int): void {
     /say abc
     //let v1: int = 2;
     //if (v1 == 2) {

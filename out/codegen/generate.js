@@ -16,13 +16,12 @@ function generateTest(fn, ctx) {
                 // if (!instr.into.mutable) throw new Error('not mutable boi')
                 output.push(`scoreboard players operation ${instr.into.scoreboard.selector} ${instr.into.scoreboard.scoreboard} ${instr.op} ${instr.from.scoreboard.selector} ${instr.from.scoreboard.scoreboard}`);
                 break;
-            case Instructions_1.InstrType.INVOKE_INT:
-                // TODO
-                break;
-            case Instructions_1.InstrType.INVOKE_VOID:
+            case Instructions_1.InstrType.INVOKE:
+                output.push('#invoke');
                 // TODO
                 break;
             case Instructions_1.InstrType.CMD:
+                output.push('#cmd');
                 // TODO
                 break;
             default:

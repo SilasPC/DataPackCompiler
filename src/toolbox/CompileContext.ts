@@ -11,15 +11,20 @@ export class CompileContext {
 		)
 	}
 
-	public readonly scoreboards: ScoreboardManager = new ScoreboardManager()
+	public readonly scoreboards: ScoreboardManager = new ScoreboardManager(this.options)
 
 	constructor(
 		public readonly options: CompilerOptions,
 		public readonly syntaxSheet: SyntaxSheet
 	) {}
 
+	private lastLogLevel = 0
 	log(level:number,msg:string) {
-		if (level <= this.options.verbosity) console.log(msg)
+		if (this.lastLogLevel > level) console.log()
+		let pad = ''
+		if (level > 1) pad = ' '.repeat(2 * level - 3) + '- '
+		if (level <= this.options.verbosity) console.log(pad + msg)
+		this.lastLogLevel = level
 	}
 
 }
