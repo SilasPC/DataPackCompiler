@@ -16,7 +16,7 @@ let c: bool = true;
 
 fn x(y:int): void {
 	/from exprtest
-	a += a * b;
+	a += a * (b + 1);
 }
 
 fn part(): void {

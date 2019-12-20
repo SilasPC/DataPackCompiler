@@ -19,8 +19,8 @@ export interface VoidESR extends ESRBase {
 }
 
 export interface Scoreboard {
-	scoreboard?: string
-	selector?: string
+	scoreboard: string
+	selector: string
 }
 
 export interface IntESR extends ESRBase {

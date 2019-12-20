@@ -1,5 +1,6 @@
 import { CompilerOptions, compilerOptionDefaults } from "./config";
 import { SyntaxSheet } from "../commands/SyntaxSheet";
+import { ScoreboardManager } from "./ScoreboardManager";
 
 export class CompileContext {
 
@@ -9,6 +10,8 @@ export class CompileContext {
 			SyntaxSheet.getNullSheet()
 		)
 	}
+
+	public readonly scoreboards: ScoreboardManager = new ScoreboardManager()
 
 	constructor(
 		public readonly options: CompilerOptions,

@@ -35,10 +35,12 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): void {
 					if (type.elementary && type.type == ElementaryValueType.VOID)
 						node.varType.throwDebug(`Cannot declare a variable of type 'void'`)
 					if (!type.elementary) node.varType.throwDebug('no non-elemn rn k')
-					let esr = exprParser(node.initial,symbols,load)
+					let esr = exprParser(node.initial,symbols,load,ctx)
 					getESRType(esr)
 					if (!hasSharedType(getESRType(esr),type)) node.identifier.throwDebug('type mismatch')
-					let decl: VarDeclaration = {type: DeclarationType.VARIABLE,varType:type,node}
+					let decl: VarDeclaration = {type: DeclarationType.VARIABLE,varType:type,node,esr}
+					// We write directly to what would otherwise be a tmp variable               ^^^
+					// For now this shouldn't be a problem
 					symbols.declare(node.identifier,decl)
 					if (shouldExport) pfile.addExport(node.identifier.value,decl)
 					break
@@ -56,7 +58,7 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): void {
 							case ElementaryValueType.INT:
 								let esr: IntESR = {
 									type: ESRType.INT,
-									scoreboard: {},
+									scoreboard: ctx.scoreboards.getStatic(),
 									mutable: false, // this controls if function parameters are mutable
 									const: false
 								}
@@ -76,10 +78,10 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): void {
 							esr = {type:ESRType.VOID, mutable: false, const: false}
 							break
 						case ElementaryValueType.INT:
-							esr = {type:ESRType.INT, mutable: false, const: false, scoreboard: {}}
+							esr = {type:ESRType.INT, mutable: false, const: false, scoreboard: ctx.scoreboards.getStatic()}
 							break
 						case ElementaryValueType.BOOL:
-							esr = {type:ESRType.BOOL, mutable: false, const: false, scoreboard: {}}
+							esr = {type:ESRType.BOOL, mutable: false, const: false, scoreboard: ctx.scoreboards.getStatic()}
 							break
 						default:
 							return exhaust(type.type)
@@ -93,7 +95,7 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): void {
 					}
 					symbols.declare(node.identifier,decl)
 					if (shouldExport) pfile.addExport(node.identifier.value,decl)
-					parseBody(node.body,symbols.branch(),body)
+					parseBody(node.body,symbols.branch(),body,ctx)
 					console.log(node.identifier.value)
 					console.log(generateTest(decl,ctx))
 					break
@@ -120,7 +122,7 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): void {
 
 }
 
-function parseBody(nodes:ASTNode[],symbols:SymbolTable,body:Instruction[]): void {
+function parseBody(nodes:ASTNode[],symbols:SymbolTable,body:Instruction[],ctx:CompileContext): void {
 	for (let node of nodes) {
 		switch (node.type) {
 			case ASTNodeType.COMMAND:
@@ -129,7 +131,7 @@ function parseBody(nodes:ASTNode[],symbols:SymbolTable,body:Instruction[]): void
 				break
 			case ASTNodeType.INVOKATION:
 			case ASTNodeType.OPERATION:
-				exprParser(node,symbols,body)
+				exprParser(node,symbols,body,ctx)
 				break
 			case ASTNodeType.PRIMITIVE:
 			case ASTNodeType.IDENTIFIER:

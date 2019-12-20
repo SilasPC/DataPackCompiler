@@ -15,6 +15,7 @@ export interface VarDeclaration {
 	type: DeclarationType.VARIABLE
 	node: ASTLetNode
 	varType: ValueType
+	esr: ESR
 }
 
 export interface FnDeclaration {

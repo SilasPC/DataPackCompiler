@@ -6,26 +6,29 @@ import { DeclarationType } from "./Declaration"
 import { ElementaryValueType, tokenToType, hasSharedType } from "./Types"
 import { exhaust } from "../toolbox/other"
 import { exec } from "child_process"
+import { CompileContext } from "../toolbox/CompileContext"
 
-export function exprParser(node:ASTNode,symbols:SymbolTable,body:Instruction[]): ESR {
+export function exprParser(node:ASTNode,symbols:SymbolTable,body:Instruction[], ctx: CompileContext): ESR {
 
 	switch (node.type) {
 
 		case ASTNodeType.IDENTIFIER: {
-			let iddecl = symbols.getDeclaration(node.identifier)
-			switch (iddecl.type) {
+			let decl = symbols.getDeclaration(node.identifier)
+			switch (decl.type) {
 				case DeclarationType.VARIABLE:
-					if (iddecl.varType.elementary) {
-						switch (iddecl.varType.type) {
+					let esr = decl.esr
+					if (decl.varType.elementary) {
+						switch (decl.varType.type) {
 							case ElementaryValueType.INT:
-								let res: IntESR = {type:ESRType.INT,mutable:true,const:false,scoreboard:{}}
+								if (esr.type != ESRType.INT) return node.identifier.throwDebug('ESR type assertion failed')
+								let res: IntESR = {type:ESRType.INT,mutable:true,const:false,scoreboard:esr.scoreboard}
 								return res
 							case ElementaryValueType.BOOL:
 								return node.identifier.throwDebug('no bools rn')
 							case ElementaryValueType.VOID:
 								return node.identifier.throwDebug('void var type wtf?')
 							default:
-								return exhaust(iddecl.varType.type)
+								return exhaust(decl.varType.type)
 						}
 					} else {
 						return node.identifier.throwDebug('non-elementary ref not implemented')
@@ -33,25 +36,25 @@ export function exprParser(node:ASTNode,symbols:SymbolTable,body:Instruction[]):
 				case DeclarationType.FUNCTION:
 						return node.identifier.throwDebug('non-invocation fn ref not implemented')
 				default:
-					return exhaust(iddecl)
+					return exhaust(decl)
 			}
 			throw new Error('should be unreachable?')
 		}
 			
 		case ASTNodeType.PRIMITIVE:
 			let val = node.value.value
-			if (val == 'true') return {type:ESRType.BOOL,mutable:false,const:true,scoreboard:{}}
-			if (val == 'false') return {type:ESRType.BOOL,mutable:false,const:true,scoreboard:{}}
+			if (val == 'true') return {type:ESRType.BOOL,mutable:false,const:true,scoreboard:ctx.scoreboards.getConstant(1)}
+			if (val == 'false') return {type:ESRType.BOOL,mutable:false,const:true,scoreboard:ctx.scoreboards.getConstant(0)}
 			let n = Number(val)
 			if (Number.isNaN(n)||!Number.isInteger(n)) node.value.throwDebug('kkk only int primitives')
-			return {type:ESRType.INT,mutable:false,const:true,scoreboard:{}}
+			return {type:ESRType.INT,mutable:false,const:true,scoreboard:ctx.scoreboards.getConstant(n)}
 
 		case ASTNodeType.OPERATION:
-			return operator(node,symbols,body)
+			return operator(node,symbols,body,ctx)
 
 		case ASTNodeType.INVOKATION: {
 			if (node.function.type != ASTNodeType.IDENTIFIER) throw new Error('only direct calls for now')
-			let params = node.parameters.list.map(p=>exprParser(p,symbols,body))
+			let params = node.parameters.list.map(p=>exprParser(p,symbols,body,ctx))
 			let decl = symbols.getDeclaration(node.function.identifier.value)
 			if (!decl) return node.function.identifier.throwDebug('fn not declared')
 			if (decl.type != DeclarationType.FUNCTION)
@@ -79,13 +82,12 @@ export function exprParser(node:ASTNode,symbols:SymbolTable,body:Instruction[]):
 					default:
 						return exhaust(esr)
 				}
-				// TODO: add instructions to copy into param
 			}
 			let returnType = getESRType(decl.returns)
 			if (returnType.elementary) {
 				switch (returnType.type) {
 					case ElementaryValueType.INT: {
-						let into: IntESR = {type:ESRType.INT,mutable:false,const:false,scoreboard:{}}
+						let into: IntESR = {type:ESRType.INT,mutable:false,const:false,scoreboard:ctx.scoreboards.getStatic()}
 						let instr: INVOKE_INT = {type:InstrType.INVOKE_INT,fn:decl,into}
 						body.push(instr)
 						return into
@@ -121,7 +123,7 @@ export function exprParser(node:ASTNode,symbols:SymbolTable,body:Instruction[]):
 
 }
 
-function operator(node:ASTOpNode,symbols:SymbolTable,body:Instruction[]) {
+function operator(node:ASTOpNode,symbols:SymbolTable,body:Instruction[],ctx:CompileContext) {
 	switch (node.operator.value) {
 		case '+':
 		case '-':
@@ -129,10 +131,10 @@ function operator(node:ASTOpNode,symbols:SymbolTable,body:Instruction[]) {
 		case '/':
 		case '%': {
 			console.assert(node.operands.length == 2, 'two operands')
-			let [o0,o1] = node.operands.map(o=>exprParser(o,symbols,body))
+			let [o0,o1] = node.operands.map(o=>exprParser(o,symbols,body,ctx))
 			if (o0.type != ESRType.INT) return node.operator.throwDebug('only int op for now')
 			if (o0.type != o1.type) return node.operator.throwDebug('no op casting for now')
-			let res: IntESR = {type:ESRType.INT,mutable:false,const:false,scoreboard:{}}
+			let res: IntESR = {type:ESRType.INT,mutable:false,const:false,scoreboard:ctx.scoreboards.getStatic()}
 			// ???
 			let op1: INT_OP = {type:InstrType.INT_OP,into:res,from:o0,op:'='}
 			let op2: INT_OP = {type:InstrType.INT_OP,into:res,from:o1,op:node.operator.value+'='}
@@ -142,11 +144,11 @@ function operator(node:ASTOpNode,symbols:SymbolTable,body:Instruction[]) {
 
 		case '=': {
 			console.assert(node.operands.length == 2, 'two operands')
-			let [o0,o1] = node.operands.map(o=>exprParser(o,symbols,body))
+			let [o0,o1] = node.operands.map(o=>exprParser(o,symbols,body,ctx))
 			if (!o0.mutable) throw new Error('left hand side immutable')
 			if (o0.type != ESRType.INT) return node.operator.throwDebug('only int op for now')
 			if (o0.type != o1.type) return node.operator.throwDebug('no op casting for now')
-			let res: IntESR = {type:ESRType.INT,mutable:false,const:false,scoreboard:{}}
+			let res: IntESR = {type:ESRType.INT,mutable:false,const:false,scoreboard:ctx.scoreboards.getStatic()}
 			let op: INT_OP = {type:InstrType.INT_OP,into:res,from:o1,op:'='}
 			body.push(op)
 			return res
@@ -158,11 +160,11 @@ function operator(node:ASTOpNode,symbols:SymbolTable,body:Instruction[]) {
 		case '/=':
 		case '%=': {
 			console.assert(node.operands.length == 2, 'two operands')
-			let [o0,o1] = node.operands.map(o=>exprParser(o,symbols,body))
+			let [o0,o1] = node.operands.map(o=>exprParser(o,symbols,body,ctx))
 			if (!o0.mutable) throw new Error('left hand side immutable')
 			if (o0.type != ESRType.INT) return node.operator.throwDebug('only int op for now')
 			if (o0.type != o1.type) return node.operator.throwDebug('no op casting for now')
-			let res: IntESR = {type:ESRType.INT,mutable:false,const:false,scoreboard:{}}
+			let res: IntESR = {type:ESRType.INT,mutable:false,const:false,scoreboard:ctx.scoreboards.getStatic()}
 			let op1: INT_OP = {type:InstrType.INT_OP,into:res,from:o0,op:'='}
 			let op2: INT_OP = {type:InstrType.INT_OP,into:res,from:o1,op:node.operator.value}
 			body.push(op1,op2)

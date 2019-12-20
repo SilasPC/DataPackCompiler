@@ -29,11 +29,13 @@ function semanticsParser(pfile, ctx) {
                     node.varType.throwDebug(`Cannot declare a variable of type 'void'`);
                 if (!type.elementary)
                     node.varType.throwDebug('no non-elemn rn k');
-                let esr = expressionParser_1.exprParser(node.initial, symbols, load);
+                let esr = expressionParser_1.exprParser(node.initial, symbols, load, ctx);
                 ESR_1.getESRType(esr);
                 if (!Types_1.hasSharedType(ESR_1.getESRType(esr), type))
                     node.identifier.throwDebug('type mismatch');
-                let decl = { type: Declaration_1.DeclarationType.VARIABLE, varType: type, node };
+                let decl = { type: Declaration_1.DeclarationType.VARIABLE, varType: type, node, esr };
+                // We write directly to what would otherwise be a tmp variable               ^^^
+                // For now this shouldn't be a problem
                 symbols.declare(node.identifier, decl);
                 if (shouldExport)
                     pfile.addExport(node.identifier.value, decl);
@@ -52,7 +54,7 @@ function semanticsParser(pfile, ctx) {
                         case Types_1.ElementaryValueType.INT:
                             let esr = {
                                 type: ESR_1.ESRType.INT,
-                                scoreboard: {},
+                                scoreboard: ctx.scoreboards.getStatic(),
                                 mutable: false,
                                 const: false
                             };
@@ -73,10 +75,10 @@ function semanticsParser(pfile, ctx) {
                         esr = { type: ESR_1.ESRType.VOID, mutable: false, const: false };
                         break;
                     case Types_1.ElementaryValueType.INT:
-                        esr = { type: ESR_1.ESRType.INT, mutable: false, const: false, scoreboard: {} };
+                        esr = { type: ESR_1.ESRType.INT, mutable: false, const: false, scoreboard: ctx.scoreboards.getStatic() };
                         break;
                     case Types_1.ElementaryValueType.BOOL:
-                        esr = { type: ESR_1.ESRType.BOOL, mutable: false, const: false, scoreboard: {} };
+                        esr = { type: ESR_1.ESRType.BOOL, mutable: false, const: false, scoreboard: ctx.scoreboards.getStatic() };
                         break;
                     default:
                         return other_1.exhaust(type.type);
@@ -91,7 +93,7 @@ function semanticsParser(pfile, ctx) {
                 symbols.declare(node.identifier, decl);
                 if (shouldExport)
                     pfile.addExport(node.identifier.value, decl);
-                parseBody(node.body, symbols.branch(), body);
+                parseBody(node.body, symbols.branch(), body, ctx);
                 console.log(node.identifier.value);
                 console.log(generate_1.generateTest(decl, ctx));
                 break;
@@ -112,7 +114,7 @@ function semanticsParser(pfile, ctx) {
     pfile.status = 'parsed';
 }
 exports.semanticsParser = semanticsParser;
-function parseBody(nodes, symbols, body) {
+function parseBody(nodes, symbols, body, ctx) {
     for (let node of nodes) {
         switch (node.type) {
             case AST_1.ASTNodeType.COMMAND:
@@ -121,7 +123,7 @@ function parseBody(nodes, symbols, body) {
                 break;
             case AST_1.ASTNodeType.INVOKATION:
             case AST_1.ASTNodeType.OPERATION:
-                expressionParser_1.exprParser(node, symbols, body);
+                expressionParser_1.exprParser(node, symbols, body, ctx);
                 break;
             case AST_1.ASTNodeType.PRIMITIVE:
             case AST_1.ASTNodeType.IDENTIFIER:
