@@ -16,7 +16,7 @@ class CMDNode {
             return this.restOptional || this.children.length == 0;
         let [s, ...d] = this.children.filter(c => c.testShallow(cmd, j + 1));
         if (d.length)
-            this.children.filter(c => c.testShallow(cmd, j + 1, true)); // try strict equal
+            [s, ...d] = this.children.filter(c => c.testShallow(cmd, j + 1, true)); // try strict equal
         if (d.length)
             return false; // cannot have more than one match
         if (!s)

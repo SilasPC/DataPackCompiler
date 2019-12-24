@@ -34,6 +34,7 @@ export function bodySyntaxParser(iter:TokenIteratorI,ctx:CompileContext): ASTNod
                     type: ASTNodeType.COMMAND,
                     cmd: iter.current().value
                 }
+                if (!ctx.syntaxSheet.verifySyntax(node.cmd)) iter.current().throwDebug('invalid cmd syntax')
                 body.push(node)
                 break
             }

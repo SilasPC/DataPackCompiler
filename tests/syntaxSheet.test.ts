@@ -18,7 +18,7 @@ t2
 		expect(ss.verifySyntax('/t1')).to.be.false
 		expect(ss.verifySyntax('/t1 x z')).to.be.true
 		expect(ss.verifySyntax('/t1 xy x')).to.be.false
-		expect(ss.verifySyntax('/t1 z')).to.be.true
+		expect(ss.verifySyntax('/t1 z')).to.be.true // this test fails
 	})
 
 	it('invokation', () => {
@@ -51,7 +51,7 @@ test [opt]
 		`)
 		expect(ss.verifySyntax('/test')).to.be.true
 		expect(ss.verifySyntax('/test nop')).to.be.false
-		expect(ss.verifySyntax('/test opt')).to.be.true
+		expect(ss.verifySyntax('/test opt')).to.be.true // this fails
 	})
 
 	it('variations', () => {

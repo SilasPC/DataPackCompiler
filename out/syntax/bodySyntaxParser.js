@@ -31,6 +31,8 @@ function bodySyntaxParser(iter, ctx) {
                     type: AST_1.ASTNodeType.COMMAND,
                     cmd: iter.current().value
                 };
+                if (!ctx.syntaxSheet.verifySyntax(node.cmd))
+                    iter.current().throwDebug('invalid cmd syntax');
                 body.push(node);
                 break;
             }
