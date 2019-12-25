@@ -131,14 +131,23 @@ function expressionSyntaxParser(tokens, ctx) {
                 postfix.push(t.value);
                 lastWasOperand = true;
                 break;
-            case Token_1.TokenType.PRIMITIVE:
+            case Token_1.TokenType.PRIMITIVE: {
                 if (lastWasOperand)
                     t.throwDebug('Unexpected operand');
-                let prinode = { type: AST_1.ASTNodeType.PRIMITIVE, value: t };
-                que.push(prinode);
+                let node;
+                if (t.value == 'false' || t.value == 'true')
+                    node = { type: AST_1.ASTNodeType.BOOLEAN, value: t };
+                else if (Number.isFinite(Number(t.value)))
+                    node = { type: AST_1.ASTNodeType.NUMBER, value: t };
+                else if (t.value.startsWith('\''))
+                    node = { type: AST_1.ASTNodeType.STRING, value: t };
+                else
+                    return t.throwDebug('could not determine ast type');
+                que.push(node);
                 postfix.push(t.value);
                 lastWasOperand = true;
                 break;
+            }
             default:
                 //return exhaust(t.type)
                 t.throwDebug('tokentype not implemented');

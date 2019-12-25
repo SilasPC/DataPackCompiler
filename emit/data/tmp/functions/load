@@ -1,2 +1,0 @@
-tellraw @a Loaded my first compiled datapack!
-scoreboard objectives add 97224992 dummy

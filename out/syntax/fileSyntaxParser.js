@@ -3,9 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const Token_1 = require("../lexing/Token");
 const function_1 = require("./structures/function");
 const helpers_1 = require("./helpers");
-const SyntaxParser_1 = require("./SyntaxParser");
 const declaration_1 = require("./structures/declaration");
-const parser = new SyntaxParser_1.SyntaxParser('file');
 function fileSyntaxParser(pfile, ctx) {
     const iter = pfile.getTokenIterator();
     let doExport = false;
@@ -13,6 +11,10 @@ function fileSyntaxParser(pfile, ctx) {
         switch (token.type) {
             case Token_1.TokenType.KEYWORD: {
                 switch (token.value) {
+                    case 'import':
+                        if (doExport)
+                            return token.throwUnexpectedKeyWord();
+                        return token.throwDebug('no import yet');
                     case 'export':
                         if (doExport)
                             return token.throwUnexpectedKeyWord();

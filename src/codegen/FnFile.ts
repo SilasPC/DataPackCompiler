@@ -1,14 +1,15 @@
 
+import { Instruction } from "../semantics/Instructions"
+
 export class FnFile {
-
-	private readonly code: string[] = []
-
+	
 	constructor(
-		public readonly name: string
+		public readonly name: string,
+		private readonly code: Instruction[] = []
 	) {}
 
-	getCode() {return this.code}
+	get() {return this.code}
 
-	addLines(...lines:string[]) {this.code.push(...lines)}
+	add(...instrs:Instruction[]) {this.code.push(...instrs)}
 
 }

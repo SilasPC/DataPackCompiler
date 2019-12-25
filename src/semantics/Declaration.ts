@@ -3,6 +3,7 @@ import { ASTFnNode, ASTLetNode } from "../syntax/AST";
 import { ValueType } from "./Types";
 import { Instruction } from "./Instructions";
 import { ESR } from "./ESR";
+import { FnFile } from "../codegen/FnFile";
 
 export type Declaration = ImplicitVarDeclaration | VarDeclaration | FnDeclaration
 
@@ -30,5 +31,5 @@ export interface FnDeclaration {
 	node: ASTFnNode
 	returns: ESR
 	parameters: ESR[]
-	instructions: Instruction[]
+	fn: FnFile
 }

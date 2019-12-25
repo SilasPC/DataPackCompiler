@@ -18,9 +18,28 @@ function bodySyntaxParser(iter, ctx) {
                     case 'if':
                         body.push(conditional_1.parseConditional(iter, ctx));
                         break;
+                    case 'return': {
+                        // Later on, the expression parser must return a void type instead
+                        // This should happen, as it should be able to parse everything
+                        // using the shunting-yard algorithm
+                        // That is a bit ambitious, but it sounds quite neat :D
+                        // That also makes all this redundant anyways
+                        if (iter.peek().type == Token_1.TokenType.MARKER && iter.peek().value == ';')
+                            body.push({
+                                type: AST_1.ASTNodeType.RETURN,
+                                node: null
+                            });
+                        else
+                            body.push({
+                                type: AST_1.ASTNodeType.RETURN,
+                                node: expressionSyntaxParser_1.expressionSyntaxParser(iter, ctx).ast
+                            });
+                        break;
+                    }
                     default:
                         // ehm. I don't think I've implemented keywords in the expr parser
                         // lol
+                        throw new Error('keywords cannot be passed to expr parser yet');
                         body.push(expressionSyntaxParser_1.expressionSyntaxParser(iter.skip(-1), ctx).ast);
                         break;
                 }

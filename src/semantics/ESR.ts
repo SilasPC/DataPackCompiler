@@ -1,4 +1,4 @@
-import { ValueType, ElementaryValueType } from "./Types";
+import { ValueType, ElementaryValueType, hasSharedType } from "./Types";
 import { exhaust } from "../toolbox/other";
 import { Instruction, INT_OP, InstrType } from "./Instructions";
 import { CompileContext } from "../toolbox/CompileContext";
@@ -44,6 +44,27 @@ export function getESRType(esr:ESR): ValueType {
 		case ESRType.BOOL: return {elementary:true,type:ElementaryValueType.BOOL}
 		default:
 			return exhaust(esr)
+	}
+}
+
+/** Assigns one esr var to another */
+export function assignESR(from:ESR,to:ESR): Instruction[] {
+	if (!hasSharedType(getESRType(from),getESRType(to))) throw new Error('cannot assign esrs, not same type')
+	switch (from.type) {
+		case ESRType.VOID:
+			throw new Error('cannot assign void esr')
+		case ESRType.BOOL:
+			throw new Error('no assign bool esr yet')
+		case ESRType.INT: {
+			return [{
+				type: InstrType.INT_OP,
+				from,
+				into: to as IntESR,
+				op: '='
+			}]
+		}
+		default:
+			return exhaust(from)
 	}
 }
 

@@ -15,28 +15,15 @@ class ParsingFile {
         this.exports = new Map();
         this.status = 'lexed';
     }
-    static isLoaded(path) {
-        let fullPath = path_1.resolve(path);
-        return ParsingFile.files.has(fullPath);
-    }
-    static getFile(path) {
-        if (!ParsingFile.isLoaded(path))
-            throw new Error('Tried getting a non-loaded file');
-        let fullPath = path_1.resolve(path);
-        return ParsingFile.files.get(fullPath);
-    }
-    static loadFile(path) {
-        if (ParsingFile.isLoaded(path))
-            throw new Error('Tried re-loading a file');
+    static loadFile(path, ctx) {
         let fullPath = path_1.resolve(path);
         let relativePath = './' + path_1.relative('./', fullPath).replace('\\', '/').split('.').slice(0, -1).join('.');
         let file = new ParsingFile(fullPath, relativePath, fs_1.readFileSync(fullPath).
-            toString(), Scope_1.Scope.createRoot(path_1.basename(fullPath).split('.').slice(0, -1).join('.')));
-        ParsingFile.files.set(fullPath, file);
+            toString(), Scope_1.Scope.createRoot(path_1.basename(fullPath).split('.').slice(0, -1).join('.'), ctx));
         return file;
     }
-    static fromSource(source) {
-        return new ParsingFile('', '', source, Scope_1.Scope.createRoot('source'));
+    static fromSource(source, ctx) {
+        return new ParsingFile('', '', source, Scope_1.Scope.createRoot('source', ctx));
     }
     addToken(t) { this.tokens.push(t); }
     getTokenIterator() { return new TokenIterator_1.TokenIterator(this, this.tokens); }
@@ -57,6 +44,5 @@ class ParsingFile {
         return this.tokens.pop().fatal('Unexpected EOF');
     }
 }
-ParsingFile.files = new Map();
 exports.ParsingFile = ParsingFile;
 //# sourceMappingURL=ParsingFile.js.map

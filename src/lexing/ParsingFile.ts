@@ -7,24 +7,11 @@ import { SymbolTable } from "../semantics/SymbolTable";
 import { TokenIterator } from "./TokenIterator";
 import { Declaration } from "../semantics/Declaration";
 import { Scope } from "../semantics/Scope";
+import { CompileContext } from "../toolbox/CompileContext";
 
 export class ParsingFile {
 
-    private static files: Map<string,ParsingFile> = new Map()
-
-    static isLoaded(path:string) {
-        let fullPath = resolve(path)
-        return ParsingFile.files.has(fullPath)
-    }
-
-    static getFile(path:string) {
-        if (!ParsingFile.isLoaded(path)) throw new Error('Tried getting a non-loaded file')
-        let fullPath = resolve(path)
-        return ParsingFile.files.get(fullPath)
-    }
-
-    static loadFile(path:string) {
-        if (ParsingFile.isLoaded(path)) throw new Error('Tried re-loading a file')
+    static loadFile(path:string,ctx:CompileContext) {
         let fullPath = resolve(path)
         let relativePath = './'+relative('./',fullPath).replace('\\','/').split('.').slice(0,-1).join('.')
         let file = new ParsingFile(
@@ -32,14 +19,13 @@ export class ParsingFile {
             relativePath,
             readFileSync(fullPath).
             toString(),
-            Scope.createRoot(basename(fullPath).split('.').slice(0,-1).join('.'))
+            Scope.createRoot(basename(fullPath).split('.').slice(0,-1).join('.'),ctx)
         )
-        ParsingFile.files.set(fullPath,file)
         return file
     }
 
-    static fromSource(source:string) {
-        return new ParsingFile('','',source,Scope.createRoot('source'))
+    static fromSource(source:string,ctx:CompileContext) {
+        return new ParsingFile('','',source,Scope.createRoot('source',ctx))
     }
 
     private readonly tokens: Token[] = []

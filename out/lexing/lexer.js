@@ -7,21 +7,20 @@ const keywords = "fn|let|var|break|for|event|while|return|if|else|class|tick|imp
 const types = 'int|void|bool';
 const comments = "//|/\\*|\\*/";
 const operators = "\\+=|-=|\\*=|/=|%=|\\+\\+|\\+|--|-|\\*|/|%|>|<|==|>=|<=|=|!|&&|\\|\\|";
-const primitives = "\\d+(?:\\.\\d+)?|true|false";
+const primitives = "\\d+(?:\\.\\d+)?|true|false|'[^']*'";
 const symbol = "[a-zA-Z][a-zA-Z0-9]*";
 const markers = ";|:|\\.|,|\\(|\\)|\\[|\\]|\\{|\\}";
 const cmd = '/\\w.*?(?=\r?\n)';
 function getRgx() {
-    return RegExp('(?<cmd>' + cmd + ')|' + // 1
-        '(?<cmt>' + comments + ')|' + // 2
-        '(?<ops>' + operators + ')|' + // 3
-        '(?<kwd>' + keywords + ')|' + // 4
-        '(?<typ>' + types + ')|' + // 5
-        '(?<pri>' + primitives + ')|' + // 6
-        '(?<sym>' + symbol + ')|' + // 7
-        '(?<mrk>' + markers + ')|' + // 8
-        '(?<nwl>\n)|(?<bad>\\S)', // 9, 10
-    'g');
+    return RegExp('(?<cmd>' + cmd + ')|' +
+        '(?<cmt>' + comments + ')|' +
+        '(?<ops>' + operators + ')|' +
+        '(?<kwd>' + keywords + ')|' +
+        '(?<typ>' + types + ')|' +
+        '(?<pri>' + primitives + ')|' +
+        '(?<sym>' + symbol + ')|' +
+        '(?<mrk>' + markers + ')|' +
+        '(?<nwl>\n)|(?<bad>\\S)', 'g');
 }
 function groupToType(g) {
     switch (g) {

@@ -1,10 +1,12 @@
 
 import { IntESR } from './ESR'
 import { FnDeclaration } from './Declaration'
+import { FnFile } from '../codegen/FnFile'
 
-export type Instruction = INT_OP | CMDInstr | INVOKE
+export type Instruction = INT_OP | CMDInstr | INVOKE | LOCAL_INVOKE
 
 export enum InstrType {
+	LOCAL_INVOKE,
 	INVOKE,
 	INT_OP,
 	CMD
@@ -19,7 +21,12 @@ export interface INT_OP {
 
 export interface INVOKE {
 	type: InstrType.INVOKE,
-	fn: FnDeclaration
+	fn: FnFile
+}
+
+export interface LOCAL_INVOKE {
+	type: InstrType.LOCAL_INVOKE,
+	fn: FnFile
 }
 
 export interface CMDInstr {

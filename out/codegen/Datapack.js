@@ -11,25 +11,25 @@ const lexer_1 = require("../lexing/lexer");
 const fileSyntaxParser_1 = require("../syntax/fileSyntaxParser");
 const config_1 = require("../toolbox/config");
 const semanticsParser_1 = require("../semantics/semanticsParser");
-const ParsingFile_1 = require("../lexing/ParsingFile");
 const CompileContext_1 = require("../toolbox/CompileContext");
 const SyntaxSheet_1 = require("../commands/SyntaxSheet");
 const instructionOptimizer_1 = require("../optimization/instructionOptimizer");
 const moment_1 = __importDefault(require("moment"));
 require("moment-duration-format");
+const generate_1 = require("./generate");
 class Datapack {
     constructor(srcDir, emitDir = srcDir) {
         this.srcDir = srcDir;
         this.emitDir = emitDir;
-        this.init = [];
-        this.files = [];
-        this.addInit(
-        // `tellraw @a Loaded my first compiled datapack!`,
-        //`scoreboard objectives add ${this.publicVariableScoreboard} dummy`
-        );
+        this.packJson = null;
+        this.ctx = null;
+        this.fnMap = null;
+        /*this.addInit(
+            // `tellraw @a Loaded my first compiled datapack!`,
+            //`scoreboard objectives add ${this.publicVariableScoreboard} dummy`
+        )*/
     }
-    addInit(...instrs) { this.init.push(...instrs); }
-    addFnFile(f) { this.files.push(f); }
+    // addInit(...instrs:Instruction[]) {this.init.push(...instrs)}
     async compile() {
         const files = await recursiveSearch(this.srcDir);
         const packJson = path_1.join(this.srcDir, 'pack.json');
@@ -38,13 +38,15 @@ class Datapack {
             cfg = this.configDefaults({});
         else
             cfg = this.configDefaults(JSON.parse((await fs_1.promises.readFile(packJson)).toString()));
+        this.packJson = cfg;
         const srcFiles = files.filter(f => f.endsWith('.txt'));
         const ctx = new CompileContext_1.CompileContext(cfg.compilerOptions, await SyntaxSheet_1.SyntaxSheet.load(cfg.compilerOptions.targetVersion));
+        this.ctx = ctx;
         ctx.log(1, `Begin compilation`);
         let start = moment_1.default();
         const pfiles = srcFiles
             .sort() // ensure same load order every run
-            .map(ParsingFile_1.ParsingFile.loadFile);
+            .map(srcFile => ctx.loadFile(srcFile));
         ctx.log(1, `Loaded ${srcFiles.length} file(s)`);
         pfiles.forEach(pf => lexer_1.lexer(pf, ctx));
         ctx.log(1, `Lexical analysis complete`);
@@ -55,20 +57,28 @@ class Datapack {
         let optres = instructionOptimizer_1.optimize(this, ctx);
         ctx.log(1, `Optimization complete`);
         ctx.log(2, `Sucessful passes: ${optres.meta.passes}`);
-        // throw new Error('no generator')
-        //pfiles.forEach(pf=>generateCode(pf,this))
+        this.fnMap = new Map(ctx.getFnFiles()
+            .map(fn => [fn.name, generate_1.generate(fn)]));
+        ctx.log(1, `Generation complete`);
+        ctx.log(0, `WARNING! No verifier function yet`);
+        ctx.log(1, `Verification complete`);
         ctx.log(1, `Compilation complete`);
         ctx.log(2, `Elapsed time: ${moment_1.default.duration(moment_1.default().diff(start)).format()}`);
-        throw new Error('not yet boi');
     }
     async emit() {
-        let delPath = path_1.resolve(this.emitDir + '/data');
-        let cmd = 'rmdir /Q /S ' + delPath;
-        await execp(cmd); // this is vulnerable to shell code injection
+        if (!this.packJson || !this.fnMap || !this.ctx)
+            throw new Error('Nothing to emit. Use .compile() first.');
+        try {
+            await fs_1.promises.access(this.emitDir, fs_1.constants.F_OK);
+            let delPath = path_1.resolve(this.emitDir);
+            let cmd = 'rmdir /Q /S ' + delPath;
+            // await execp(cmd) // this is vulnerable to shell code injection
+        }
+        catch { }
         await fs_1.promises.mkdir(this.emitDir);
         await fs_1.promises.writeFile(this.emitDir + '/pack.mcmeta', JSON.stringify({
             pack: {
-                description: 'hello' //this.config.description
+                description: this.packJson.description
             }
         }));
         await fs_1.promises.mkdir(this.emitDir + '/data');
@@ -76,9 +86,10 @@ class Datapack {
         await fs_1.promises.mkdir(ns);
         let fns = ns + '/functions';
         await fs_1.promises.mkdir(fns);
-        await Promise.all(this.files.map(f => fs_1.promises.writeFile(fns + '/' + f.name + '.mcfunction', f.getCode().join('\n'))));
-        // await fs.writeFile(fns+'/tick',this.tickFile.join('\n'))
-        // await fs.writeFile(fns+'/load',this.loadFile.join('\n'))
+        await Promise.all([...this.fnMap.entries()].map(([fn, code]) => fs_1.promises.writeFile(fns + '/' + fn + '.mcfunction', code.join('\n'))));
+        await fs_1.promises.writeFile(fns + '/tick.mcfunction', '' /*this.tickFile.join('\n')*/);
+        await fs_1.promises.writeFile(fns + '/load.mcfunction', '' /*this.loadFile.join('\n')*/);
+        await fs_1.promises.writeFile(fns + '/init.mcfunction', '' /*this.loadFile.join('\n')*/);
         ns = this.emitDir + '/data/minecraft';
         await fs_1.promises.mkdir(ns);
         await fs_1.promises.mkdir(ns + '/tags');

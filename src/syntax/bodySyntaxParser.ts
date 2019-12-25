@@ -1,6 +1,6 @@
 
-import { TokenType } from "../lexing/Token";
-import { ASTNode, ASTNodeType, ASTCmdNode } from "./AST";
+import { TokenType, Token } from "../lexing/Token";
+import { ASTNode, ASTNodeType, ASTCmdNode, ASTReturnNode } from "./AST";
 import { expressionSyntaxParser } from "./expressionSyntaxParser";
 import { parseConditional } from "./structures/conditional";
 import { parseDeclaration } from "./structures/declaration";
@@ -21,9 +21,27 @@ export function bodySyntaxParser(iter:TokenIteratorI,ctx:CompileContext): ASTNod
                     case 'if':
                         body.push(parseConditional(iter,ctx))
                         break
+                    case 'return': {
+                        // Later on, the expression parser must return a void type instead
+                        // This should happen, as it should be able to parse everything
+                        // using the shunting-yard algorithm
+                        // That is a bit ambitious, but it sounds quite neat :D
+                        // That also makes all this redundant anyways
+                        if (iter.peek().type == TokenType.MARKER && iter.peek().value == ';')
+                            body.push({
+                            type: ASTNodeType.RETURN,
+                            node: null
+                        })
+                        else body.push({
+                            type: ASTNodeType.RETURN,
+                            node: expressionSyntaxParser(iter,ctx).ast
+                        })
+                        break
+                    }
                     default:
                         // ehm. I don't think I've implemented keywords in the expr parser
                         // lol
+                        throw new Error('keywords cannot be passed to expr parser yet')
                         body.push(expressionSyntaxParser(iter.skip(-1),ctx).ast)
                         break
                 }

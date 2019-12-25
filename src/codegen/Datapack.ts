@@ -1,6 +1,6 @@
 
 import { FnFile } from "./FnFile";
-import { promises as fs, Stats}  from 'fs'
+import { promises as fs, constants, Stats }  from 'fs'
 import { exec } from 'child_process'
 import { resolve as resolvePath, join } from "path";
 import { lexer as lexicalAnalysis } from "../lexing/lexer";
@@ -15,6 +15,8 @@ import { optimize } from "../optimization/instructionOptimizer";
 import moment from "moment"
 import 'moment-duration-format'
 import { Instruction } from "../semantics/Instructions";
+import { getObscureName, getQualifiedName } from "../toolbox/other";
+import { generate } from "./generate";
 
 interface WeakPackJSON {
 	name?: string
@@ -29,23 +31,21 @@ interface PackJSON extends Required<WeakPackJSON> {
 
 export class Datapack {
 
-	private init: Instruction[] = []
-
-	private files: FnFile[] = []
+	private packJson: PackJSON | null = null
+	private ctx: CompileContext | null = null
+	private fnMap: Map<string,string[]> | null = null;
 
 	constructor(
 		public readonly srcDir: string,
 		public readonly emitDir: string = srcDir
 	) {
-		this.addInit(
+		/*this.addInit(
 			// `tellraw @a Loaded my first compiled datapack!`,
 			//`scoreboard objectives add ${this.publicVariableScoreboard} dummy`
-		)
+		)*/
 	}
 
-	addInit(...instrs:Instruction[]) {this.init.push(...instrs)}
-
-	addFnFile(f:FnFile) {this.files.push(f)}
+	// addInit(...instrs:Instruction[]) {this.init.push(...instrs)}
 
 	async compile() {
 
@@ -54,6 +54,7 @@ export class Datapack {
 		let cfg: PackJSON
 		if (!files.includes(packJson)) cfg = this.configDefaults({})
 		else cfg = this.configDefaults(JSON.parse((await fs.readFile(packJson)).toString()))
+		this.packJson = cfg
 
 		const srcFiles = files.filter(f=>f.endsWith('.txt'))
 
@@ -61,6 +62,7 @@ export class Datapack {
 			cfg.compilerOptions,
 			await SyntaxSheet.load(cfg.compilerOptions.targetVersion)
 		)
+		this.ctx = ctx
 
 		ctx.log(1,`Begin compilation`)
 		let start = moment()
@@ -68,7 +70,7 @@ export class Datapack {
 		const pfiles =
 			srcFiles
 			.sort() // ensure same load order every run
-			.map(ParsingFile.loadFile)
+			.map(srcFile=>ctx.loadFile(srcFile))
 		ctx.log(1,`Loaded ${srcFiles.length} file(s)`)
 		
 		pfiles.forEach(pf=>lexicalAnalysis(pf,ctx))
@@ -84,24 +86,32 @@ export class Datapack {
 		ctx.log(1,`Optimization complete`)
 		ctx.log(2,`Sucessful passes: ${optres.meta.passes}`)
 
-		// throw new Error('no generator')
-		//pfiles.forEach(pf=>generateCode(pf,this))
+		this.fnMap = new Map(
+			ctx.getFnFiles()
+				.map(fn=>[fn.name,generate(fn)])
+		)
+		ctx.log(1,`Generation complete`)
+
+		ctx.log(0,`WARNING! No verifier function yet`)
+		ctx.log(1,`Verification complete`)
 
 		ctx.log(1,`Compilation complete`)
 		ctx.log(2,`Elapsed time: ${(moment.duration(moment().diff(start)) as any).format()}`)
 
-		throw new Error('not yet boi')
-
 	}
 
 	async emit() {
-		let delPath = resolvePath(this.emitDir+'/data')
-		let cmd = 'rmdir /Q /S ' + delPath
-		await execp(cmd) // this is vulnerable to shell code injection
+		if (!this.packJson || !this.fnMap || !this.ctx) throw new Error('Nothing to emit. Use .compile() first.')
+		try {
+			await fs.access(this.emitDir,constants.F_OK)
+			let delPath = resolvePath(this.emitDir)
+			let cmd = 'rmdir /Q /S ' + delPath
+			// await execp(cmd) // this is vulnerable to shell code injection
+		} catch {}
 		await fs.mkdir(this.emitDir)
 		await fs.writeFile(this.emitDir+'/pack.mcmeta',JSON.stringify({
 			pack: {
-				description: 'hello' //this.config.description
+				description: this.packJson.description
 			}
 		}))
 		await fs.mkdir(this.emitDir+'/data')
@@ -110,10 +120,11 @@ export class Datapack {
 		let fns = ns + '/functions'
 		await fs.mkdir(fns)
 		await Promise.all(
-			this.files.map(f=>fs.writeFile(fns+'/'+f.name+'.mcfunction',f.getCode().join('\n')))
+			[...this.fnMap.entries()].map(([fn,code])=>fs.writeFile(fns+'/'+fn+'.mcfunction',code.join('\n')))
 		)
-		// await fs.writeFile(fns+'/tick',this.tickFile.join('\n'))
-		// await fs.writeFile(fns+'/load',this.loadFile.join('\n'))
+		await fs.writeFile(fns+'/tick.mcfunction',''/*this.tickFile.join('\n')*/)
+		await fs.writeFile(fns+'/load.mcfunction',''/*this.loadFile.join('\n')*/)
+		await fs.writeFile(fns+'/init.mcfunction',''/*this.loadFile.join('\n')*/)
 		ns = this.emitDir+'/data/minecraft'
 		await fs.mkdir(ns)
 		await fs.mkdir(ns+'/tags')

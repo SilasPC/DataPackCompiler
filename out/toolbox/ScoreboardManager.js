@@ -1,19 +1,31 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const other_1 = require("./other");
 class ScoreboardManager {
     constructor(options) {
         this.options = options;
-        this.globalStatic = 'globals';
-        this.globalConst = 'constants';
         this.constants = new Map();
         this.globals = new Set();
+        [this.globalStatic, this.globalConst] =
+            options.obscureNames ?
+                [this.generateObscure(), this.generateObscure()] :
+                [this.generateName(['globals']), this.generateName(['constants'])];
     }
-    getStatic(name, scope) {
+    getStatic(names, scope) {
+        let resNames;
+        if (Array.isArray(names)) {
+            resNames = [...names];
+        }
+        else {
+            if (!scope)
+                throw new Error('scope arg should be provided in overload ??');
+            resNames = [...scope.getScopeNames(), names];
+        }
         let ret = {
             scoreboard: this.globalStatic,
             selector: this.options.obscureNames ?
                 this.generateObscure() :
-                this.generateName(scope.getScopeNames().concat(name))
+                this.generateName(resNames)
         };
         this.globals.add(ret.selector);
         return ret;
@@ -33,32 +45,14 @@ class ScoreboardManager {
         return score;
     }
     generateObscure() {
-        while (true) {
-            let name = Math.random().toString(16).substr(2, 8);
-            if (!this.globals.has(name))
-                return name;
-        }
+        let name = other_1.getObscureName(this.globals);
+        this.globals.add(name);
+        return name;
     }
     generateName(names) {
-        let name = names.join('_');
-        if (name.length > 16) {
-            name = name.replace(/[aeyuio]/g, '');
-            names = names.slice(-16);
-        }
-        if (!this.globals.has(name)) {
-            this.globals.add(name);
-            return name;
-        }
-        let nr = 1;
-        while (true) {
-            let name2 = name + nr++;
-            if (name2.length > 16)
-                name2 = name2.slice(-16);
-            if (!this.globals.has(name2)) {
-                this.globals.add(name2);
-                return name2;
-            }
-        }
+        let name = other_1.getQualifiedName(names, this.globals, 16);
+        this.globals.add(name);
+        return name;
     }
 }
 exports.ScoreboardManager = ScoreboardManager;

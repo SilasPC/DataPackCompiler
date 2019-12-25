@@ -1,6 +1,6 @@
 
 import { Token, TokenType } from "../lexing/Token";
-import { ASTNode, ASTNodeType, ASTIdentifierNode, ASTPrimitiveNode, ASTOpNode, ASTCallNode, ASTListNode } from "./AST";
+import { ASTNode, ASTNodeType, ASTIdentifierNode, ASTOpNode, ASTCallNode, ASTListNode } from "./AST";
 import { TokenIterator, TokenIteratorI } from "../lexing/TokenIterator";
 import { CompilerOptions } from "../toolbox/config";
 import { exhaust } from "../toolbox/other";
@@ -140,13 +140,21 @@ export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext)
                 postfix.push(t.value)
                 lastWasOperand = true
                 break
-            case TokenType.PRIMITIVE:
+            case TokenType.PRIMITIVE: {
                 if (lastWasOperand) t.throwDebug('Unexpected operand')
-                let prinode: ASTPrimitiveNode = {type:ASTNodeType.PRIMITIVE,value:t}
-                que.push(prinode)
+                let node: ASTNode
+                if (t.value == 'false' || t.value == 'true') 
+                    node = {type:ASTNodeType.BOOLEAN,value:t}
+                else if (Number.isFinite(Number(t.value)))
+                    node = {type:ASTNodeType.NUMBER,value:t}
+                else if (t.value.startsWith('\''))
+                    node = {type:ASTNodeType.STRING,value:t}
+                else return t.throwDebug('could not determine ast type')
+                que.push(node)
                 postfix.push(t.value)
                 lastWasOperand = true
                 break
+            }
             default:
                 //return exhaust(t.type)
                 t.throwDebug('tokentype not implemented')

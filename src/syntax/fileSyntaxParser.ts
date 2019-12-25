@@ -3,11 +3,8 @@ import { ParsingFile } from "../lexing/ParsingFile";
 import { TokenType, Token } from "../lexing/Token";
 import { parseFunction } from "./structures/function";
 import { wrapExport } from "./helpers";
-import { SyntaxParser } from "./SyntaxParser";
 import { parseDeclaration } from "./structures/declaration";
 import { CompileContext } from "../toolbox/CompileContext";
-
-const parser: SyntaxParser<ParsingFile> = new SyntaxParser('file')
 
 export function fileSyntaxParser(pfile: ParsingFile, ctx: CompileContext): void {
     const iter = pfile.getTokenIterator()
@@ -16,6 +13,9 @@ export function fileSyntaxParser(pfile: ParsingFile, ctx: CompileContext): void 
         switch (token.type) {
             case TokenType.KEYWORD: {
                 switch (token.value) {
+                    case 'import':
+                        if (doExport) return token.throwUnexpectedKeyWord()
+                        return token.throwDebug('no import yet')
                     case 'export':
                         if (doExport) return token.throwUnexpectedKeyWord()
                         doExport = true

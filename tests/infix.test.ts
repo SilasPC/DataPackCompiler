@@ -40,8 +40,8 @@ describe('infix conversion', () => {
 })
 
 function postfix(infix:string): string {
-	const pfile = ParsingFile.fromSource(infix+';')
 	const ctx = CompileContext.getDefaultWithNullSheet()
+	const pfile = ctx.loadFromSource(infix+';')
 	lexer(pfile, ctx)
 	const iter = pfile.getTokenIterator()
 	const res = expressionSyntaxParser(

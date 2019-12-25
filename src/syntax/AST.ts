@@ -10,16 +10,25 @@ export enum ASTNodeType {
     CONDITIONAL,
     IDENTIFIER,
     PRIMITIVE,
+    NUMBER,
+    BOOLEAN,
+    STRING,
     OPERATION,
     COMMAND,
-    LIST
+    LIST,
+    RETURN
 }
 
-export type ASTNode = ASTExportNode |ASTLetNode | ASTPrimitiveNode | ASTIdentifierNode | ASTOpNode | ASTListNode | ASTCallNode | ASTFnNode | ASTIfNode | ASTCmdNode
+export type ASTNode = ASTReturnNode | ASTExportNode | ASTLetNode | ASTNumNode | ASTBoolNode | ASTStringNode | ASTIdentifierNode | ASTOpNode | ASTListNode | ASTCallNode | ASTFnNode | ASTIfNode | ASTCmdNode
 
 export interface ASTExportNode {
     type: ASTNodeType.EXPORT
     node: ASTNode
+}
+
+export interface ASTReturnNode {
+    type: ASTNodeType.RETURN
+    node: ASTNode | null
 }
 
 export interface ASTLetNode {
@@ -29,8 +38,18 @@ export interface ASTLetNode {
     initial: ASTNode
 }
 
-export interface ASTPrimitiveNode {
-    type: ASTNodeType.PRIMITIVE
+export interface ASTStringNode {
+    type: ASTNodeType.STRING
+    value: Token
+}
+
+export interface ASTNumNode {
+    type: ASTNodeType.NUMBER
+    value: Token
+}
+
+export interface ASTBoolNode {
+    type: ASTNodeType.BOOLEAN
     value: Token
 }
 

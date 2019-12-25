@@ -1,12 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class FnFile {
-    constructor(name) {
+    constructor(name, code = []) {
         this.name = name;
-        this.code = [];
+        this.code = code;
     }
-    getCode() { return this.code; }
-    addLines(...lines) { this.code.push(...lines); }
+    get() { return this.code; }
+    add(...instrs) { this.code.push(...instrs); }
 }
 exports.FnFile = FnFile;
 //# sourceMappingURL=FnFile.js.map

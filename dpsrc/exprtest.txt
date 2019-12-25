@@ -1,4 +1,6 @@
 
+// import {xxx} from 'test';
+
 export let a: int = 2;
 let b: int = 3;
 // let c: bool = true;
@@ -13,17 +15,19 @@ let b: int = 3;
     /*  ..coding? */
     /* I sure do! */
     /**************/
-
-fn x(y:int): void {
-	//from exprtest
-	a += a * (b + 1);
+    
+fn x(y:int): int {
+    return 2;
+	a += y * (b + 1);
+    return a - 5;
+    a += 1;
 }
 
-fn part(): void {
+/*fn part(): void {
     //particle smoke ${a+0} ${b+1} ${c+2}
     //particle smoke ${a,b,c}
     x(1);
-}
+}*/
 
 /*
 
@@ -50,25 +54,3 @@ export namespace math {
 }
 
 */
-
-fn test(xxx:int): void {
-    //say abc
-    //let v1: int = 2;
-    //if (v1 == 2) {
-    //    let v2: int = 3;
-    //    /tellraw @s "Hello"
-    //} else {}
-    //let v3: int = 4;
-    //let v2: int = 0;
-    //debug(v3);
-}
-
-// e=a*b+c*d
-// 
-// t1 = a
-// t1 *= b
-// t2 = c
-// t2 *= d
-// t1 += t2
-// e = t1
-// 

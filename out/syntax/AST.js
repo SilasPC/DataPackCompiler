@@ -10,9 +10,13 @@ var ASTNodeType;
     ASTNodeType[ASTNodeType["CONDITIONAL"] = 4] = "CONDITIONAL";
     ASTNodeType[ASTNodeType["IDENTIFIER"] = 5] = "IDENTIFIER";
     ASTNodeType[ASTNodeType["PRIMITIVE"] = 6] = "PRIMITIVE";
-    ASTNodeType[ASTNodeType["OPERATION"] = 7] = "OPERATION";
-    ASTNodeType[ASTNodeType["COMMAND"] = 8] = "COMMAND";
-    ASTNodeType[ASTNodeType["LIST"] = 9] = "LIST";
+    ASTNodeType[ASTNodeType["NUMBER"] = 7] = "NUMBER";
+    ASTNodeType[ASTNodeType["BOOLEAN"] = 8] = "BOOLEAN";
+    ASTNodeType[ASTNodeType["STRING"] = 9] = "STRING";
+    ASTNodeType[ASTNodeType["OPERATION"] = 10] = "OPERATION";
+    ASTNodeType[ASTNodeType["COMMAND"] = 11] = "COMMAND";
+    ASTNodeType[ASTNodeType["LIST"] = 12] = "LIST";
+    ASTNodeType[ASTNodeType["RETURN"] = 13] = "RETURN";
 })(ASTNodeType = exports.ASTNodeType || (exports.ASTNodeType = {}));
 /*
 

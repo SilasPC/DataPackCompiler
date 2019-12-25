@@ -6,7 +6,7 @@ const ESR_1 = require("./ESR");
 const Declaration_1 = require("./Declaration");
 const Types_1 = require("./Types");
 const other_1 = require("../toolbox/other");
-function exprParser(node, scope, body, ctx) {
+function exprParser(node, scope, ctx) {
     let symbols = scope.symbols;
     switch (node.type) {
         case AST_1.ASTNodeType.IDENTIFIER: {
@@ -41,22 +41,24 @@ function exprParser(node, scope, body, ctx) {
             }
             throw new Error('should be unreachable?');
         }
-        case AST_1.ASTNodeType.PRIMITIVE:
-            let val = node.value.value;
-            if (val == 'true')
+        case AST_1.ASTNodeType.BOOLEAN: {
+            if (node.value.value == 'true')
                 return { type: ESR_1.ESRType.BOOL, mutable: false, const: true, tmp: false, scoreboard: ctx.scoreboards.getConstant(1) };
-            if (val == 'false')
+            if (node.value.value == 'false')
                 return { type: ESR_1.ESRType.BOOL, mutable: false, const: true, tmp: false, scoreboard: ctx.scoreboards.getConstant(0) };
-            let n = Number(val);
+        }
+        case AST_1.ASTNodeType.NUMBER: {
+            let n = Number(node.value.value);
             if (Number.isNaN(n) || !Number.isInteger(n))
                 node.value.throwDebug('kkk only int primitives');
             return { type: ESR_1.ESRType.INT, mutable: false, const: true, tmp: false, scoreboard: ctx.scoreboards.getConstant(n) };
+        }
         case AST_1.ASTNodeType.OPERATION:
-            return operator(node, scope, body, ctx);
+            return operator(node, scope, ctx);
         case AST_1.ASTNodeType.INVOKATION: {
             if (node.function.type != AST_1.ASTNodeType.IDENTIFIER)
                 throw new Error('only direct calls for now');
-            let params = node.parameters.list.map(p => exprParser(p, scope, body, ctx));
+            let params = node.parameters.list.map(p => exprParser(p, scope, ctx));
             let decl = symbols.getDeclaration(node.function.identifier.value);
             if (!decl)
                 return node.function.identifier.throwDebug('fn not declared');
@@ -80,7 +82,7 @@ function exprParser(node, scope, body, ctx) {
                             into: esr,
                             op: '='
                         };
-                        body.push(instr);
+                        scope.push(instr);
                         break;
                     case ESR_1.ESRType.VOID:
                         throw new Error(`this can't happen`);
@@ -89,7 +91,7 @@ function exprParser(node, scope, body, ctx) {
                 }
             }
             let returnType = ESR_1.getESRType(decl.returns);
-            let invokeInstr = { type: Instructions_1.InstrType.INVOKE, fn: decl };
+            let invokeInstr = { type: Instructions_1.InstrType.INVOKE, fn: decl.fn };
             if (returnType.elementary) {
                 switch (returnType.type) {
                     case Types_1.ElementaryValueType.INT: {
@@ -97,11 +99,11 @@ function exprParser(node, scope, body, ctx) {
                         if (decl.returns.type != ESR_1.ESRType.INT)
                             throw new Error('ESR error');
                         let copyRet = { type: Instructions_1.InstrType.INT_OP, into, from: decl.returns, op: '=' };
-                        body.push(invokeInstr, copyRet);
+                        scope.push(invokeInstr, copyRet);
                         return into;
                     }
                     case Types_1.ElementaryValueType.VOID: {
-                        body.push(invokeInstr);
+                        scope.push(invokeInstr);
                         return { type: ESR_1.ESRType.VOID, mutable: false, const: false, tmp: false };
                     }
                     case Types_1.ElementaryValueType.BOOL:
@@ -114,8 +116,11 @@ function exprParser(node, scope, body, ctx) {
                 throw new Error('non elementary return value not supported yet');
             }
         }
+        case AST_1.ASTNodeType.STRING:
+            throw new Error('no strings in expressions for now I guess');
         // Invalid cases. These should never occur
         case AST_1.ASTNodeType.CONDITIONAL:
+        case AST_1.ASTNodeType.RETURN:
         case AST_1.ASTNodeType.DEFINE:
         case AST_1.ASTNodeType.EXPORT:
         case AST_1.ASTNodeType.FUNCTION:
@@ -127,7 +132,7 @@ function exprParser(node, scope, body, ctx) {
     }
 }
 exports.exprParser = exprParser;
-function operator(node, scope, body, ctx) {
+function operator(node, scope, ctx) {
     let symbols = scope.symbols;
     switch (node.operator.value) {
         case '+':
@@ -136,7 +141,7 @@ function operator(node, scope, body, ctx) {
         case '/':
         case '%': {
             console.assert(node.operands.length == 2, 'two operands');
-            let [o0, o1] = node.operands.map(o => exprParser(o, scope, body, ctx));
+            let [o0, o1] = node.operands.map(o => exprParser(o, scope, ctx));
             if (o0.type != ESR_1.ESRType.INT)
                 return node.operator.throwDebug('only int op for now');
             if (o0.type != o1.type)
@@ -145,12 +150,12 @@ function operator(node, scope, body, ctx) {
             // ???
             let op1 = { type: Instructions_1.InstrType.INT_OP, into: res, from: o0, op: '=' };
             let op2 = { type: Instructions_1.InstrType.INT_OP, into: res, from: o1, op: node.operator.value + '=' };
-            body.push(op1, op2);
+            scope.push(op1, op2);
             return res;
         }
         case '=': {
             console.assert(node.operands.length == 2, 'two operands');
-            let [o0, o1] = node.operands.map(o => exprParser(o, scope, body, ctx));
+            let [o0, o1] = node.operands.map(o => exprParser(o, scope, ctx));
             if (!o0.mutable)
                 throw new Error('left hand side immutable');
             if (o0.type != ESR_1.ESRType.INT)
@@ -159,7 +164,7 @@ function operator(node, scope, body, ctx) {
                 return node.operator.throwDebug('no op casting for now');
             let res = { type: ESR_1.ESRType.INT, mutable: false, const: false, tmp: true, scoreboard: ctx.scoreboards.getStatic('tmp', scope) };
             let op = { type: Instructions_1.InstrType.INT_OP, into: res, from: o1, op: '=' };
-            body.push(op);
+            scope.push(op);
             return res;
         }
         case '+=':
@@ -168,7 +173,7 @@ function operator(node, scope, body, ctx) {
         case '/=':
         case '%=': {
             console.assert(node.operands.length == 2, 'two operands');
-            let [o0, o1] = node.operands.map(o => exprParser(o, scope, body, ctx));
+            let [o0, o1] = node.operands.map(o => exprParser(o, scope, ctx));
             if (!o0.mutable)
                 throw new Error('left hand side immutable');
             if (o0.type != ESR_1.ESRType.INT)
@@ -178,7 +183,7 @@ function operator(node, scope, body, ctx) {
             let res = { type: ESR_1.ESRType.INT, mutable: false, const: false, tmp: true, scoreboard: ctx.scoreboards.getStatic('tmp', scope) };
             let op1 = { type: Instructions_1.InstrType.INT_OP, into: o0, from: o1, op: node.operator.value };
             let op2 = { type: Instructions_1.InstrType.INT_OP, into: res, from: o0, op: '=' };
-            body.push(op1, op2);
+            scope.push(op1, op2);
             return res;
         }
         case '&&':

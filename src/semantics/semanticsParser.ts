@@ -2,7 +2,7 @@ import { ParsingFile } from "../lexing/ParsingFile"
 // import { hoist } from "./hoister"
 import { ASTNode, ASTNodeType, ASTOpNode } from "../syntax/AST"
 import { SymbolTable } from "./SymbolTable"
-import { ESR, ESRType, getESRType, IntESR, copyESRToLocal } from "./ESR"
+import { ESR, ESRType, getESRType, IntESR, copyESRToLocal, assignESR } from "./ESR"
 import { tokenToType, ElementaryValueType, ValueType, hasSharedType } from "./Types"
 import { DeclarationType, VarDeclaration, FnDeclaration, ImplicitVarDeclaration } from "./Declaration"
 import { Instruction, InstrType, INT_OP } from "./Instructions"
@@ -12,6 +12,7 @@ import { CompileContext } from "../toolbox/CompileContext"
 import { generateTest } from "../codegen/generate"
 import { test } from "../optimization/antiAlias"
 import { Scope } from "./Scope"
+import { fn } from "moment"
 
 export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): void {
 	
@@ -22,10 +23,8 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): void {
 
 	let symbols = pfile.getSymbolTable()
 	let scope = pfile.scope
-	let ast = pfile.getAST() as ASTNode[]
+	let ast = pfile.getAST()
 
-	let load: Instruction[] = []
-	
 	for (let node of ast) {
 		let shouldExport = false
 
@@ -38,7 +37,7 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): void {
 					if (type.elementary && type.type == ElementaryValueType.VOID)
 						node.varType.throwDebug(`Cannot declare a variable of type 'void'`)
 					if (!type.elementary) node.varType.throwDebug('no non-elemn rn k')
-					let esr = exprParser(node.initial,scope,load,ctx)
+					let esr = exprParser(node.initial,scope,ctx)
 					// the above cannot be used for the variables esr
 					// we must create a new esr, then assign the above to that
 					// file-level declarations are assigned during init, so
@@ -47,9 +46,6 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): void {
 					esr = res.esr
 					// do something with res.copyInstr
 					
-					// tmp test
-					if (esr.type == ESRType.INT) console.log(node.identifier.value,'=>',esr.scoreboard.selector)
-
 					if (!hasSharedType(getESRType(esr),type)) node.identifier.throwDebug('type mismatch')
 					let decl: VarDeclaration = {type:DeclarationType.VARIABLE,varType:type,node,esr}
 					symbols.declare(node.identifier,decl)
@@ -58,9 +54,9 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): void {
 				}
 	
 			case ASTNodeType.FUNCTION: {
-				let body: Instruction[] = []
 				let parameters: ESR[] = []
-				let branch = scope.branch(node.identifier.value)
+				let branch = scope.branch(node.identifier.value,'FN',null)
+				let fn = ctx.createFnFile(branch.getScopeNames())
 				let type = tokenToType(node.returnType,symbols)
 				if (!type.elementary) return node.returnType.throwDebug('nop thx')
 				let esr: ESR
@@ -77,11 +73,12 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): void {
 					default:
 						return exhaust(type.type)
 				}
+				branch.setReturnVar(esr)
 				let decl: FnDeclaration = {
 					type: DeclarationType.FUNCTION,
 					returns: esr,
 					node,
-					instructions: body,
+					fn,
 					parameters
 				}
 				symbols.declare(node.identifier,decl)
@@ -116,25 +113,30 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): void {
 					branch.symbols.declare(param.symbol,decl)
 				}
 				if (shouldExport) pfile.addExport(node.identifier.value,decl)
-				parseBody(node.body,branch,body,ctx)
+				parseBody(node.body,branch,ctx)
+
+				fn.add(...branch.mergeBuffers())
 
 				// test anti alias optimization
-				test(decl.instructions)
+				/*test(decl.fn.get())
 				console.log(node.identifier.value)
-				console.log(generateTest(decl,ctx))
+				console.log(generateTest(decl,ctx))*/
 				
 				break
 			}
 
+			case ASTNodeType.RETURN:
 			case ASTNodeType.IDENTIFIER:
 			case ASTNodeType.INVOKATION:
 			case ASTNodeType.OPERATION:
-			case ASTNodeType.PRIMITIVE:
+			case ASTNodeType.BOOLEAN:
+			case ASTNodeType.NUMBER:
+			case ASTNodeType.STRING:
 			case ASTNodeType.EXPORT:
 			case ASTNodeType.COMMAND:
 			case ASTNodeType.CONDITIONAL:
 			case ASTNodeType.LIST:
-					throw new Error('wth man')
+					throw new Error('wth man, ast invalid at file root')
 
 			default:
 				return exhaust(node)
@@ -147,18 +149,38 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): void {
 
 }
 
-function parseBody(nodes:ASTNode[],scope:Scope,body:Instruction[],ctx:CompileContext): void {
+function parseBody(nodes:ASTNode[],scope:Scope,ctx:CompileContext): void {
 	for (let node of nodes) {
 		switch (node.type) {
 			case ASTNodeType.COMMAND:
 				// here we should probably parse the command
-				body.push({type:InstrType.CMD})
+				scope.push({type:InstrType.CMD})
 				break
 			case ASTNodeType.INVOKATION:
 			case ASTNodeType.OPERATION:
-				exprParser(node,scope,body,ctx)
+				exprParser(node,scope,ctx)
 				break
-			case ASTNodeType.PRIMITIVE:
+			case ASTNodeType.RETURN:
+				let fnscope = scope.getSuperByType('FN')
+				if (!fnscope) throw new Error('ast throw would be nice... return must be contained in fn scope')
+				let fnret = fnscope.getReturnVar()
+				if (!fnret) throw new Error('fn scope does not have return var')
+				let esr: ESR
+				if (!node.node) esr = {type:ESRType.VOID,const:false,tmp:false,mutable:false}
+				else esr = exprParser(node.node,scope,ctx)
+				
+				if (!hasSharedType(getESRType(esr),getESRType(fnret)))
+					throw new Error('ast throw would be nice... return must match fn return type')
+
+				// return instructions
+				if (esr.type != ESRType.VOID)
+					scope.push(...assignESR(esr,fnret))
+				scope.push(...scope.breakScopes(fnscope))
+				
+				break
+			case ASTNodeType.NUMBER:
+			case ASTNodeType.STRING:
+			case ASTNodeType.BOOLEAN:
 			case ASTNodeType.IDENTIFIER:
 				throw new Error('valid, but pointless')
 			case ASTNodeType.CONDITIONAL:

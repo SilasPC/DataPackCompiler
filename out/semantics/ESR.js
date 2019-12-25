@@ -19,6 +19,28 @@ function getESRType(esr) {
     }
 }
 exports.getESRType = getESRType;
+/** Assigns one esr var to another */
+function assignESR(from, to) {
+    if (!Types_1.hasSharedType(getESRType(from), getESRType(to)))
+        throw new Error('cannot assign esrs, not same type');
+    switch (from.type) {
+        case ESRType.VOID:
+            throw new Error('cannot assign void esr');
+        case ESRType.BOOL:
+            throw new Error('no assign bool esr yet');
+        case ESRType.INT: {
+            return [{
+                    type: Instructions_1.InstrType.INT_OP,
+                    from,
+                    into: to,
+                    op: '='
+                }];
+        }
+        default:
+            return other_1.exhaust(from);
+    }
+}
+exports.assignESR = assignESR;
 /** Copies esr into a new esr (with the returned instruction) */
 function copyESRToLocal(esr, ctx, scope, name) {
     switch (esr.type) {

@@ -4,25 +4,40 @@ import { Scoreboard } from "../semantics/ESR";
 import { CompileContext } from "./CompileContext";
 import { Scope } from "../semantics/Scope";
 import { CompilerOptions } from "./config";
+import { getQualifiedName, getObscureName } from "./other";
 
 export class ScoreboardManager {
 
-	private globalStatic = 'globals'
-	private globalConst = 'constants'
+	private globalStatic: string
+	private globalConst: string
 	private constants: Map<number,Scoreboard> = new Map()
 	private globals: Set<string> = new Set()
 
 	constructor(
 		private readonly options: CompilerOptions
-	) {}
+	) {
+		[this.globalStatic, this.globalConst] =
+			options.obscureNames ?
+				[this.generateObscure(),this.generateObscure()] :
+				[this.generateName(['globals']),this.generateName(['constants'])]
+	}
 
-	getStatic(name:string,scope:Scope): Scoreboard {
+	getStatic(names:string[]): Scoreboard
+	getStatic(name:string,scope:Scope): Scoreboard
+	getStatic(names:string|string[],scope?:Scope) {
+		let resNames: string[]
+		if (Array.isArray(names)) {
+			resNames = [...names]
+		} else {
+			if (!scope) throw new Error('scope arg should be provided in overload ??')
+			resNames = [...scope.getScopeNames(),names]
+		}
 		let ret = {
 			scoreboard: this.globalStatic,
 			selector:
 				this.options.obscureNames ?
 					this.generateObscure() :
-					this.generateName(scope.getScopeNames().concat(name))
+					this.generateName(resNames)
 		}
 		this.globals.add(ret.selector)
 		return ret
@@ -44,31 +59,15 @@ export class ScoreboardManager {
 	}
 
 	private generateObscure() {
-		while (true) {
-			let name = Math.random().toString(16).substr(2,8)
-			if (!this.globals.has(name)) return name
-		}
+		let name = getObscureName(this.globals)
+		this.globals.add(name)
+		return name
 	}
 
 	private generateName(names:string[]) {
-		let name = names.join('_')
-		if (name.length > 16) {
-			name = name.replace(/[aeyuio]/g,'')
-			names = names.slice(-16)
-		}
-		if (!this.globals.has(name)) {
-			this.globals.add(name)
-			return name
-		}
-		let nr = 1
-		while (true) {
-			let name2 = name + nr++
-			if (name2.length > 16) name2 = name2.slice(-16)
-			if (!this.globals.has(name2)) {
-				this.globals.add(name2)
-				return name2
-			}
-		}
+		let name = getQualifiedName(names,this.globals,16)
+		this.globals.add(name)
+		return name
 	}
 
 }
