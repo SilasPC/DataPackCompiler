@@ -1,13 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-// import { hoist } from "./hoister"
 const AST_1 = require("../syntax/AST");
 const ESR_1 = require("./ESR");
 const Types_1 = require("./Types");
 const Declaration_1 = require("./Declaration");
-const Instructions_1 = require("../codegen/Instructions");
 const expressionParser_1 = require("./expressionParser");
 const other_1 = require("../toolbox/other");
+const Instructions_1 = require("../codegen/Instructions");
 function semanticsParser(pfile, ctx) {
     if (pfile.status == 'parsed')
         return;
@@ -110,8 +109,8 @@ function semanticsParser(pfile, ctx) {
                 parseBody(node.body, branch, ctx);
                 fn.add(...branch.mergeBuffers());
                 // test anti alias optimization
-                /*test(decl.fn.get())
-                console.log(node.identifier.value)
+                //test(decl.fn)
+                /*console.log(node.identifier.value)
                 console.log(generateTest(decl,ctx))*/
                 break;
             }

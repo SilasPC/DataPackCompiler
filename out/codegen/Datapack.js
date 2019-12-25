@@ -54,7 +54,7 @@ class Datapack {
         ctx.log(1, `Syntax analysis complete`);
         pfiles.forEach(pf => semanticsParser_1.semanticsParser(pf, ctx));
         ctx.log(1, `Semantic analysis complete`);
-        let optres = instructionOptimizer_1.optimize(this, ctx);
+        let optres = instructionOptimizer_1.optimize(ctx);
         ctx.log(1, `Optimization complete`);
         ctx.log(2, `Sucessful passes: ${optres.meta.passes}`);
         this.fnMap = new Map(ctx.getFnFiles()
@@ -72,7 +72,7 @@ class Datapack {
             await fs_1.promises.access(this.emitDir, fs_1.constants.F_OK);
             let delPath = path_1.resolve(this.emitDir);
             let cmd = 'rmdir /Q /S ' + delPath;
-            // await execp(cmd) // this is vulnerable to shell code injection
+            await execp(cmd); // this is vulnerable to shell code injection
         }
         catch { }
         await fs_1.promises.mkdir(this.emitDir);

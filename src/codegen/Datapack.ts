@@ -82,7 +82,7 @@ export class Datapack {
 		pfiles.forEach(pf=>semanticsParser(pf,ctx))
 		ctx.log(1,`Semantic analysis complete`)
 
-		let optres = optimize(this,ctx)
+		let optres = optimize(ctx)
 		ctx.log(1,`Optimization complete`)
 		ctx.log(2,`Sucessful passes: ${optres.meta.passes}`)
 
@@ -106,7 +106,7 @@ export class Datapack {
 			await fs.access(this.emitDir,constants.F_OK)
 			let delPath = resolvePath(this.emitDir)
 			let cmd = 'rmdir /Q /S ' + delPath
-			// await execp(cmd) // this is vulnerable to shell code injection
+			await execp(cmd) // this is vulnerable to shell code injection
 		} catch {}
 		await fs.mkdir(this.emitDir)
 		await fs.writeFile(this.emitDir+'/pack.mcmeta',JSON.stringify({

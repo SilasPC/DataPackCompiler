@@ -1,18 +1,13 @@
 import { ParsingFile } from "../lexing/ParsingFile"
-// import { hoist } from "./hoister"
 import { ASTNode, ASTNodeType, ASTOpNode } from "../syntax/AST"
-import { SymbolTable } from "./SymbolTable"
 import { ESR, ESRType, getESRType, IntESR, copyESRToLocal, assignESR } from "./ESR"
 import { tokenToType, ElementaryValueType, ValueType, hasSharedType } from "./Types"
 import { DeclarationType, VarDeclaration, FnDeclaration, ImplicitVarDeclaration } from "./Declaration"
-import { Instruction, InstrType, INT_OP } from "../codegen/Instructions"
 import { exprParser } from "./expressionParser"
 import { exhaust } from "../toolbox/other"
 import { CompileContext } from "../toolbox/CompileContext"
-import { generateTest } from "../codegen/generate"
-import { test } from "../optimization/antiAlias"
 import { Scope } from "./Scope"
-import { fn } from "moment"
+import { InstrType } from "../codegen/Instructions"
 
 export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): void {
 	
@@ -118,8 +113,8 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): void {
 				fn.add(...branch.mergeBuffers())
 
 				// test anti alias optimization
-				/*test(decl.fn.get())
-				console.log(node.identifier.value)
+				//test(decl.fn)
+				/*console.log(node.identifier.value)
 				console.log(generateTest(decl,ctx))*/
 				
 				break
