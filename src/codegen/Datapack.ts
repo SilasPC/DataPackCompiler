@@ -14,7 +14,7 @@ import { SyntaxSheet } from "../commands/SyntaxSheet";
 import { optimize } from "../optimization/instructionOptimizer";
 import moment from "moment"
 import 'moment-duration-format'
-import { Instruction } from "../semantics/Instructions";
+import { Instruction } from "./Instructions";
 import { getObscureName, getQualifiedName } from "../toolbox/other";
 import { generate } from "./generate";
 

@@ -4,7 +4,7 @@ import { CompileContext } from "../toolbox/CompileContext";
 import { Datapack } from "./Datapack";
 import { FnDeclaration } from "../semantics/Declaration";
 import { exhaust } from "../toolbox/other";
-import { InstrType } from "../semantics/Instructions";
+import { InstrType } from "./Instructions";
 import { FnFile } from "./FnFile";
 
 export function generate(fn:FnFile) {

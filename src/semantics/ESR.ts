@@ -1,6 +1,6 @@
 import { ValueType, ElementaryValueType, hasSharedType } from "./Types";
 import { exhaust } from "../toolbox/other";
-import { Instruction, INT_OP, InstrType } from "./Instructions";
+import { Instruction, INT_OP, InstrType } from "../codegen/Instructions";
 import { CompileContext } from "../toolbox/CompileContext";
 import { Scope } from "./Scope";
 

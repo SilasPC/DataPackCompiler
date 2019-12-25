@@ -1,7 +1,7 @@
 import { Optimizer } from "./instructionOptimizer";
 import { Datapack } from "../codegen/Datapack";
 import { CompileContext } from "../toolbox/CompileContext";
-import { Instruction, InstrType, INT_OP } from "../semantics/Instructions";
+import { Instruction, InstrType, INT_OP } from "../codegen/Instructions";
 
 /** Removes local variables that act as aliases */
 export function test(instrs:Instruction[]) {

@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const other_1 = require("../toolbox/other");
-const Instructions_1 = require("../semantics/Instructions");
+const Instructions_1 = require("./Instructions");
 function generate(fn) {
     let output = [];
     for (let instr of fn.get()) {

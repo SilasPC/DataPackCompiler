@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const Types_1 = require("./Types");
 const other_1 = require("../toolbox/other");
-const Instructions_1 = require("./Instructions");
+const Instructions_1 = require("../codegen/Instructions");
 var ESRType;
 (function (ESRType) {
     ESRType[ESRType["VOID"] = 0] = "VOID";

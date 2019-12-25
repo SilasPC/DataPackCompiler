@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const SymbolTable_1 = require("./SymbolTable");
-const Instructions_1 = require("./Instructions");
+const Instructions_1 = require("../codegen/Instructions");
 const ESR_1 = require("./ESR");
 class Scope {
     constructor(parent, symbols, name, ctx, breakerVar, returnVar, type) {

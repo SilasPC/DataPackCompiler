@@ -5,7 +5,7 @@ const AST_1 = require("../syntax/AST");
 const ESR_1 = require("./ESR");
 const Types_1 = require("./Types");
 const Declaration_1 = require("./Declaration");
-const Instructions_1 = require("./Instructions");
+const Instructions_1 = require("../codegen/Instructions");
 const expressionParser_1 = require("./expressionParser");
 const other_1 = require("../toolbox/other");
 function semanticsParser(pfile, ctx) {

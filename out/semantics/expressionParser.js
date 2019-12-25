@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const AST_1 = require("../syntax/AST");
-const Instructions_1 = require("./Instructions");
+const Instructions_1 = require("../codegen/Instructions");
 const ESR_1 = require("./ESR");
 const Declaration_1 = require("./Declaration");
 const Types_1 = require("./Types");

@@ -1,7 +1,7 @@
 
-import { IntESR } from './ESR'
-import { FnDeclaration } from './Declaration'
-import { FnFile } from '../codegen/FnFile'
+import { IntESR } from '../semantics/ESR'
+import { FnDeclaration } from '../semantics/Declaration'
+import { FnFile } from './FnFile'
 
 export type Instruction = INT_OP | CMDInstr | INVOKE | LOCAL_INVOKE
 

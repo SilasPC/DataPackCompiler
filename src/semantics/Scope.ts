@@ -1,6 +1,6 @@
 
 import { SymbolTable } from "./SymbolTable";
-import { Instruction, INT_OP, InstrType } from "./Instructions";
+import { Instruction, INT_OP, InstrType } from "../codegen/Instructions";
 import { Scoreboard, ESR, ESRType } from "./ESR";
 import { CompileContext } from "../toolbox/CompileContext";
 import { FnDeclaration } from "./Declaration";

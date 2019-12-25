@@ -1,5 +1,5 @@
 
-import { Instruction } from "../semantics/Instructions"
+import { Instruction } from "./Instructions"
 
 export class FnFile {
 	

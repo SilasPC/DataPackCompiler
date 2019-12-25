@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const Instructions_1 = require("../semantics/Instructions");
+const Instructions_1 = require("../codegen/Instructions");
 /** Removes local variables that act as aliases */
 function test(instrs) {
     // Find int assignations to temporary variables

@@ -1,6 +1,6 @@
 import { ASTNode, ASTNodeType, ASTOpNode } from "../syntax/AST"
 import { SymbolTable } from "./SymbolTable"
-import { Instruction, INT_OP, InstrType, INVOKE } from "./Instructions"
+import { Instruction, INT_OP, InstrType, INVOKE } from "../codegen/Instructions"
 import { ESR, ESRType, IntESR, getESRType } from "./ESR"
 import { DeclarationType } from "./Declaration"
 import { ElementaryValueType, tokenToType, hasSharedType } from "./Types"
