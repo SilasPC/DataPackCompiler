@@ -1,9 +1,10 @@
 
-import { Token, TokenType, SourceLine, TrueToken } from './Token'
+import { Token, TokenType, SourceLine } from './Token'
 import { ParsingFile } from './ParsingFile'
 import { exhaust } from '../toolbox/other'
 import 'array-flat-polyfill'
 import { CompileContext } from '../toolbox/CompileContext'
+import { LiveIterator } from './TokenIterator'
 
 const keywords = "fn|let|var|break|for|event|while|return|if|else|class|tick|import|const|from|export"
 const types = 'int|void|bool'
@@ -54,13 +55,40 @@ export function lexer(pfile:ParsingFile,ctx:CompileContext): void {
 
 }
 
-function* baseLex(pfile:ParsingFile,source:string)/*: Generator<TrueToken,void>*/ {
+export function inlineLiveLexer(token:Token,offset:number) {
+    return new LiveIterator(inlineLexer(token.line,token.index+offset))
+}
+
+function* inlineLexer(line:SourceLine,offset:number)/*: Generator<Token,void>*/ {
+    
+    let inlineComment = false
+    for (let {group,value,index} of regexLexer(line.line.slice(offset))) {
+        if (group == 'nwl') throw new Error('got newline inside source line in inline lexical generator')
+        if (group == 'bad')
+            return line.fatal('Invalid token',index,value.length)
+        if (group == 'cmt') {
+            if (value == '//') return
+            if (value == '/*') inlineComment = true
+            if (value == '*/') {
+                if (!inlineComment) {
+                    return line.fatal('Unmatched',index+offset,value.length)
+                }
+                inlineComment = false
+            }
+            continue
+        }
+        yield new Token(line,index+offset,groupToType(group),value)
+    }
+    return
+}
+
+function* baseLex(pfile:ParsingFile,source:string)/*: Generator<Token,void>*/ {
 
     let linesRaw = source.split('\n')
 
     let line = new SourceLine(null,pfile,0,linesRaw[0],1)
     let lineComment = false, inlineComment = false
-    for (let {group,value,index} of regexLexer(pfile.source)) {
+    for (let {group,value,index} of regexLexer(source)) {
         if (group == 'nwl') {
             let oldLine = line
             line = new SourceLine(line,pfile,index+1,linesRaw[line.nr],line.nr+1)
@@ -83,12 +111,12 @@ function* baseLex(pfile:ParsingFile,source:string)/*: Generator<TrueToken,void>*
         if (group == 'bad') {
             return line.fatal('Invalid token',index-line.startIndex,value.length)
         }
-        yield new TrueToken(line,index-line.startIndex,groupToType(group),value)
+        yield new Token(line,index-line.startIndex,groupToType(group),value)
     }
     return
 }
 
-// type LexYield = {group:RgxGroup,value:string,index:number}
+type LexYield = {group:RgxGroup,value:string,index:number}
 
 function* regexLexer(src:string)/*: Generator<LexYield,void>*/ {
 

@@ -114,9 +114,14 @@ function parseTree(tree, defs) {
             let subs = val.split('|');
             for (let [si, sub] of subs.entries()) {
                 let ps = parseSpecial(sub, children, findDef);
-                if (ps.sub || ps.spec) {
-                    sub = (ps.sub || ps.spec);
-                    let subnode = new CMDNode_1.CMDNode(sub, nextOpt, []);
+                if (ps.spec) {
+                    let subnode = new CMDNode_1.SemanticalCMDNode(ps.spec, nextOpt, []);
+                    newLast.push(subnode);
+                    for (let n of last)
+                        n.children.push(subnode);
+                }
+                else if (ps.sub) {
+                    let subnode = new CMDNode_1.CMDNode(ps.sub, nextOpt, []);
                     newLast.push(subnode);
                     for (let n of last)
                         n.children.push(subnode);
@@ -138,14 +143,28 @@ function parseTree(tree, defs) {
     }
     return ret;
 }
+const validSpecials = [
+    'player',
+    'players',
+    'entity',
+    'entities',
+    'pint',
+    'uint',
+    'int',
+    'coords',
+    'coords2',
+    'float',
+    'ufloat',
+    'text'
+];
 function parseSpecial(sub, children, findDef) {
     if (sub.startsWith('<') && sub.endsWith('>')) {
         let spec = sub.slice(1, -1);
-        if (spec.startsWith(':<')) {
+        if (spec.startsWith(':<')) { // escape '<x>' with '<:<x>'
             sub = '<' + spec.slice(2) + '>';
             return { sub };
         }
-        else if (spec.startsWith(':')) {
+        else if (spec.startsWith(':')) { // invokation
             let nodes = findDef(spec.slice(1));
             if (!nodes)
                 throw new Error('invokatee not defined: ' + spec);
@@ -154,6 +173,10 @@ function parseSpecial(sub, children, findDef) {
             return { nodes };
         }
         else if (spec.length) {
+            if (!validSpecials.includes(spec)) {
+                console.warn('ss special not valid:', spec);
+                return { sub: spec };
+            }
             return { spec };
         }
     }

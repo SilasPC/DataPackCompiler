@@ -137,8 +137,10 @@ function parseBody(nodes, scope, ctx) {
     for (let node of nodes) {
         switch (node.type) {
             case AST_1.ASTNodeType.COMMAND:
-                // here we should probably parse the command
-                scope.push({ type: Instructions_1.InstrType.CMD });
+                scope.push({
+                    type: Instructions_1.InstrType.CMD,
+                    interpolations: node.interpolations.map(n => expressionParser_1.exprParser(n, scope, ctx))
+                });
                 break;
             case AST_1.ASTNodeType.INVOKATION:
             case AST_1.ASTNodeType.OPERATION:

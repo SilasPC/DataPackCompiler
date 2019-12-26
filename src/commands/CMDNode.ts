@@ -1,43 +1,109 @@
+import { expressionSyntaxParser } from "../syntax/expressionSyntaxParser"
+import { inlineLiveLexer } from "../lexing/lexer"
+import { Token, TokenType } from "../lexing/Token"
+import { CompileContext } from "../toolbox/CompileContext"
+import { Scope } from "../semantics/Scope"
+import { exprParser } from "../semantics/expressionParser"
+import { ASTNode } from "../syntax/AST"
+
+type Sem = {ctx:CompileContext,scope:Scope}
 
 export class CMDNode {
 
 	constructor(
-		public readonly token: string,
+		public readonly cmpStr: string,
 		public readonly restOptional: boolean,
 		public children: CMDNode[]
 	) {}
 
-	test(cmd:string,i=0): boolean {
-		let j = cmd.indexOf(' ',i)
-		if (j == -1) j = cmd.length
-		if (!this.token.startsWith(cmd.slice(i,j))) return false
-		if (cmd.length == j) return this.restOptional || this.children.length == 0
-		let [s,...d] = this.children.filter(c=>c.testShallow(cmd,j+1))
-		if (d.length) [s,...d] = this.children.filter(c=>c.testShallow(cmd,j+1,true)) // try strict equal
-		if (d.length) return false // cannot have more than one match
-		if (!s) return false
-		return s.test(cmd,j+1)
+	/** i is the current index. */
+	parseSyntax(token:Token,i:number,ctx:CompileContext): ASTNode[] {
+		let l = this.tryConsume(token,i,ctx)
+		let cmd = token.value
+		if (l == -1) token.throwDebug('consume fail')
+		let j = i + l
+		if (cmd.length <= j) {
+			if (
+				!this.restOptional &&
+				this.children.length > 0
+			) return token.throwDebug('match failed (expected more)')
+			return []
+		}
+		let sub = this.findNext(token,j,ctx)
+		return sub.parseSyntax(token,j,ctx)
 	}
 
-	testShallow(cmd:string,i=0,se=false) {
-		if (cmd.length <= i) return this.restOptional
+	/** Return child. j is next index */
+	findNext(token:Token,j:number,ctx:CompileContext): CMDNode {
+		let cmd = token.value
+		let [s,...d] = this.children.filter(c=>c.tryConsume(token,j,ctx) != -1)
+		// if (d.length) [s,...d] = this.children.filter(c=>c.tryConsume(token,j+1,ctx)) // try strict equal
+		if (d.length)
+			return token.throwDebug('match failed (too many subs)')
+		if (!s)
+			return token.throwDebug('match failed (no subs)')
+		return s
+	}
+
+	/** Find consumed length. -1 is failed. Includes whitespace. */
+	tryConsume(token:Token,i:number,ctx:CompileContext): number {
+		let cmd = token.value
+		if (cmd.length <= i) return -1
 		let x = cmd.slice(i).split(' ')[0]
-		return se ? this.token.startsWith(x) : this.token == x
+		return this.cmpStr == x ? x.length + 1 : -1
+	}
+
+}
+
+export class SemanticalCMDNode extends CMDNode {
+
+	private lastAST: ASTNode | null = null
+
+	parseSyntax(token:Token,i:number,ctx:CompileContext): ASTNode[] {
+		let ret = super.parseSyntax(token,i,ctx)
+		if (this.lastAST) ret.unshift(this.lastAST)
+		return ret
+	}
+
+	tryConsume(token:Token,i:number,ctx:CompileContext): number {
+		if (token.value.startsWith('${',i)) {
+			let lexer = inlineLiveLexer(token,i+2)
+			let {ast} = expressionSyntaxParser(
+				lexer,ctx
+			)
+			let j = lexer
+				.next()
+				.expectType(TokenType.MARKER)
+				.expectValue('}')
+				.index
+			this.lastAST = ast
+			return j - token.index + 1
+		}
+		switch (this.cmpStr) {
+			case 'player':
+			case 'players':
+			case 'entity':
+			case 'entities':
+			case 'int':
+			case 'uint':
+			case 'pint':
+			case 'coords':
+			case 'coords2':
+			case 'float':
+			case 'ufloat':
+			case 'text':
+				return token.value.length - i
+			default:
+				throw new Error('NEED EXHAUSTION CHECK: '+this.cmpStr)
+		}
 	}
 
 }
 
 export class RootCMDNode extends CMDNode {
 
-	test(cmd:string,i=0) {
-		let [s,...d] = this.children.filter(c=>c.testShallow(cmd,i))
-		if (d.length) return false // cannot have more than one match
-		if (!s) return false
-		return s.test(cmd,i)
-	}
-
-	testShallow() {
-		return true
+	tryConsume() {
+		return 0
 	}
 
 }

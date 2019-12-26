@@ -1,9 +1,7 @@
-import { ASTCmdNode } from "../syntax/AST";
-import { Token } from "../lexing/Token";
-import { callbackify } from "util";
+
 import { promises as fs } from 'fs'
 import { dirname } from "path";
-import { CMDNode, RootCMDNode } from "./CMDNode";
+import { CMDNode, RootCMDNode, SemanticalCMDNode } from "./CMDNode";
 import 'array-flat-polyfill'
 
 export function fromString(string:string): RootCMDNode {
@@ -126,9 +124,12 @@ function parseTree(tree:Tree,defs:Def[]): CMDNode[] {
 			let subs = val.split('|')
 			for (let [si,sub] of subs.entries()) {
 				let ps = parseSpecial(sub,children,findDef)
-				if (ps.sub || ps.spec) {
-					sub = (ps.sub || ps.spec) as string
-					let subnode = new CMDNode(sub,nextOpt,[])
+				if (ps.spec) {
+					let subnode = new SemanticalCMDNode(ps.spec,nextOpt,[])
+					newLast.push(subnode)
+					for (let n of last) n.children.push(subnode)
+				} else if (ps.sub) {
+					let subnode = new CMDNode(ps.sub,nextOpt,[])
 					newLast.push(subnode)
 					for (let n of last) n.children.push(subnode)
 				} else if (ps.nodes) {
@@ -147,18 +148,37 @@ function parseTree(tree:Tree,defs:Def[]): CMDNode[] {
 
 }
 
+const validSpecials = [
+	'player',
+	'players',
+	'entity',
+	'entities',
+	'pint',
+	'uint',
+	'int',
+	'coords',
+	'coords2',
+	'float',
+	'ufloat',
+	'text'
+]
+
 function parseSpecial(sub:string,children:Tree,findDef:(str:string)=>CMDNode[]|undefined): {spec?:string,nodes?:CMDNode[],sub?:string} {
 	if (sub.startsWith('<') && sub.endsWith('>')) {
 		let spec = sub.slice(1,-1)
-		if (spec.startsWith(':<')) {
+		if (spec.startsWith(':<')) { // escape '<x>' with '<:<x>'
 			sub = '<' + spec.slice(2) + '>'
 			return {sub}
-		} else if (spec.startsWith(':')) {
+		} else if (spec.startsWith(':')) { // invokation
 			let nodes = findDef(spec.slice(1))
 			if (!nodes) throw new Error('invokatee not defined: '+spec)
 			if (children.size) throw new Error('invokation cannot be followed by children: '+sub)
 			return {nodes}
 		} else if (spec.length) {
+			if (!validSpecials.includes(spec)) {
+				console.warn('ss special not valid:',spec)
+				return {sub:spec}
+			}
 			return {spec}
 		}
 	}

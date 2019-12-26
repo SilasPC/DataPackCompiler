@@ -1,5 +1,5 @@
 
-import { IntESR } from '../semantics/ESR'
+import { IntESR, ESR } from '../semantics/ESR'
 import { FnDeclaration } from '../semantics/Declaration'
 import { FnFile } from './FnFile'
 
@@ -31,4 +31,5 @@ export interface LOCAL_INVOKE {
 
 export interface CMDInstr {
 	type: InstrType.CMD
+	interpolations: ESR[]
 }

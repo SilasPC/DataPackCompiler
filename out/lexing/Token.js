@@ -40,7 +40,9 @@ class SourceLine {
 }
 exports.SourceLine = SourceLine;
 class Token {
-    constructor(type, value) {
+    constructor(line, index, type, value) {
+        this.line = line;
+        this.index = index;
         this.type = type;
         this.value = value;
     }
@@ -58,22 +60,12 @@ class Token {
         return this.expectType(TokenType.MARKER).expectValue(';');
     }
     throwDebug(e) { return this.fatal('DEBUG: ' + e); }
-    fatal(e) { throw new Error('Fatal: ' + e); }
-    warn(e) { console.log('Warning: ' + e); }
+    fatal(e) { return this.line.fatal(e, this.index, this.value.length); }
+    warn(e) { this.line.warn(e, this.index, this.value.length); }
     throwUnexpectedKeyWord() { return this.fatal('Unexpected keyword: ' + this.value); }
     throwNotDefined() { return this.fatal('Identifier not defined in this scope'); }
 }
 exports.Token = Token;
-class TrueToken extends Token {
-    constructor(line, index, type, value) {
-        super(type, value);
-        this.line = line;
-        this.index = index;
-    }
-    fatal(e) { return this.line.fatal(e, this.index, this.value.length); }
-    warn(e) { this.line.warn(e, this.index, this.value.length); }
-}
-exports.TrueToken = TrueToken;
 var TokenType;
 (function (TokenType) {
     TokenType[TokenType["KEYWORD"] = 0] = "KEYWORD";

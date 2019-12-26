@@ -26,8 +26,7 @@ class TokenIterator {
 }
 exports.TokenIterator = TokenIterator;
 class LiveIterator {
-    constructor(file, generator) {
-        this.file = file;
+    constructor(generator) {
         this.generator = generator;
         this.tokens = [];
         this.index = 0;

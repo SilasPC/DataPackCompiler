@@ -1,6 +1,9 @@
 import { RootCMDNode } from "./CMDNode";
 import { fromSheet, fromString } from "./sheetParser";
 import { Token } from "../lexing/Token";
+import { CompileContext } from "../toolbox/CompileContext";
+import { Scope } from "../semantics/Scope";
+import { ASTCMDNode, ASTNodeType, ASTNode } from "../syntax/AST";
 
 export class SyntaxSheet {
 
@@ -20,15 +23,17 @@ export class SyntaxSheet {
 		private readonly root: RootCMDNode
 	) {}
 
-	verifySyntax(token:string): boolean
-	verifySyntax(token:Token): boolean
-	verifySyntax(token:Token|string): boolean {
-		if (typeof token == 'string') return this.root.test(token.slice(1))
-		return this.root.test(token.value.slice(1))
+	readSyntax(token:Token,ctx:CompileContext): ASTCMDNode {
+		let nodes = this.root.parseSyntax(token,1,ctx)
+		return {
+			type: ASTNodeType.COMMAND,
+			token,
+			interpolations: nodes
+		}
 	}
 
-	verifySemantics(token:Token) {
-
-	}
+	/*verifySemantics(token:Token,ctx:CompileContext,scope:Scope) {
+		return this.root.test(token,1,{scope,ctx})
+	}*/
 
 }

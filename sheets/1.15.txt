@@ -13,35 +13,35 @@ bossbar
     color <color>
     max <pint>
     name <id>
-    players <selector>
+    players <entities>
     style progress|notched_6|notched_10|notched_12|notched20
     value <uint>
     visible true|false
 
-clear [<selector>] [<id>] [<uint>]
+clear [<entities>] [<id>] [<uint>]
 
-clone <cords> <cords> <cords> [
+clone <coords> <coords> <coords> [
   filtered [force|move|normal]
   masked|replace [force|move|normal]
 
 :dataval
   value <json>
   from
-    block <cords> <nbtpath>
-    entity <selector> <nbtpath>
+    block <coords> <nbtpath>
+    entity <entities> <nbtpath>
 
 data
   get
-    block <cords> [<nbtpath>] [<float>]
-    entity <selector> [<nbtpath>] [<float>]
+    block <coords> [<nbtpath>] [<float>]
+    entity <entities> [<nbtpath>] [<float>]
   merge
-    block <cords> <nbt>
-    entity <selector> <nbt>
+    block <coords> <nbt>
+    entity <entities> <nbt>
   remove
-    block <cords> <nbtpath>
-    entity <selector> <nbtpath>
+    block <coords> <nbtpath>
+    entity <entities> <nbtpath>
   modify
-    block <cords> <nbtpath>
+    block <coords> <nbtpath>
       append <:dataval>
       insert after|before <uint> <:dataval>
       merge <:dataval>
@@ -68,34 +68,34 @@ effect
 enchant <player> <id> [uint]
 
 :exe
-  at <selector> <:exe>
-  as <selector> <:exe>
+  at <entities> <:exe>
+  as <entities> <:exe>
   positioned
-    as <selector> <:exe>
-    <cords> <:exe>
+    as <entities> <:exe>
+    <coords> <:exe>
   align x|y|z|xy|xz|yx|yz|zx|zy|xyz|xzy|yxz|yzx|zxy|zyx <:exe>
   facing
-    entity <selector> eyes|feet <:exe>
-    <cords> <:exe>
+    entity <entities> eyes|feet <:exe>
+    <coords> <:exe>
   rotated
-    as <selector> <:exe>
-    <cord> <cord> <:exe>
+    as <entities> <:exe>
+    <coords2> <:exe>
   in <id> <:exe>
   achored feet|eyes <:exe>
   if|unless
-    block <cords> <id> <:exe>
-    blocks <cords> <cords> <cords> all|masked <:exe>
+    block <coords> <id> <:exe>
+    blocks <coords> <coords> <coords> all|masked <:exe>
     data
-      block <cords> <nbtpath> <:exe>
-      entity <selector> <nbtpath> <:exe>
-    entity <selector> <:exe>
-    score <selector> <name>
-      <|<=|=|>|>= <selector> <name> <:exe>
+      block <coords> <nbtpath> <:exe>
+      entity <entities> <nbtpath> <:exe>
+    entity <entities> <:exe>
+    score <entities> <name>
+      <|<=|=|>|>= <entities> <name> <:exe>
       matches <range> <:exe>
     store result|success
-      score <selector> <name> <:exe>
-      block <cords> <nbtpath> byte|double|float|int|long|short <float> <:exe>
-      entity <selector> <nbtpath> byte|double|float|int|long|short <float <:exe>
+      score <entities> <name> <:exe>
+      block <coords> <nbtpath> byte|double|float|int|long|short <float> <:exe>
+      entity <entities> <nbtpath> byte|double|float|int|long|short <float> <:exe>
       bossbar <id> value|max <:exe>
   run <:>
 
@@ -106,14 +106,14 @@ experience
   set <players> <uint> [points|levels]
   query <player> points|levels
 
-fill <cords> <cords> <id> [
+fill <coords> <coords> <id> [
   destroy|hollow|keep|outline
   replace <id>
 
 forceload
-  add <cord> <cord> [<cord> <cord>]
-  remove <cord> <cord> [<cord> <cord>]
-  query [<cord> <cord>]
+  add <coords2> [<coords2>]
+  remove <coords2> [<coords2>]
+  query [<coords2>]
 
 function <id>
 

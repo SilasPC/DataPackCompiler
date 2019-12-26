@@ -1,6 +1,6 @@
 
 import { TokenType, Token } from "../lexing/Token";
-import { ASTNode, ASTNodeType, ASTCmdNode, ASTReturnNode } from "./AST";
+import { ASTNode, ASTNodeType, ASTReturnNode } from "./AST";
 import { expressionSyntaxParser } from "./expressionSyntaxParser";
 import { parseConditional } from "./structures/conditional";
 import { parseDeclaration } from "./structures/declaration";
@@ -48,12 +48,7 @@ export function bodySyntaxParser(iter:TokenIteratorI,ctx:CompileContext): ASTNod
                 break
             }
             case TokenType.COMMAND: {
-                let node: ASTCmdNode = {
-                    type: ASTNodeType.COMMAND,
-                    cmd: iter.current().value
-                }
-                if (!ctx.syntaxSheet.verifySyntax(node.cmd)) iter.current().throwDebug('invalid cmd syntax')
-                body.push(node)
+                body.push(ctx.syntaxSheet.readSyntax(iter.current(),ctx))
                 break
             }
             case TokenType.OPERATOR:

@@ -50,7 +50,6 @@ export class LiveIterator implements TokenIteratorI {
     private done = false
 
     constructor(
-        public readonly file: ParsingFile,
         private readonly generator: /*Generator<Token,void>*/ Generator
     ) {}
 

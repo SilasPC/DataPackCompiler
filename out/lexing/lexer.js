@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const Token_1 = require("./Token");
 const other_1 = require("../toolbox/other");
 require("array-flat-polyfill");
+const TokenIterator_1 = require("./TokenIterator");
 const keywords = "fn|let|var|break|for|event|while|return|if|else|class|tick|import|const|from|export";
 const types = 'int|void|bool';
 const comments = "//|/\\*|\\*/";
@@ -43,11 +44,39 @@ function lexer(pfile, ctx) {
     }
 }
 exports.lexer = lexer;
+function inlineLiveLexer(token, offset) {
+    return new TokenIterator_1.LiveIterator(inlineLexer(token.line, token.index + offset));
+}
+exports.inlineLiveLexer = inlineLiveLexer;
+function* inlineLexer(line, offset) {
+    let inlineComment = false;
+    for (let { group, value, index } of regexLexer(line.line.slice(offset))) {
+        if (group == 'nwl')
+            throw new Error('got newline inside source line in inline lexical generator');
+        if (group == 'bad')
+            return line.fatal('Invalid token', index, value.length);
+        if (group == 'cmt') {
+            if (value == '//')
+                return;
+            if (value == '/*')
+                inlineComment = true;
+            if (value == '*/') {
+                if (!inlineComment) {
+                    return line.fatal('Unmatched', index + offset, value.length);
+                }
+                inlineComment = false;
+            }
+            continue;
+        }
+        yield new Token_1.Token(line, index + offset, groupToType(group), value);
+    }
+    return;
+}
 function* baseLex(pfile, source) {
     let linesRaw = source.split('\n');
     let line = new Token_1.SourceLine(null, pfile, 0, linesRaw[0], 1);
     let lineComment = false, inlineComment = false;
-    for (let { group, value, index } of regexLexer(pfile.source)) {
+    for (let { group, value, index } of regexLexer(source)) {
         if (group == 'nwl') {
             let oldLine = line;
             line = new Token_1.SourceLine(line, pfile, index + 1, linesRaw[line.nr], line.nr + 1);
@@ -73,11 +102,10 @@ function* baseLex(pfile, source) {
         if (group == 'bad') {
             return line.fatal('Invalid token', index - line.startIndex, value.length);
         }
-        yield new Token_1.TrueToken(line, index - line.startIndex, groupToType(group), value);
+        yield new Token_1.Token(line, index - line.startIndex, groupToType(group), value);
     }
     return;
 }
-// type LexYield = {group:RgxGroup,value:string,index:number}
 function* regexLexer(src) {
     let match;
     let rgx = getRgx();

@@ -1,6 +1,11 @@
 import { expect } from "chai"
 import { SyntaxSheet } from '../src/commands/SyntaxSheet'
 import { Token, TokenType } from "../src/lexing/Token"
+import { ParsingFile } from "../src/lexing/ParsingFile"
+import { CompileContext } from "../src/toolbox/CompileContext"
+import { Datapack } from "../src/codegen/Datapack"
+import { compilerOptionDefaults } from "../src/toolbox/config"
+import { lexer } from "../src/lexing/lexer"
 
 describe('syntax sheet - syntax verification', () => {
 
@@ -13,12 +18,20 @@ t1
   zyx
 t2
 		`)
-		expect(ss.verifySyntax('/t')).to.be.false
-		expect(ss.verifySyntax('/t2')).to.be.true
-		expect(ss.verifySyntax('/t1')).to.be.false
-		expect(ss.verifySyntax('/t1 x z')).to.be.true
-		expect(ss.verifySyntax('/t1 xy x')).to.be.false
-		expect(ss.verifySyntax('/t1 z')).to.be.true // this test fails
+		let t = readSyntax(`
+			/t
+			/t2
+			/t1
+			/t1 x z
+			/t1 xy x
+			/t1 z
+		`,ss)
+		expect(t[0]).to.be.false
+		expect(t[1]).to.be.true
+		expect(t[2]).to.be.false
+		expect(t[3]).to.be.true
+		expect(t[4]).to.be.false
+		expect(t[5]).to.be.true // this test fails
 	})
 
 	it('invokation', () => {
@@ -28,8 +41,12 @@ t2
   universe
 hello <:world>
 		`)
-		expect(ss.verifySyntax('/hello world')).to.be.true
-		expect(ss.verifySyntax('/hello universe')).to.be.true
+		let t = readSyntax(`
+			/hello world
+			/hello universe
+		`,ss)
+		expect(t[0]).to.be.true
+		expect(t[1]).to.be.true
 	})
 
 	it('circular invokation', () => {
@@ -39,19 +56,30 @@ hello <:world>
   e
 c <:c>
 		`)
-		expect(ss.verifySyntax('/c e')).to.be.true
-		expect(ss.verifySyntax('/c c e')).to.be.true
-		expect(ss.verifySyntax('/c c c e')).to.be.true
-		expect(ss.verifySyntax('/c c c c')).to.be.false
+		let t = readSyntax(`
+			/c e
+			/c c e
+			/c c c e
+			/c c c c
+		`,ss)
+		expect(t[0]).to.be.true
+		expect(t[1]).to.be.true
+		expect(t[2]).to.be.true
+		expect(t[3]).to.be.false
 	})
 
 	it('optionals', () => {
 		const ss = SyntaxSheet.fromString(`
 test [opt]
 		`)
-		expect(ss.verifySyntax('/test')).to.be.true
-		expect(ss.verifySyntax('/test nop')).to.be.false
-		expect(ss.verifySyntax('/test opt')).to.be.true // this fails
+		let t = readSyntax(`
+			/test
+			/test nop
+			/test opt
+		`,ss)
+		expect(t[0]).to.be.true
+		expect(t[1]).to.be.false
+		expect(t[2]).to.be.true // this fails
 	})
 
 	it('variations', () => {
@@ -59,17 +87,45 @@ test [opt]
 t1|t2 a|b
   x|y
 		`)
-		expect(ss.verifySyntax('/t1 a x')).to.be.true
-		expect(ss.verifySyntax('/t2 a x')).to.be.true
-		expect(ss.verifySyntax('/t1 b x')).to.be.true
-		expect(ss.verifySyntax('/t2 b x')).to.be.true
-		expect(ss.verifySyntax('/t1 a y')).to.be.true
-		expect(ss.verifySyntax('/t2 a y')).to.be.true
-		expect(ss.verifySyntax('/t1 b y')).to.be.true
-		expect(ss.verifySyntax('/t2 b y')).to.be.true
+		let t = readSyntax(`
+			/t1 a x
+			/t2 a x
+			/t1 b x
+			/t2 b x
+			/t1 a y
+			/t2 a y
+			/t1 b y
+			/t2 b y
+		`,ss)
+		expect(t[0]).to.be.true
+		expect(t[1]).to.be.true
+		expect(t[2]).to.be.true
+		expect(t[3]).to.be.true
+		expect(t[4]).to.be.true
+		expect(t[5]).to.be.true
+		expect(t[6]).to.be.true
+		expect(t[7]).to.be.true
 	})
 })
 
 describe('syntax sheet - static semantics verification', () => {
 
 })
+
+function readSyntax(source:string,ss:SyntaxSheet) {
+	const ctx = new CompileContext(compilerOptionDefaults(),ss)
+	let pfile = ctx.loadFromSource(source)
+	lexer(pfile,ctx)
+	let res: boolean[] = []
+	for (let token of pfile.getTokenIterator()) {
+		if (token.type == TokenType.COMMAND) {
+			try {
+				ss.readSyntax(token,ctx)
+				res.push(true)
+			} catch {
+				res.push(false)
+			}
+		}
+	}
+	return res
+}

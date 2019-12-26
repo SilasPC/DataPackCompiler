@@ -19,7 +19,7 @@ export enum ASTNodeType {
     RETURN
 }
 
-export type ASTNode = ASTReturnNode | ASTExportNode | ASTLetNode | ASTNumNode | ASTBoolNode | ASTStringNode | ASTIdentifierNode | ASTOpNode | ASTListNode | ASTCallNode | ASTFnNode | ASTIfNode | ASTCmdNode
+export type ASTNode = ASTReturnNode | ASTExportNode | ASTLetNode | ASTNumNode | ASTBoolNode | ASTStringNode | ASTIdentifierNode | ASTOpNode | ASTListNode | ASTCallNode | ASTFnNode | ASTIfNode | ASTCMDNode
 
 export interface ASTExportNode {
     type: ASTNodeType.EXPORT
@@ -90,9 +90,10 @@ export interface ASTIfNode {
     secondaryBranch: ASTNode[]
 }
 
-export interface ASTCmdNode {
+export interface ASTCMDNode {
     type: ASTNodeType.COMMAND
-    cmd: string
+    token: Token,
+    interpolations: ASTNode[]
 }
 
 /*
