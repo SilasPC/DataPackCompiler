@@ -61,23 +61,38 @@ const argv = yargs_1.default
     .epilogue('This compiler is a work in progress. Expect bugs.')
     .argv;
 async function compile(argv) {
-    const datapack = await Datapack_1.Datapack.load(argv.path);
-    let ret = await doCompile();
-    if (ret && !argv.watch)
+    let datapack = null;
+    try {
+        datapack = await Datapack_1.Datapack.load(argv.path);
+    }
+    catch (err) {
+        if (err instanceof Error) {
+            if (argv.trace)
+                console.trace(err);
+            else
+                console.error(err.message);
+        }
+        else
+            console.error(err);
+    }
+    if (datapack == null)
+        return process.exit(1);
+    let ret = await doCompile(datapack);
+    if (!argv.watch)
         process.exit(ret);
     if (argv.watch) {
         datapack.watchSourceDir(async () => {
-            await doCompile();
+            await doCompile(datapack);
         });
     }
-    async function doCompile() {
+    async function doCompile(dp) {
         try {
-            await datapack.compile({
+            await dp.compile({
                 targetVersion: argv.targetVersion,
                 verbosity: argv.verbose ? argv.verbose : undefined
             });
             if (!argv.noEmit)
-                await datapack.emit();
+                await dp.emit();
         }
         catch (err) {
             if (err instanceof Error) {
@@ -95,5 +110,6 @@ async function compile(argv) {
 }
 async function initialize(path) {
     await Datapack_1.Datapack.initialize(path);
+    process.exit(0);
 }
 //# sourceMappingURL=cli.js.map

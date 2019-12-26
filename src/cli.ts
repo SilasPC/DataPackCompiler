@@ -69,27 +69,39 @@ const argv = yargs
 	.epilogue('This compiler is a work in progress. Expect bugs.')
 	.argv
 
-async function compile(argv:any) {
+async function compile(argv:any): Promise<void> {
+	
+	let datapack: Datapack | null = null
+	try {
+		datapack = await Datapack.load(argv.path)
+	} catch (err) {
+		if (err instanceof Error) {
+			if (argv.trace)
+				console.trace(err)
+			else
+				console.error(err.message)
+		} else console.error(err)
+	}
 
-	const datapack = await Datapack.load(argv.path)
+	if (datapack == null) return process.exit(1)
 
-	let ret = await doCompile()
-	if (ret && !argv.watch) process.exit(ret)
+	let ret = await doCompile(datapack)
+	if (!argv.watch) process.exit(ret)
 
 	if (argv.watch) {
 		datapack.watchSourceDir(async ()=>{
-			await doCompile()
+			await doCompile(datapack as Datapack)
 		})
 	}
 
-	async function doCompile(): Promise<number> {
+	async function doCompile(dp:Datapack): Promise<number> {
 		try {
 
-			await datapack.compile({
+			await dp.compile({
 				targetVersion: argv.targetVersion as string|undefined,
 				verbosity: argv.verbose ? argv.verbose as number : undefined
 			})
-			if (!argv.noEmit) await datapack.emit()
+			if (!argv.noEmit) await dp.emit()
 			
 		} catch (err) {
 			if (err instanceof Error) {
@@ -108,4 +120,5 @@ async function compile(argv:any) {
 
 async function initialize(path:string) {
 	await Datapack.initialize(path)
+	process.exit(0)
 }
