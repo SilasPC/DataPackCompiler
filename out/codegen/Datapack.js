@@ -3,6 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const chokidar_1 = require("chokidar");
 const fs_1 = require("fs");
 const child_process_1 = require("child_process");
 const path_1 = require("path");
@@ -18,38 +19,55 @@ const moment_1 = __importDefault(require("moment"));
 require("moment-duration-format");
 const generate_1 = require("./generate");
 class Datapack {
-    constructor(srcDir, emitDir = srcDir) {
-        this.srcDir = srcDir;
-        this.emitDir = emitDir;
-        this.packJson = null;
+    constructor(packDir, packJson) {
+        this.packDir = packDir;
+        this.packJson = packJson;
         this.ctx = null;
         this.fnMap = null;
-        /*this.addInit(
-            // `tellraw @a Loaded my first compiled datapack!`,
-            //`scoreboard objectives add ${this.publicVariableScoreboard} dummy`
-        )*/
     }
     static async initialize(path) {
         await fs_1.promises.writeFile(path_1.join(path, 'pack.json'), JSON.stringify(Datapack.getDefaultConfig({}), null, 2));
     }
-    // addInit(...instrs:Instruction[]) {this.init.push(...instrs)}
+    static async load(path) {
+        return new Datapack(path, await Datapack.loadPackJson(path_1.join(path, 'pack.json')));
+    }
+    static async loadPackJson(path) {
+        let weakPack = JSON.parse((await fs_1.promises.readFile(path)).toString());
+        // if (!weakPack.compilerOptions) weakPack.compilerOptions = {}
+        // merge(weakPack.compilerOptions,cfgOverride)
+        return Datapack.getDefaultConfig(weakPack);
+    }
+    static getDefaultConfig(cfg) {
+        return {
+            name: def(cfg.name, 'A compiled datapack'),
+            description: def(cfg.description, 'A description'),
+            compilerOptions: config_1.compilerOptionDefaults(cfg.compilerOptions),
+            srcDir: def(cfg.srcDir, './'),
+            emitDir: def(cfg.emitDir, './'),
+            debugMode: def(cfg.debugMode, false)
+        };
+    }
+    watchSourceDir(h) {
+        const watcher = chokidar_1.watch(path_1.join(this.packDir, this.packJson.srcDir), {});
+        watcher.once('ready', () => {
+            watcher.on('all', (_e, f) => {
+                if (f.endsWith('.dpl'))
+                    h();
+            });
+        });
+        return watcher;
+    }
     async compile(cfgOverride = {}) {
-        const files = await recursiveSearch(this.srcDir);
-        const packJson = path_1.join(this.srcDir, 'pack.json');
-        let cfg;
-        if (!files.includes(packJson))
-            cfg = Datapack.getDefaultConfig({ compilerOptions: cfgOverride });
-        else {
-            let weakPack = JSON.parse((await fs_1.promises.readFile(packJson)).toString());
-            if (!weakPack.compilerOptions)
-                weakPack.compilerOptions = {};
-            merge(weakPack.compilerOptions, cfgOverride);
-            cfg = Datapack.getDefaultConfig(weakPack);
-        }
-        this.packJson = cfg;
-        const srcFiles = files.filter(f => f.endsWith('.txt'));
-        const ctx = new CompileContext_1.CompileContext(cfg.compilerOptions, await SyntaxSheet_1.SyntaxSheet.load(cfg.compilerOptions.targetVersion));
-        this.ctx = ctx;
+        const files = await recursiveSearch(path_1.join(this.packDir, this.packJson.srcDir));
+        const srcFiles = files.filter(f => f.endsWith('.dpl'));
+        let cfg = Datapack.getDefaultConfig({
+            ...this.packJson,
+            compilerOptions: merge(// override compileroptions:
+            cfgOverride, // override options
+            this.packJson.compilerOptions // use normal if nullish on override
+            )
+        });
+        const ctx = this.ctx = new CompileContext_1.CompileContext(cfg.compilerOptions, await SyntaxSheet_1.SyntaxSheet.load(cfg.compilerOptions.targetVersion));
         ctx.log(1, `Begin compilation`);
         let start = moment_1.default();
         const pfiles = srcFiles
@@ -74,23 +92,40 @@ class Datapack {
         ctx.log(2, `Elapsed time: ${moment_1.default.duration(moment_1.default().diff(start)).format()}`);
     }
     async emit() {
-        if (!this.packJson || !this.fnMap || !this.ctx)
+        if (!this.fnMap || !this.ctx)
             throw new Error('Nothing to emit. Use .compile() first.');
+        let emitDir = path_1.join(this.packDir, this.packJson.emitDir);
+        // check if emitDir exists
         try {
-            await fs_1.promises.access(this.emitDir, fs_1.constants.F_OK);
-            let delPath = path_1.resolve(this.emitDir);
-            let cmd = 'rmdir /Q /S ' + delPath;
-            await execp(cmd); // this is vulnerable to shell code injection
+            await fs_1.promises.access(emitDir, fs_1.constants.F_OK);
+            console.log('emitdir exists');
+            try {
+                await fs_1.promises.access(emitDir + '/data', fs_1.constants.F_OK);
+                try {
+                    console.log('emitdir/data exists');
+                    // this is vulnerable to shell code injection
+                    await execp('del /Q /S ' + path_1.resolve(emitDir + '/data' + '/*'));
+                    await execp('rmdir /Q /S ' + path_1.resolve(emitDir + '/data/minecraft'));
+                    await execp('rmdir /Q /S ' + path_1.resolve(emitDir + '/data/tmp'));
+                }
+                catch (err) {
+                    console.log('wut', err);
+                }
+            }
+            catch {
+                await fs_1.promises.mkdir(emitDir + '/data');
+            }
         }
-        catch { }
-        await fs_1.promises.mkdir(this.emitDir);
-        await fs_1.promises.writeFile(this.emitDir + '/pack.mcmeta', JSON.stringify({
+        catch { // create emitDir
+            console.log('create emitdir');
+            await fs_1.promises.mkdir(emitDir);
+        }
+        await fs_1.promises.writeFile(emitDir + '/pack.mcmeta', JSON.stringify({
             pack: {
                 description: this.packJson.description
             }
-        }));
-        await fs_1.promises.mkdir(this.emitDir + '/data');
-        let ns = this.emitDir + '/data/tmp';
+        }, null, 2));
+        let ns = emitDir + '/data/tmp';
         await fs_1.promises.mkdir(ns);
         let fns = ns + '/functions';
         await fs_1.promises.mkdir(fns);
@@ -98,7 +133,7 @@ class Datapack {
         await fs_1.promises.writeFile(fns + '/tick.mcfunction', '' /*this.tickFile.join('\n')*/);
         await fs_1.promises.writeFile(fns + '/load.mcfunction', '' /*this.loadFile.join('\n')*/);
         await fs_1.promises.writeFile(fns + '/init.mcfunction', '' /*this.loadFile.join('\n')*/);
-        ns = this.emitDir + '/data/minecraft';
+        ns = emitDir + '/data/minecraft';
         await fs_1.promises.mkdir(ns);
         await fs_1.promises.mkdir(ns + '/tags');
         await fs_1.promises.mkdir(ns + '/tags/functions');
@@ -109,23 +144,15 @@ class Datapack {
             values: ['tmp/load']
         }));
     }
-    static getDefaultConfig(cfg) {
-        return {
-            name: def(cfg.name, 'A compiled datapack'),
-            description: def(cfg.description, 'A description'),
-            compilerOptions: config_1.compilerOptionDefaults(cfg.compilerOptions),
-            srcDir: def(cfg.srcDir, './'),
-            emitDir: def(cfg.emitDir, './'),
-            debugMode: def(cfg.debugMode, false)
-        };
-    }
 }
 exports.Datapack = Datapack;
 function def(val, def) { return val == undefined ? def : val; }
 function merge(target, source) {
-    for (let key in target)
-        if ([null, undefined].includes(target[key]))
-            target[key] = source[key];
+    let obj = { ...target };
+    for (let key in obj)
+        if ([null, undefined].includes(obj[key]))
+            obj[key] = source[key];
+    return obj;
 }
 function execp(cmd) {
     return new Promise((resolve, reject) => {

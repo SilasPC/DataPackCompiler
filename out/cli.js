@@ -1,28 +1,99 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 require('source-map-support').install();
-const commander_1 = require("commander");
 const Datapack_1 = require("./codegen/Datapack");
-const cli = new commander_1.Command();
-cli
+const yargs_1 = __importDefault(require("yargs"));
+const COMPILE_GROUP = 'Compile overrides:';
+const argv = yargs_1.default
     .version('0.1')
-    .name('dpc')
-    .arguments('[path] [path]')
-    .option('-t --target-version <version>', 'target Minecraft version')
-    // .option('-E --no-emit [path]','do not emit compiled datapack')
-    .option('-v --verbosity [level]', 'set verbosity level', Number, 1)
-    .option('-X --no-exit', 'do not exit process')
-    .parse(process.argv);
-const datapack = new Datapack_1.Datapack(cli.args[0] || './', cli.args[1] || './');
-datapack.compile({
-    targetVersion: cli.targetVersion,
-    verbosity: cli.verbosity
+    .demandCommand(1)
+    // .usage('Usage: $0 [path] [path]')
+    .command('init [path]', 'Initialize pack.json', yargs => {
+    yargs
+        .positional('path', {
+        description: 'Folder to intialize in',
+        default: './',
+        type: 'string'
+    });
+}, argv => {
+    initialize(argv.path);
 })
-    .then(() => cli.emit && datapack.emit())
-    .catch(e => {
-    console.error(e);
-    console.trace();
-});
-if (!cli.exit)
-    setInterval(() => 0, 1000);
+    .command(['compile [path]', '$0'], 'Compile datapack', yargs => {
+    yargs
+        .positional('path', {
+        description: 'Path to folder containing \'pack.json\'',
+        default: './',
+        type: 'string'
+    });
+}, compile)
+    .option('no-emit', {
+    boolean: true,
+    default: false,
+    description: 'Compile without emitting datapack',
+})
+    .option('watch', {
+    alias: 'w',
+    boolean: true,
+    default: false,
+    description: 'Watch source directory for changes',
+})
+    .option('trace', {
+    boolean: true,
+    default: false,
+    description: 'Trace errors. Mostly for debugging'
+})
+    .option('verbose', {
+    alias: 'v',
+    description: 'Increase verbosity',
+    count: true,
+    group: COMPILE_GROUP
+})
+    .option('target-version', {
+    alias: 't',
+    type: 'string',
+    description: 'Set the target Minecraft version',
+    group: COMPILE_GROUP
+})
+    .help('h')
+    .epilogue('This compiler is a work in progress. Expect bugs.')
+    .argv;
+async function compile(argv) {
+    const datapack = await Datapack_1.Datapack.load(argv.path);
+    let ret = await doCompile();
+    if (ret && !argv.watch)
+        process.exit(ret);
+    if (argv.watch) {
+        datapack.watchSourceDir(async () => {
+            await doCompile();
+        });
+    }
+    async function doCompile() {
+        try {
+            await datapack.compile({
+                targetVersion: argv.targetVersion,
+                verbosity: argv.verbose ? argv.verbose : undefined
+            });
+            if (!argv.noEmit)
+                await datapack.emit();
+        }
+        catch (err) {
+            if (err instanceof Error) {
+                if (argv.trace)
+                    console.trace(err);
+                else
+                    console.error(err.message);
+            }
+            else
+                console.error(err);
+            return 1;
+        }
+        return 0;
+    }
+}
+async function initialize(path) {
+    await Datapack_1.Datapack.initialize(path);
+}
 //# sourceMappingURL=cli.js.map

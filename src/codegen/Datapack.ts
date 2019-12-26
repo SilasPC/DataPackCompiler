@@ -1,4 +1,5 @@
 
+import { watch } from 'chokidar'
 import { FnFile } from "./FnFile";
 import { promises as fs, constants, Stats }  from 'fs'
 import { exec } from 'child_process'
@@ -41,43 +42,67 @@ export class Datapack {
 		))
 	}
 
-	private packJson: PackJSON | null = null
+	static async load(path:string) {
+		return new Datapack(
+			path,
+			await Datapack.loadPackJson(join(path,'pack.json'))
+		)
+	}
+	
 	private ctx: CompileContext | null = null
 	private fnMap: Map<string,string[]> | null = null;
 
-	constructor(
-		public readonly srcDir: string,
-		public readonly emitDir: string = srcDir
-	) {
-		/*this.addInit(
-			// `tellraw @a Loaded my first compiled datapack!`,
-			//`scoreboard objectives add ${this.publicVariableScoreboard} dummy`
-		)*/
+	private constructor(
+		public readonly packDir: string,
+		private packJson: PackJSON
+	) {}
+
+	private static async loadPackJson(path:string) {
+		let weakPack: WeakPackJSON = JSON.parse((await fs.readFile(path)).toString())
+		// if (!weakPack.compilerOptions) weakPack.compilerOptions = {}
+		// merge(weakPack.compilerOptions,cfgOverride)
+		return Datapack.getDefaultConfig(weakPack)
 	}
 
-	// addInit(...instrs:Instruction[]) {this.init.push(...instrs)}
+	static getDefaultConfig(cfg:WeakPackJSON): PackJSON {
+		return {
+			name: def(cfg.name,'A compiled datapack'),
+			description: def(cfg.description,'A description'),
+			compilerOptions: compilerOptionDefaults(cfg.compilerOptions),
+			srcDir: def(cfg.srcDir,'./'),
+			emitDir: def(cfg.emitDir,'./'),
+			debugMode: def(cfg.debugMode,false)
+		}
+	}
+
+	watchSourceDir(h:()=>void) {
+		const watcher = watch(join(this.packDir,this.packJson.srcDir), {})
+		watcher.once('ready',()=>{
+			watcher.on('all',(_e,f)=>{
+				if (f.endsWith('.dpl'))	h()
+			})
+		})
+		return watcher
+	}
 
 	async compile(cfgOverride:WeakCompilerOptions={}) {
 
-		const files = await recursiveSearch(this.srcDir)
-		const packJson = join(this.srcDir,'pack.json')
-		let cfg: PackJSON
-		if (!files.includes(packJson)) cfg = Datapack.getDefaultConfig({compilerOptions:cfgOverride})
-		else {
-			let weakPack: WeakPackJSON = JSON.parse((await fs.readFile(packJson)).toString())
-			if (!weakPack.compilerOptions) weakPack.compilerOptions = {}
-			merge(weakPack.compilerOptions,cfgOverride)
-			cfg = Datapack.getDefaultConfig(weakPack)
-		}
-		this.packJson = cfg
+		const files = await recursiveSearch(join(this.packDir,this.packJson.srcDir))		
 
-		const srcFiles = files.filter(f=>f.endsWith('.txt'))
+		const srcFiles = files.filter(f=>f.endsWith('.dpl'))
 
-		const ctx = new CompileContext(
+		let cfg = Datapack.getDefaultConfig({
+			...this.packJson, // all normal options
+			compilerOptions: merge( // override compileroptions:
+				cfgOverride, // override options
+				this.packJson.compilerOptions // use normal if nullish on override
+			)
+		})
+
+		const ctx = this.ctx = new CompileContext(
 			cfg.compilerOptions,
 			await SyntaxSheet.load(cfg.compilerOptions.targetVersion)
 		)
-		this.ctx = ctx
 
 		ctx.log(1,`Begin compilation`)
 		let start = moment()
@@ -116,21 +141,35 @@ export class Datapack {
 	}
 
 	async emit() {
-		if (!this.packJson || !this.fnMap || !this.ctx) throw new Error('Nothing to emit. Use .compile() first.')
+		if (!this.fnMap || !this.ctx) throw new Error('Nothing to emit. Use .compile() first.')
+		let emitDir = join(this.packDir,this.packJson.emitDir)
+
+		// check if emitDir exists
 		try {
-			await fs.access(this.emitDir,constants.F_OK)
-			let delPath = resolvePath(this.emitDir)
-			let cmd = 'rmdir /Q /S ' + delPath
-			await execp(cmd) // this is vulnerable to shell code injection
-		} catch {}
-		await fs.mkdir(this.emitDir)
-		await fs.writeFile(this.emitDir+'/pack.mcmeta',JSON.stringify({
+			await fs.access(emitDir,constants.F_OK)
+			console.log('emitdir exists')
+			try {
+				await fs.access(emitDir+'/data',constants.F_OK)
+				try {
+					console.log('emitdir/data exists')
+					// this is vulnerable to shell code injection
+					await execp('del /Q /S ' + resolvePath(emitDir+'/data'+'/*'))
+					await execp('rmdir /Q /S ' + resolvePath(emitDir+'/data/minecraft'))
+					await execp('rmdir /Q /S ' + resolvePath(emitDir+'/data/tmp'))
+				} catch (err) {console.log('wut',err)}
+			} catch {
+				await fs.mkdir(emitDir+'/data')
+			}
+		} catch { // create emitDir
+			console.log('create emitdir')
+			await fs.mkdir(emitDir)
+		}
+		await fs.writeFile(emitDir+'/pack.mcmeta',JSON.stringify({
 			pack: {
 				description: this.packJson.description
 			}
-		}))
-		await fs.mkdir(this.emitDir+'/data')
-		let ns = this.emitDir+'/data/tmp'
+		},null,2))
+		let ns = emitDir+'/data/tmp'
 		await fs.mkdir(ns)
 		let fns = ns + '/functions'
 		await fs.mkdir(fns)
@@ -140,7 +179,7 @@ export class Datapack {
 		await fs.writeFile(fns+'/tick.mcfunction',''/*this.tickFile.join('\n')*/)
 		await fs.writeFile(fns+'/load.mcfunction',''/*this.loadFile.join('\n')*/)
 		await fs.writeFile(fns+'/init.mcfunction',''/*this.loadFile.join('\n')*/)
-		ns = this.emitDir+'/data/minecraft'
+		ns = emitDir+'/data/minecraft'
 		await fs.mkdir(ns)
 		await fs.mkdir(ns+'/tags')
 		await fs.mkdir(ns+'/tags/functions')
@@ -152,24 +191,15 @@ export class Datapack {
 		}))
 	}
 
-	static getDefaultConfig(cfg:WeakPackJSON): PackJSON {
-		return {
-			name: def(cfg.name,'A compiled datapack'),
-			description: def(cfg.description,'A description'),
-			compilerOptions: compilerOptionDefaults(cfg.compilerOptions),
-			srcDir: def(cfg.srcDir,'./'),
-			emitDir: def(cfg.emitDir,'./'),
-			debugMode: def(cfg.debugMode,false)
-		}
-	}
-
 }
 
 function def<T>(val:T|undefined,def:T): T {return val == undefined ? def : val}
 
-function merge<T>(target:T,source:T) {
-	for (let key in target)
-		if ([null,undefined].includes(target[key] as any)) target[key] = source[key]
+function merge<T>(target:T,source:T): T {
+	let obj = {...target}
+	for (let key in obj)
+		if ([null,undefined].includes(obj[key] as any)) obj[key] = source[key]
+	return obj
 }
 
 function execp(cmd:string) {

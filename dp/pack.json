@@ -1,9 +1,8 @@
 {
 
-  "name": "A compiled datapack",
-  "description": "A description",
-	
-	"compilerOptions": {
+  "name": "Test pack 2020 !!!",
+  "description": "My precious compiler :DD",
+  "compilerOptions": {
     "obscureNames": false,
     "obscureSeed": "",
     "noInference": true,
@@ -11,14 +10,12 @@
     "ignoreUnreachable": true,
     "sourceMap": false,
     "emitComments": false,
-    "optimize": false,
+    "optimize": true,
     "noUnused": false,
     "verbosity": 0,
     "targetVersion": "latest"
-	},
-	
+  },
   "srcDir": "./",
   "emitDir": "./",
-	"debugMode": false
-	
+  "debugMode": false
 }

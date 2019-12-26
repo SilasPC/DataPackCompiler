@@ -4,6 +4,8 @@ import { Datapack } from './codegen/Datapack'
 import yargs from 'yargs'
 import { WeakCompilerOptions } from './toolbox/config'
 
+const COMPILE_GROUP = 'Compile overrides:'
+
 const argv = yargs
 
 	.version('0.1')
@@ -21,33 +23,14 @@ const argv = yargs
 	}, argv => {
 		initialize(argv.path as string)
 	})
-	.command(['compile [source] [dest]','$0'], 'Compile datapack', yargs => {
+	.command(['compile [path]','$0'], 'Compile datapack', yargs => {
 		yargs
-			.positional('source', {
-				description: 'Source folder / file',
+			.positional('path', {
+				description: 'Path to folder containing \'pack.json\'',
 				default: './',
 				type: 'string'
 			})
-			.positional('dest', {
-				description: 'Folder to emit datapack to',
-				default: './',
-				type: 'string'
-			})
-	}, argv => {
-		compile({
-			targetVersion: argv.targetVersion as string|undefined,
-			verbosity: argv.verbose as number
-		},argv.source as string,argv.dest as string)
-		.catch(err => {
-			if (err instanceof Error) {
-				if (argv.trace)
-					console.trace(err)
-				else
-					console.error(err.message)
-			} else console.error(err)
-			process.exit(1)
-		})
-	})
+	}, compile)
 
 	.option('no-emit', {
 		boolean: true,
@@ -72,27 +55,55 @@ const argv = yargs
 		alias: 'v',
 		description: 'Increase verbosity',
 		count: true,
-		group: 'Compilation:'
+		group: COMPILE_GROUP
 	})
 
 	.option('target-version', {
 		alias: 't',
 		type: 'string',
 		description: 'Set the target Minecraft version',
-		group: 'Compilation:'
+		group: COMPILE_GROUP
 	})
 
 	.help('h')
 	.epilogue('This compiler is a work in progress. Expect bugs.')
 	.argv
-	
-async function compile(opts:WeakCompilerOptions,src:string,dst:string) {
 
-	const datapack = new Datapack(src,dst)
+async function compile(argv:any) {
 
-	await datapack.compile(opts)
-	// await datapack.emit()
-	
+	const datapack = await Datapack.load(argv.path)
+
+	let ret = await doCompile()
+	if (ret && !argv.watch) process.exit(ret)
+
+	if (argv.watch) {
+		datapack.watchSourceDir(async ()=>{
+			await doCompile()
+		})
+	}
+
+	async function doCompile(): Promise<number> {
+		try {
+
+			await datapack.compile({
+				targetVersion: argv.targetVersion as string|undefined,
+				verbosity: argv.verbose ? argv.verbose as number : undefined
+			})
+			if (!argv.noEmit) await datapack.emit()
+			
+		} catch (err) {
+			if (err instanceof Error) {
+				if (argv.trace)
+					console.trace(err)
+				else
+					console.error(err.message)
+			} else console.error(err)
+			return 1
+		}
+		return 0
+
+	}
+
 }
 
 async function initialize(path:string) {
