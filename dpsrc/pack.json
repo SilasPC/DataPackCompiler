@@ -1,20 +1,24 @@
 {
 
-	"name": "Test pack 2019",
-	"description": "Hello world!",
-	"debugMode": false,
-
+  "name": "A compiled datapack",
+  "description": "A description",
+	
 	"compilerOptions": {
-		"obscureNames": false,
-		"obscureSeed": "a seed",
-		"sourceMap": false,
-		"emitComments": false,
-		"optimize": false,
-		"noUnused": false,
-		"verbosity": 5,
-		"noInference": true,
-		"noImplicitCast": true,
-		"target": "1.15"
-	}
-
+    "obscureNames": false,
+    "obscureSeed": "",
+    "noInference": true,
+    "noImplicitCast": true,
+    "ignoreUnreachable": true,
+    "sourceMap": false,
+    "emitComments": false,
+    "optimize": false,
+    "noUnused": false,
+    "verbosity": 0,
+    "targetVersion": "latest"
+	},
+	
+  "srcDir": "./",
+  "emitDir": "./",
+	"debugMode": false
+	
 }

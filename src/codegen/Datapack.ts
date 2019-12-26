@@ -22,6 +22,8 @@ interface WeakPackJSON {
 	name?: string
 	description?: string
 	debugMode?: boolean
+	srcDir?: string
+	emitDir?: string
 	compilerOptions?: WeakCompilerOptions
 }
 
@@ -30,6 +32,14 @@ interface PackJSON extends Required<WeakPackJSON> {
 }
 
 export class Datapack {
+
+	static async initialize(path:string) {
+		await fs.writeFile(join(path,'pack.json'),JSON.stringify(
+			Datapack.getDefaultConfig({}),
+			null,
+			2
+		))
+	}
 
 	private packJson: PackJSON | null = null
 	private ctx: CompileContext | null = null
@@ -47,13 +57,18 @@ export class Datapack {
 
 	// addInit(...instrs:Instruction[]) {this.init.push(...instrs)}
 
-	async compile() {
+	async compile(cfgOverride:WeakCompilerOptions={}) {
 
 		const files = await recursiveSearch(this.srcDir)
 		const packJson = join(this.srcDir,'pack.json')
 		let cfg: PackJSON
-		if (!files.includes(packJson)) cfg = this.configDefaults({})
-		else cfg = this.configDefaults(JSON.parse((await fs.readFile(packJson)).toString()))
+		if (!files.includes(packJson)) cfg = Datapack.getDefaultConfig({compilerOptions:cfgOverride})
+		else {
+			let weakPack: WeakPackJSON = JSON.parse((await fs.readFile(packJson)).toString())
+			if (!weakPack.compilerOptions) weakPack.compilerOptions = {}
+			merge(weakPack.compilerOptions,cfgOverride)
+			cfg = Datapack.getDefaultConfig(weakPack)
+		}
 		this.packJson = cfg
 
 		const srcFiles = files.filter(f=>f.endsWith('.txt'))
@@ -137,11 +152,13 @@ export class Datapack {
 		}))
 	}
 
-	private configDefaults(cfg:WeakPackJSON): PackJSON {
+	static getDefaultConfig(cfg:WeakPackJSON): PackJSON {
 		return {
 			name: def(cfg.name,'A compiled datapack'),
 			description: def(cfg.description,'A description'),
 			compilerOptions: compilerOptionDefaults(cfg.compilerOptions),
+			srcDir: def(cfg.srcDir,'./'),
+			emitDir: def(cfg.emitDir,'./'),
 			debugMode: def(cfg.debugMode,false)
 		}
 	}
@@ -149,6 +166,11 @@ export class Datapack {
 }
 
 function def<T>(val:T|undefined,def:T): T {return val == undefined ? def : val}
+
+function merge<T>(target:T,source:T) {
+	for (let key in target)
+		if ([null,undefined].includes(target[key] as any)) target[key] = source[key]
+}
 
 function execp(cmd:string) {
 	return new Promise((resolve,reject)=>{

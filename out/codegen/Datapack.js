@@ -29,15 +29,23 @@ class Datapack {
             //`scoreboard objectives add ${this.publicVariableScoreboard} dummy`
         )*/
     }
+    static async initialize(path) {
+        await fs_1.promises.writeFile(path_1.join(path, 'pack.json'), JSON.stringify(Datapack.getDefaultConfig({}), null, 2));
+    }
     // addInit(...instrs:Instruction[]) {this.init.push(...instrs)}
-    async compile() {
+    async compile(cfgOverride = {}) {
         const files = await recursiveSearch(this.srcDir);
         const packJson = path_1.join(this.srcDir, 'pack.json');
         let cfg;
         if (!files.includes(packJson))
-            cfg = this.configDefaults({});
-        else
-            cfg = this.configDefaults(JSON.parse((await fs_1.promises.readFile(packJson)).toString()));
+            cfg = Datapack.getDefaultConfig({ compilerOptions: cfgOverride });
+        else {
+            let weakPack = JSON.parse((await fs_1.promises.readFile(packJson)).toString());
+            if (!weakPack.compilerOptions)
+                weakPack.compilerOptions = {};
+            merge(weakPack.compilerOptions, cfgOverride);
+            cfg = Datapack.getDefaultConfig(weakPack);
+        }
         this.packJson = cfg;
         const srcFiles = files.filter(f => f.endsWith('.txt'));
         const ctx = new CompileContext_1.CompileContext(cfg.compilerOptions, await SyntaxSheet_1.SyntaxSheet.load(cfg.compilerOptions.targetVersion));
@@ -101,17 +109,24 @@ class Datapack {
             values: ['tmp/load']
         }));
     }
-    configDefaults(cfg) {
+    static getDefaultConfig(cfg) {
         return {
             name: def(cfg.name, 'A compiled datapack'),
             description: def(cfg.description, 'A description'),
             compilerOptions: config_1.compilerOptionDefaults(cfg.compilerOptions),
+            srcDir: def(cfg.srcDir, './'),
+            emitDir: def(cfg.emitDir, './'),
             debugMode: def(cfg.debugMode, false)
         };
     }
 }
 exports.Datapack = Datapack;
 function def(val, def) { return val == undefined ? def : val; }
+function merge(target, source) {
+    for (let key in target)
+        if ([null, undefined].includes(target[key]))
+            target[key] = source[key];
+}
 function execp(cmd) {
     return new Promise((resolve, reject) => {
         child_process_1.exec(cmd, (err => {

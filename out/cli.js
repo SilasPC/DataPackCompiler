@@ -8,17 +8,21 @@ cli
     .version('0.1')
     .name('dpc')
     .arguments('[path] [path]')
-    .option('-t --target-version <version>', 'target Minecraft version', 'latest')
-    .option('-e --emit [path]', 'directory to emit datapack (defaults to source folder)')
-    .option('-v --verbose [level]', 'set verbosity level', Number, 1)
+    .option('-t --target-version <version>', 'target Minecraft version')
+    // .option('-E --no-emit [path]','do not emit compiled datapack')
+    .option('-v --verbosity [level]', 'set verbosity level', Number, 1)
+    .option('-X --no-exit', 'do not exit process')
     .parse(process.argv);
 const datapack = new Datapack_1.Datapack(cli.args[0] || './', cli.args[1] || './');
-datapack.compile()
-    //.then(()=>datapack.emit())
-    .then(() => console.log('done!'))
+datapack.compile({
+    targetVersion: cli.targetVersion,
+    verbosity: cli.verbosity
+})
+    .then(() => cli.emit && datapack.emit())
     .catch(e => {
     console.error(e);
     console.trace();
 });
-setInterval(() => 0, 1000);
+if (!cli.exit)
+    setInterval(() => 0, 1000);
 //# sourceMappingURL=cli.js.map
