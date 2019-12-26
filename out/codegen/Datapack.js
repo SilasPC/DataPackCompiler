@@ -95,31 +95,9 @@ class Datapack {
         if (!this.fnMap || !this.ctx)
             throw new Error('Nothing to emit. Use .compile() first.');
         let emitDir = path_1.join(this.packDir, this.packJson.emitDir);
-        // check if emitDir exists
-        try {
-            await fs_1.promises.access(emitDir, fs_1.constants.F_OK);
-            console.log('emitdir exists');
-            try {
-                await fs_1.promises.access(emitDir + '/data', fs_1.constants.F_OK);
-                try {
-                    console.log('emitdir/data exists');
-                    // this is vulnerable to shell code injection
-                    await execp('del /Q /S ' + path_1.resolve(emitDir + '/data' + '/*'));
-                    await execp('rmdir /Q /S ' + path_1.resolve(emitDir + '/data/minecraft'));
-                    await execp('rmdir /Q /S ' + path_1.resolve(emitDir + '/data/tmp'));
-                }
-                catch (err) {
-                    console.log('wut', err);
-                }
-            }
-            catch {
-                await fs_1.promises.mkdir(emitDir + '/data');
-            }
-        }
-        catch { // create emitDir
-            console.log('create emitdir');
-            await fs_1.promises.mkdir(emitDir);
-        }
+        // I hate fs right now. Hence the caps.
+        await MKDIRP(emitDir + '/data');
+        await RIMRAF(emitDir + '/data/*');
         await fs_1.promises.writeFile(emitDir + '/pack.mcmeta', JSON.stringify({
             pack: {
                 description: this.packJson.description
@@ -177,5 +155,27 @@ async function recursiveSearch(path) {
         .concat((await Promise.all(dirs.map(d => recursiveSearch(path_1.join(path, d)))))
         .reduce((a, c) => a.concat(c), [])
         .map(v => v));
+}
+const mkdirp_1 = __importDefault(require("mkdirp"));
+function MKDIRP(path) {
+    return new Promise(($, $r) => {
+        mkdirp_1.default(path, err => {
+            if (err)
+                $r(err);
+            else
+                $();
+        });
+    });
+}
+const rimraf_1 = __importDefault(require("rimraf"));
+function RIMRAF(path) {
+    return new Promise(($, $r) => {
+        rimraf_1.default(path, {}, err => {
+            if (err)
+                $r(err);
+            else
+                $();
+        });
+    });
 }
 //# sourceMappingURL=Datapack.js.map

@@ -1,7 +1,7 @@
 
 import { watch } from 'chokidar'
 import { FnFile } from "./FnFile";
-import { promises as fs, constants, Stats }  from 'fs'
+import { promises as fs, constants, Stats, mkdir }  from 'fs'
 import { exec } from 'child_process'
 import { resolve as resolvePath, join } from "path";
 import { lexer as lexicalAnalysis } from "../lexing/lexer";
@@ -144,26 +144,10 @@ export class Datapack {
 		if (!this.fnMap || !this.ctx) throw new Error('Nothing to emit. Use .compile() first.')
 		let emitDir = join(this.packDir,this.packJson.emitDir)
 
-		// check if emitDir exists
-		try {
-			await fs.access(emitDir,constants.F_OK)
-			console.log('emitdir exists')
-			try {
-				await fs.access(emitDir+'/data',constants.F_OK)
-				try {
-					console.log('emitdir/data exists')
-					// this is vulnerable to shell code injection
-					await execp('del /Q /S ' + resolvePath(emitDir+'/data'+'/*'))
-					await execp('rmdir /Q /S ' + resolvePath(emitDir+'/data/minecraft'))
-					await execp('rmdir /Q /S ' + resolvePath(emitDir+'/data/tmp'))
-				} catch (err) {console.log('wut',err)}
-			} catch {
-				await fs.mkdir(emitDir+'/data')
-			}
-		} catch { // create emitDir
-			console.log('create emitdir')
-			await fs.mkdir(emitDir)
-		}
+		// I hate fs right now. Hence the caps.
+		await MKDIRP(emitDir+'/data')
+		await RIMRAF(emitDir+'/data/*')
+
 		await fs.writeFile(emitDir+'/pack.mcmeta',JSON.stringify({
 			pack: {
 				description: this.packJson.description
@@ -226,4 +210,24 @@ async function recursiveSearch(path:string): Promise<string[]> {
 				.reduce((a,c)=>a.concat(c),[])
 				.map(v=>v)
 		)
+}
+
+import mkdirp from 'mkdirp'
+function MKDIRP(path:string) {
+	return new Promise(($,$r)=>{
+		mkdirp(path,err=>{
+			if (err) $r(err)
+			else $()
+		})
+	})
+}
+
+import rimraf from 'rimraf'
+function RIMRAF(path:string) {
+	return new Promise(($,$r)=>{
+		rimraf(path,{},err=>{
+			if (err) $r(err)
+			else $()
+		})
+	})
 }
