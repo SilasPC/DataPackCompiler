@@ -68,28 +68,39 @@ class Datapack {
             )
         });
         const ctx = this.ctx = new CompileContext_1.CompileContext(cfg.compilerOptions, await SyntaxSheet_1.SyntaxSheet.load(cfg.compilerOptions.targetVersion));
-        ctx.log(1, `Begin compilation`);
+        let err = new CompileErrors_1.CompileErrorSet();
+        let errCount = 0;
+        ctx.log2(1, 'inf', `Begin compilation`);
         let start = moment_1.default();
         const pfiles = srcFiles
             .sort() // ensure same load order every run
             .map(srcFile => ctx.loadFile(srcFile));
-        ctx.log(1, `Loaded ${srcFiles.length} file(s)`);
+        ctx.log2(1, 'inf', `Loaded ${srcFiles.length} file(s)`);
         pfiles.forEach(pf => lexer_1.lexer(pf, ctx));
-        ctx.log(1, `Lexical analysis complete`);
+        ctx.log2(1, 'inf', `Lexical analysis complete`);
         pfiles.forEach(pf => fileSyntaxParser_1.fileSyntaxParser(pf, ctx));
-        ctx.log(1, `Syntax analysis complete`);
-        pfiles.forEach(pf => semanticsParser_1.semanticsParser(pf, ctx));
-        ctx.log(1, `Semantic analysis complete`);
+        ctx.log2(1, 'inf', `Syntax analysis complete`);
+        errCount = err.getCount();
+        pfiles.forEach(pf => err.checkHasValue(semanticsParser_1.semanticsParser(pf, ctx)));
+        ctx.log2(1, 'inf', `Semantic analysis complete`);
+        if (errCount < err.getCount()) {
+            ctx.log2(1, 'err', `Got ${err.getCount() - errCount} error(s)`);
+            errCount = err.getCount();
+        }
         let optres = instructionOptimizer_1.optimize(ctx);
-        ctx.log(1, `Optimization complete`);
-        ctx.log(2, `Sucessful passes: ${optres.meta.passes}`);
+        ctx.log2(1, 'inf', `Optimization complete`);
+        ctx.log2(2, 'inf', `Successful passes: ${optres.meta.passes}`);
         this.fnMap = new Map(ctx.getFnFiles()
             .map(fn => [fn.name, generate_1.generate(fn)]));
-        ctx.log(1, `Generation complete`);
-        ctx.log(0, `WARNING! No verifier function yet`);
-        ctx.log(1, `Verification complete`);
-        ctx.log(1, `Compilation complete`);
-        ctx.log(2, `Elapsed time: ${moment_1.default.duration(moment_1.default().diff(start)).format()}`);
+        ctx.log2(1, 'inf', `Generation complete`);
+        ctx.log2(0, 'wrn', `No verifier function yet`);
+        ctx.log2(1, 'inf', `Verification complete`);
+        ctx.log2(1, 'inf', `Compilation complete`);
+        ctx.log2(2, 'inf', `Elapsed time: ${moment_1.default.duration(moment_1.default().diff(start)).format()}`);
+        if (!err.isEmpty()) {
+            ctx.log2(1, 'err', `Found a total of ${err.getCount()} errors:`);
+            ctx.logErrors(err);
+        }
     }
     async emit() {
         if (!this.fnMap || !this.ctx)
@@ -168,6 +179,7 @@ function MKDIRP(path) {
     });
 }
 const rimraf_1 = __importDefault(require("rimraf"));
+const CompileErrors_1 = require("../toolbox/CompileErrors");
 function RIMRAF(path) {
     return new Promise(($, $r) => {
         rimraf_1.default(path, {}, err => {

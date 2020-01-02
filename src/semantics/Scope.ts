@@ -37,6 +37,13 @@ export class Scope {
 		this.stack = [this.instrBuffer = []]
 	}
 
+	/**
+	 * This will give the instructions needed to break
+	 * all scopes down to and including the scope specified.
+	 * 
+	 * This also creates new flowbuffers for the scopes in question,
+	 * so further code in the scopes wont run after triggering these instructions
+	 */
 	breakScopes(scope:Scope): Instruction[] {
 		// maybe this should change
 		let instr: INT_OP = {

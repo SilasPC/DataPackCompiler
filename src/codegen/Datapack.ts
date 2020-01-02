@@ -104,39 +104,53 @@ export class Datapack {
 			await SyntaxSheet.load(cfg.compilerOptions.targetVersion)
 		)
 
-		ctx.log(1,`Begin compilation`)
+		let err = new CompileErrorSet()
+		let errCount = 0
+
+		ctx.log2(1,'inf',`Begin compilation`)
 		let start = moment()
 
 		const pfiles =
 			srcFiles
 			.sort() // ensure same load order every run
 			.map(srcFile=>ctx.loadFile(srcFile))
-		ctx.log(1,`Loaded ${srcFiles.length} file(s)`)
+		ctx.log2(1,'inf',`Loaded ${srcFiles.length} file(s)`)
 		
 		pfiles.forEach(pf=>lexicalAnalysis(pf,ctx))
-		ctx.log(1,`Lexical analysis complete`)
+		ctx.log2(1,'inf',`Lexical analysis complete`)
 
 		pfiles.forEach(pf=>fileSyntaxParser(pf,ctx))
-		ctx.log(1,`Syntax analysis complete`)
+		ctx.log2(1,'inf',`Syntax analysis complete`)
 
-		pfiles.forEach(pf=>semanticsParser(pf,ctx))
-		ctx.log(1,`Semantic analysis complete`)
+		errCount = err.getCount()
+		pfiles.forEach(pf=>err.checkHasValue(semanticsParser(pf,ctx)))
+		ctx.log2(1,'inf',`Semantic analysis complete`)
+		if (errCount < err.getCount()) {
+			ctx.log2(1,'err',`Got ${err.getCount()-errCount} error(s)`)
+			errCount = err.getCount()
+		}
+
 
 		let optres = optimize(ctx)
-		ctx.log(1,`Optimization complete`)
-		ctx.log(2,`Sucessful passes: ${optres.meta.passes}`)
+		ctx.log2(1,'inf',`Optimization complete`)
+		ctx.log2(2,'inf',`Successful passes: ${optres.meta.passes}`)
 
 		this.fnMap = new Map(
 			ctx.getFnFiles()
 				.map(fn=>[fn.name,generate(fn)])
 		)
-		ctx.log(1,`Generation complete`)
+		ctx.log2(1,'inf',`Generation complete`)
 
-		ctx.log(0,`WARNING! No verifier function yet`)
-		ctx.log(1,`Verification complete`)
+		ctx.log2(0,'wrn',`No verifier function yet`)
+		ctx.log2(1,'inf',`Verification complete`)
 
-		ctx.log(1,`Compilation complete`)
-		ctx.log(2,`Elapsed time: ${(moment.duration(moment().diff(start)) as any).format()}`)
+		ctx.log2(1,'inf',`Compilation complete`)
+		ctx.log2(2,'inf',`Elapsed time: ${(moment.duration(moment().diff(start)) as any).format()}`)
+
+		if (!err.isEmpty()) {
+			ctx.log2(1,'err',`Found a total of ${err.getCount()} errors:`)
+			ctx.logErrors(err)	
+		}
 
 	}
 
@@ -223,6 +237,7 @@ function MKDIRP(path:string) {
 }
 
 import rimraf from 'rimraf'
+import { CompileErrorSet } from '../toolbox/CompileErrors';
 function RIMRAF(path:string) {
 	return new Promise(($,$r)=>{
 		rimraf(path,{},err=>{

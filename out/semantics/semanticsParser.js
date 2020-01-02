@@ -7,36 +7,46 @@ const Declaration_1 = require("./Declaration");
 const expressionParser_1 = require("./expressionParser");
 const other_1 = require("../toolbox/other");
 const Instructions_1 = require("../codegen/Instructions");
+const CompileErrors_1 = require("../toolbox/CompileErrors");
 function semanticsParser(pfile, ctx) {
+    const err = new CompileErrors_1.CompileErrorSet();
     if (pfile.status == 'parsed')
-        return;
+        return err.wrap(null);
     if (pfile.status == 'parsing')
         throw new Error('circular parsing');
     pfile.status = 'parsing';
     let symbols = pfile.getSymbolTable();
     let scope = pfile.scope;
     let ast = pfile.getAST();
-    for (let node of ast) {
+    tokenLoop: for (let node of ast) {
         let shouldExport = false;
         if (node.type == AST_1.ASTNodeType.EXPORT)
             node = node.node;
         switch (node.type) {
             case AST_1.ASTNodeType.DEFINE: {
                 let type = Types_1.tokenToType(node.varType, symbols);
-                if (type.elementary && type.type == Types_1.ElementaryValueType.VOID)
-                    node.varType.throwDebug(`Cannot declare a variable of type 'void'`);
+                if (type.elementary && type.type == Types_1.ElementaryValueType.VOID) {
+                    err.push(node.varType.error(`Cannot declare a variable of type 'void'`));
+                    continue;
+                }
                 if (!type.elementary)
                     node.varType.throwDebug('no non-elemn rn k');
-                let esr = expressionParser_1.exprParser(node.initial, scope, ctx);
-                // the above cannot be used for the variables esr
+                let esr0 = expressionParser_1.exprParser(node.initial, scope, ctx);
+                // the above cannot be used for the variables esr (could mutate const)
                 // we must create a new esr, then assign the above to that
                 // file-level declarations are assigned during init, so
                 // we must add the assignations instruction to datapack init
-                let res = ESR_1.copyESRToLocal(esr, ctx, scope, node.identifier.value);
-                esr = res.esr;
+                if (esr0.hasError())
+                    console.log(esr0.getErrors());
+                if (!err.checkHasValue(esr0))
+                    continue;
+                let res = ESR_1.copyESRToLocal(esr0.value, ctx, scope, node.identifier.value);
+                let esr = res.esr;
                 // do something with res.copyInstr
-                if (!Types_1.hasSharedType(ESR_1.getESRType(esr), type))
-                    node.identifier.throwDebug('type mismatch');
+                if (!Types_1.hasSharedType(ESR_1.getESRType(esr), type)) {
+                    err.push(node.identifier.error('type mismatch'));
+                    continue;
+                }
                 let decl = { type: Declaration_1.DeclarationType.VARIABLE, varType: type, node, esr };
                 symbols.declare(node.identifier, decl);
                 if (shouldExport)
@@ -48,8 +58,10 @@ function semanticsParser(pfile, ctx) {
                 let branch = scope.branch(node.identifier.value, 'FN', null);
                 let fn = ctx.createFnFile(branch.getScopeNames());
                 let type = Types_1.tokenToType(node.returnType, symbols);
-                if (!type.elementary)
-                    return node.returnType.throwDebug('nop thx');
+                if (!type.elementary) {
+                    err.push(node.returnType.error('nop thx'));
+                    continue;
+                }
                 let esr;
                 switch (type.type) {
                     case Types_1.ElementaryValueType.VOID:
@@ -75,12 +87,15 @@ function semanticsParser(pfile, ctx) {
                 symbols.declare(node.identifier, decl);
                 for (let param of node.parameters) {
                     let type = Types_1.tokenToType(param.type, symbols);
-                    if (!type.elementary)
-                        return param.type.throwDebug('elementary only thx');
+                    if (!type.elementary) {
+                        err.push(param.type.error('elementary only thx'));
+                        continue;
+                    }
                     let esr;
                     switch (type.type) {
                         case Types_1.ElementaryValueType.VOID:
-                            return param.type.throwDebug('not valid');
+                            err.push(param.type.error('not valid'));
+                            continue;
                         case Types_1.ElementaryValueType.INT:
                             let iesr = {
                                 type: ESR_1.ESRType.INT,
@@ -92,7 +107,9 @@ function semanticsParser(pfile, ctx) {
                             esr = iesr;
                             break;
                         case Types_1.ElementaryValueType.BOOL:
-                            return param.type.throwDebug('no bool yet thx');
+                            { }
+                            err.push(param.type.error('no bool yet thx'));
+                            continue;
                         default:
                             return other_1.exhaust(type.type);
                     }
@@ -106,12 +123,9 @@ function semanticsParser(pfile, ctx) {
                 }
                 if (shouldExport)
                     pfile.addExport(node.identifier.value, decl);
-                parseBody(node.body, branch, ctx);
+                if (!err.checkHasValue(parseBody(node.body, branch, ctx)))
+                    continue;
                 fn.add(...branch.mergeBuffers());
-                // test anti alias optimization
-                //test(decl.fn)
-                /*console.log(node.identifier.value)
-                console.log(generateTest(decl,ctx))*/
                 break;
             }
             case AST_1.ASTNodeType.RETURN:
@@ -131,22 +145,34 @@ function semanticsParser(pfile, ctx) {
         }
     }
     pfile.status = 'parsed';
+    return err.wrap(null);
 }
 exports.semanticsParser = semanticsParser;
 function parseBody(nodes, scope, ctx) {
+    let err = new CompileErrors_1.CompileErrorSet();
     for (let node of nodes) {
         switch (node.type) {
-            case AST_1.ASTNodeType.COMMAND:
+            case AST_1.ASTNodeType.COMMAND: {
+                let interpolations = node.interpolations.flatMap(n => {
+                    let x = expressionParser_1.exprParser(n, scope, ctx);
+                    if (err.checkHasValue(x))
+                        return [x.value];
+                    return [];
+                });
+                if (!err.isEmpty())
+                    continue;
                 scope.push({
                     type: Instructions_1.InstrType.CMD,
-                    interpolations: node.interpolations.map(n => expressionParser_1.exprParser(n, scope, ctx))
+                    interpolations
                 });
                 break;
+            }
             case AST_1.ASTNodeType.INVOKATION:
-            case AST_1.ASTNodeType.OPERATION:
-                expressionParser_1.exprParser(node, scope, ctx);
+            case AST_1.ASTNodeType.OPERATION: {
+                err.checkHasValue(expressionParser_1.exprParser(node, scope, ctx));
                 break;
-            case AST_1.ASTNodeType.RETURN:
+            }
+            case AST_1.ASTNodeType.RETURN: {
                 let fnscope = scope.getSuperByType('FN');
                 if (!fnscope)
                     throw new Error('ast throw would be nice... return must be contained in fn scope');
@@ -156,8 +182,12 @@ function parseBody(nodes, scope, ctx) {
                 let esr;
                 if (!node.node)
                     esr = { type: ESR_1.ESRType.VOID, const: false, tmp: false, mutable: false };
-                else
-                    esr = expressionParser_1.exprParser(node.node, scope, ctx);
+                else {
+                    let x = expressionParser_1.exprParser(node.node, scope, ctx);
+                    if (!err.checkHasValue(x))
+                        continue;
+                    esr = x.value;
+                }
                 if (!Types_1.hasSharedType(ESR_1.getESRType(esr), ESR_1.getESRType(fnret)))
                     throw new Error('ast throw would be nice... return must match fn return type');
                 // return instructions
@@ -165,14 +195,46 @@ function parseBody(nodes, scope, ctx) {
                     scope.push(...ESR_1.assignESR(esr, fnret));
                 scope.push(...scope.breakScopes(fnscope));
                 break;
+            }
             case AST_1.ASTNodeType.NUMBER:
             case AST_1.ASTNodeType.STRING:
             case AST_1.ASTNodeType.BOOLEAN:
             case AST_1.ASTNodeType.IDENTIFIER:
                 throw new Error('valid, but pointless');
-            case AST_1.ASTNodeType.CONDITIONAL:
-            case AST_1.ASTNodeType.DEFINE:
-                throw new Error('not implemented');
+            case AST_1.ASTNodeType.CONDITIONAL: {
+                let esr = expressionParser_1.exprParser(node.expression, scope, ctx);
+                if (!err.checkHasValue(esr))
+                    continue;
+                if (esr.value.type != ESR_1.ESRType.BOOL)
+                    throw new Error('if not bool esr');
+                /*parseBody(node.primaryBranch,scope.branch('if','NONE',{
+                    type:ESRType.VOID, mutable: false, const: false, tmp: false
+                }),ctx)
+                parseBody(node.secondaryBranch,scope.branch('if','NONE',{
+                    type:ESRType.VOID, mutable: false, const: false, tmp: false
+                }),ctx)*/
+                break;
+            }
+            case AST_1.ASTNodeType.DEFINE: {
+                let type = Types_1.tokenToType(node.varType, scope.symbols);
+                if (type.elementary && type.type == Types_1.ElementaryValueType.VOID)
+                    node.varType.throwDebug(`Cannot declare a variable of type 'void'`);
+                if (!type.elementary)
+                    node.varType.throwDebug('no non-elemn rn k');
+                let esr0 = expressionParser_1.exprParser(node.initial, scope, ctx);
+                // the above cannot be used for the variables esr (might mutate const)
+                // we must create a new esr, then assign the above to that
+                if (!err.checkHasValue(esr0))
+                    continue;
+                let res = ESR_1.copyESRToLocal(esr0.value, ctx, scope, node.identifier.value);
+                let esr = res.esr;
+                scope.push(res.copyInstr);
+                if (!Types_1.hasSharedType(ESR_1.getESRType(esr), type))
+                    node.identifier.throwDebug('type mismatch');
+                let decl = { type: Declaration_1.DeclarationType.VARIABLE, varType: type, node, esr };
+                scope.symbols.declare(node.identifier, decl);
+                break;
+            }
             case AST_1.ASTNodeType.LIST:
             case AST_1.ASTNodeType.FUNCTION:
             case AST_1.ASTNodeType.EXPORT:
@@ -181,5 +243,6 @@ function parseBody(nodes, scope, ctx) {
                 return other_1.exhaust(node);
         }
     }
+    return err.wrap(null);
 }
 //# sourceMappingURL=semanticsParser.js.map

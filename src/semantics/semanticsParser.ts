@@ -8,10 +8,13 @@ import { exhaust } from "../toolbox/other"
 import { CompileContext } from "../toolbox/CompileContext"
 import { Scope } from "./Scope"
 import { InstrType } from "../codegen/Instructions"
+import { Possible, CompileErrorSet } from "../toolbox/CompileErrors"
 
-export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): void {
+export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): Possible<null> {
+
+	const err = new CompileErrorSet()
 	
-	if (pfile.status == 'parsed') return
+	if (pfile.status == 'parsed') return err.wrap(null)
 	if (pfile.status == 'parsing') throw new Error('circular parsing')
 
 	pfile.status = 'parsing'
@@ -19,7 +22,8 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): void {
 	let symbols = pfile.getSymbolTable()
 	let scope = pfile.scope
 	let ast = pfile.getAST()
-
+	
+	tokenLoop:
 	for (let node of ast) {
 		let shouldExport = false
 
@@ -28,32 +32,42 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): void {
 		switch (node.type) {
 
 			case ASTNodeType.DEFINE: {
-					let type = tokenToType(node.varType,symbols)
-					if (type.elementary && type.type == ElementaryValueType.VOID)
-						node.varType.throwDebug(`Cannot declare a variable of type 'void'`)
-					if (!type.elementary) node.varType.throwDebug('no non-elemn rn k')
-					let esr = exprParser(node.initial,scope,ctx)
-					// the above cannot be used for the variables esr
-					// we must create a new esr, then assign the above to that
-					// file-level declarations are assigned during init, so
-					// we must add the assignations instruction to datapack init
-					let res = copyESRToLocal(esr,ctx,scope,node.identifier.value)
-					esr = res.esr
-					// do something with res.copyInstr
-					
-					if (!hasSharedType(getESRType(esr),type)) node.identifier.throwDebug('type mismatch')
-					let decl: VarDeclaration = {type:DeclarationType.VARIABLE,varType:type,node,esr}
-					symbols.declare(node.identifier,decl)
-					if (shouldExport) pfile.addExport(node.identifier.value,decl)
-					break
+				let type = tokenToType(node.varType,symbols)
+				if (type.elementary && type.type == ElementaryValueType.VOID) {
+					err.push(node.varType.error(`Cannot declare a variable of type 'void'`))
+					continue
 				}
+				if (!type.elementary) node.varType.throwDebug('no non-elemn rn k')
+				let esr0 = exprParser(node.initial,scope,ctx)
+				// the above cannot be used for the variables esr (could mutate const)
+				// we must create a new esr, then assign the above to that
+				// file-level declarations are assigned during init, so
+				// we must add the assignations instruction to datapack init
+				if (esr0.hasError()) console.log(esr0.getErrors())
+				if (!err.checkHasValue(esr0)) continue
+				let res = copyESRToLocal(esr0.value,ctx,scope,node.identifier.value)
+				let esr = res.esr
+				// do something with res.copyInstr
+				
+				if (!hasSharedType(getESRType(esr),type)) {
+					err.push(node.identifier.error('type mismatch'))
+					continue
+				}
+				let decl: VarDeclaration = {type:DeclarationType.VARIABLE,varType:type,node,esr}
+				symbols.declare(node.identifier,decl)
+				if (shouldExport) pfile.addExport(node.identifier.value,decl)
+				break
+			}
 	
 			case ASTNodeType.FUNCTION: {
 				let parameters: ESR[] = []
 				let branch = scope.branch(node.identifier.value,'FN',null)
 				let fn = ctx.createFnFile(branch.getScopeNames())
 				let type = tokenToType(node.returnType,symbols)
-				if (!type.elementary) return node.returnType.throwDebug('nop thx')
+				if (!type.elementary) {
+					err.push(node.returnType.error('nop thx'))
+					continue
+				}
 				let esr: ESR
 				switch (type.type) {
 					case ElementaryValueType.VOID:
@@ -79,11 +93,15 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): void {
 				symbols.declare(node.identifier,decl)
 				for (let param of node.parameters) {
 					let type = tokenToType(param.type,symbols)
-					if (!type.elementary) return param.type.throwDebug('elementary only thx')
+					if (!type.elementary) {
+						err.push(param.type.error('elementary only thx'))
+						continue
+					}
 					let esr
 					switch (type.type) {
 						case ElementaryValueType.VOID:
-							return param.type.throwDebug('not valid')
+							err.push(param.type.error('not valid'))
+							continue
 						case ElementaryValueType.INT:
 							let iesr: IntESR = {
 								type: ESRType.INT,
@@ -94,8 +112,9 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): void {
 							}
 							esr = iesr
 							break
-						case ElementaryValueType.BOOL:
-							return param.type.throwDebug('no bool yet thx')
+						case ElementaryValueType.BOOL: {}
+							err.push(param.type.error('no bool yet thx'))
+							continue
 						default:
 							return exhaust(type.type)
 					}
@@ -108,14 +127,9 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): void {
 					branch.symbols.declare(param.symbol,decl)
 				}
 				if (shouldExport) pfile.addExport(node.identifier.value,decl)
-				parseBody(node.body,branch,ctx)
+				if (!err.checkHasValue(parseBody(node.body,branch,ctx))) continue
 
 				fn.add(...branch.mergeBuffers())
-
-				// test anti alias optimization
-				//test(decl.fn)
-				/*console.log(node.identifier.value)
-				console.log(generateTest(decl,ctx))*/
 				
 				break
 			}
@@ -142,29 +156,44 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): void {
 
 	pfile.status = 'parsed'
 
+	return err.wrap(null)
+
 }
 
-function parseBody(nodes:ASTNode[],scope:Scope,ctx:CompileContext): void {
+function parseBody(nodes:ASTNode[],scope:Scope,ctx:CompileContext): Possible<null> {
+	let err = new CompileErrorSet()
 	for (let node of nodes) {
 		switch (node.type) {
-			case ASTNodeType.COMMAND:
+			case ASTNodeType.COMMAND: {
+				let interpolations = node.interpolations.flatMap(n => {
+					let x = exprParser(n,scope,ctx)
+					if (err.checkHasValue(x)) return [x.value]
+					return []
+				})
+				if (!err.isEmpty()) continue
 				scope.push({
 					type:InstrType.CMD,
-					interpolations: node.interpolations.map(n=>exprParser(n,scope,ctx))
+					interpolations
 				})
 				break
+			}
 			case ASTNodeType.INVOKATION:
-			case ASTNodeType.OPERATION:
-				exprParser(node,scope,ctx)
+			case ASTNodeType.OPERATION: {
+				err.checkHasValue(exprParser(node,scope,ctx))
 				break
-			case ASTNodeType.RETURN:
+			}
+			case ASTNodeType.RETURN: {
 				let fnscope = scope.getSuperByType('FN')
 				if (!fnscope) throw new Error('ast throw would be nice... return must be contained in fn scope')
 				let fnret = fnscope.getReturnVar()
 				if (!fnret) throw new Error('fn scope does not have return var')
 				let esr: ESR
 				if (!node.node) esr = {type:ESRType.VOID,const:false,tmp:false,mutable:false}
-				else esr = exprParser(node.node,scope,ctx)
+				else {
+					let x = exprParser(node.node,scope,ctx)
+					if (!err.checkHasValue(x)) continue
+					esr = x.value
+				}
 				
 				if (!hasSharedType(getESRType(esr),getESRType(fnret)))
 					throw new Error('ast throw would be nice... return must match fn return type')
@@ -175,14 +204,42 @@ function parseBody(nodes:ASTNode[],scope:Scope,ctx:CompileContext): void {
 				scope.push(...scope.breakScopes(fnscope))
 				
 				break
+			}
 			case ASTNodeType.NUMBER:
 			case ASTNodeType.STRING:
 			case ASTNodeType.BOOLEAN:
 			case ASTNodeType.IDENTIFIER:
 				throw new Error('valid, but pointless')
-			case ASTNodeType.CONDITIONAL:
-			case ASTNodeType.DEFINE:
-				throw new Error('not implemented')
+			case ASTNodeType.CONDITIONAL: {
+				let esr = exprParser(node.expression,scope,ctx)
+				if (!err.checkHasValue(esr)) continue
+				if (esr.value.type != ESRType.BOOL) throw new Error('if not bool esr')
+				/*parseBody(node.primaryBranch,scope.branch('if','NONE',{
+					type:ESRType.VOID, mutable: false, const: false, tmp: false
+				}),ctx)
+				parseBody(node.secondaryBranch,scope.branch('if','NONE',{
+					type:ESRType.VOID, mutable: false, const: false, tmp: false
+				}),ctx)*/
+				break
+			}
+			case ASTNodeType.DEFINE: {
+				let type = tokenToType(node.varType,scope.symbols)
+					if (type.elementary && type.type == ElementaryValueType.VOID)
+						node.varType.throwDebug(`Cannot declare a variable of type 'void'`)
+					if (!type.elementary) node.varType.throwDebug('no non-elemn rn k')
+					let esr0 = exprParser(node.initial,scope,ctx)
+					// the above cannot be used for the variables esr (might mutate const)
+					// we must create a new esr, then assign the above to that
+					if (!err.checkHasValue(esr0)) continue
+					let res = copyESRToLocal(esr0.value,ctx,scope,node.identifier.value)
+					let esr = res.esr
+					scope.push(res.copyInstr)
+
+					if (!hasSharedType(getESRType(esr),type)) node.identifier.throwDebug('type mismatch')
+					let decl: VarDeclaration = {type:DeclarationType.VARIABLE,varType:type,node,esr}
+					scope.symbols.declare(node.identifier,decl)
+					break
+			}
 			case ASTNodeType.LIST:
 			case ASTNodeType.FUNCTION:
 			case ASTNodeType.EXPORT:
@@ -191,4 +248,5 @@ function parseBody(nodes:ASTNode[],scope:Scope,ctx:CompileContext): void {
 				return exhaust(node)
 		}
 	}
+	return err.wrap(null)
 }

@@ -1,6 +1,7 @@
 
 import { Token } from "../lexing/Token"
 import { Declaration } from "./Declaration"
+import { Possible, CompileErrorSet } from "../toolbox/CompileErrors"
 
 export class SymbolTable {
 
@@ -25,18 +26,26 @@ export class SymbolTable {
         return child
     }
 
-    getDeclaration(name:Token): Declaration
+    getDeclaration(name:Token): Possible<Declaration>
     getDeclaration(name:string): Declaration|null
-    getDeclaration(name:string|Token): Declaration|null
-    getDeclaration(name:string|Token): Declaration|null {
+    getDeclaration(name:string|Token): Declaration|null|Possible<Declaration> {
+        let err = new CompileErrorSet()
         let id = (typeof name == 'string') ? name : name.value
         let decl = this.declarations.get(id)
         if (decl) {
             decl.refCounter++
+            if (name instanceof Token) return err.wrap(decl.decl)
             return decl.decl
         }
-        if (this.parent) return this.parent.getDeclaration(name)
-        if (name instanceof Token) name.throwDebug('not available in scope')
+        if (this.parent) {
+            // TypeScript needs explicit overload seperation here :/
+            if (name instanceof Token) return this.parent.getDeclaration(name)
+            return this.parent.getDeclaration(name)
+        }
+        if (name instanceof Token) {
+            let err = new CompileErrorSet(name.error(`'${name.value}' not available in scope`))
+            return err.wrap<Declaration>()
+        }
         return null
     }
 

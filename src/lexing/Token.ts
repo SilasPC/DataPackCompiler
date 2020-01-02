@@ -1,5 +1,7 @@
 import { ParsingFile } from "./ParsingFile"
 import { Errorable } from "../toolbox/other";
+import { CompileError } from "../toolbox/CompileErrors";
+import cols from 'colors/safe'
 
 export class SourceLine implements Errorable {
 
@@ -20,7 +22,7 @@ export class SourceLine implements Errorable {
         throw new Error(this.errorMessage('Fatal',e,i,l))
     }
     
-    private errorMessage(type:string,e:string,i?:number,l?:number) {
+    errorMessage(type:string,e:string,i?:number,l?:number) {
         if (typeof i == 'undefined') {i = 0; l = 1}
         else if (typeof l == 'undefined') l = this.line.length
         let nrLen = (this.nr+(this.next?1:0)).toString().length
@@ -31,8 +33,11 @@ export class SourceLine implements Errorable {
         msg.push(`${ws}|`)
         if (this.previous)
             msg.push(` ${(this.nr-1).toString().padStart(nrLen,' ')} | ${this.previous.line}`)
-        msg.push(` ${this.nr.toString().padStart(nrLen,' ')} | ${this.line}`)
-        msg.push(`${ws}| ${' '.repeat(i)}${'^'.repeat(l)}`)
+        
+        msg.push(` ${this.nr.toString().padStart(nrLen,' ')} | ${this.line.slice(0,i)}${
+            cols.inverse(this.line.substr(i,l))
+        }${this.line.slice(i+l)}`)
+        // msg.push(`${ws}| ${' '.repeat(i)}${'^'.repeat(l)}`)
         if (this.next)
             msg.push(` ${(this.nr+1).toString().padStart(nrLen,' ')} | ${this.next.line}`)
         msg.push(`${ws}|`)
@@ -49,6 +54,16 @@ export class Token implements Errorable {
         public readonly type: TokenType,
         public readonly value: string
     ) {}
+    
+    error(msg:string): CompileError {
+        return new CompileError(
+            /*this.line.file,
+            this.line.startIndex + this.index,
+            this.line.startIndex + this.index + this.value.length,
+            msg*/
+            this.line.errorMessage('type',msg,this.index,this.value.length)
+        )
+    }
 
     expectType(...t:TokenType[]) {
         if (!t.includes(this.type)) return this.fatal('expected type(s) '+t.map(t=>TokenType[t]).toString())

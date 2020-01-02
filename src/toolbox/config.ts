@@ -8,6 +8,7 @@ export interface WeakCompilerOptions {
 	optimize?: boolean
 	noUnused?: boolean
 	verbosity?: number
+	colorLog?: boolean
 	noInference?: boolean
 	noImplicitCast?: boolean
 	ignoreUnreachable?: boolean
@@ -27,6 +28,7 @@ export function compilerOptionDefaults(cfg?:WeakCompilerOptions): CompilerOption
 		optimize: def(cfg.optimize,false),
 		noUnused: def(cfg.noUnused,false),
 		verbosity: def(cfg.verbosity,0),
+		colorLog: def(cfg.colorLog,true),
 		targetVersion: def(cfg.targetVersion,'latest')
 	}
 }

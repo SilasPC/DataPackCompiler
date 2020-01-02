@@ -8,13 +8,11 @@ function parseConditional(iter, ctx) {
     iter.next().expectType(Token_1.TokenType.MARKER).expectValue('(');
     let expression = expressionSyntaxParser_1.expressionSyntaxParser(iter, ctx).ast;
     iter.next().expectType(Token_1.TokenType.MARKER).expectValue(')');
-    iter.next().expectType(Token_1.TokenType.MARKER).expectValue('{'); // or expression here
-    let primaryBranch = bodySyntaxParser_1.bodySyntaxParser(iter, ctx);
+    let primaryBranch = bodySyntaxParser_1.bodyOrLineSyntaxParser(iter, ctx);
     let secondaryBranch = [];
     if (iter.peek().type == Token_1.TokenType.KEYWORD && iter.peek().value == 'else') {
         iter.skip(1);
-        iter.next().expectType(Token_1.TokenType.MARKER).expectValue('{'); // or expression here
-        secondaryBranch = bodySyntaxParser_1.bodySyntaxParser(iter, ctx);
+        secondaryBranch = bodySyntaxParser_1.bodyOrLineSyntaxParser(iter, ctx);
     }
     return {
         type: AST_1.ASTNodeType.CONDITIONAL,

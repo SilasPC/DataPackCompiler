@@ -1,0 +1,4 @@
+
+const standardTypeMethods = {
+	'int': null
+}

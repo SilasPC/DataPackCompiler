@@ -4,15 +4,24 @@ import { Datapack } from './codegen/Datapack'
 import yargs from 'yargs'
 import { WeakCompilerOptions } from './toolbox/config'
 
-const COMPILE_GROUP = 'Compile overrides:'
+const COMPILE_GROUP = 'Compilation overrides:'
 
 const argv = yargs
 
+	.scriptName('dpc')
 	.version('0.1')
-
+	.epilogue('This compiler is a work in progress, expect bugs')
 	.demandCommand(1)
+	.alias('h','help')
 
-	// .usage('Usage: $0 [path] [path]')
+	.usage('\nCompile datapacks from DataPack-Language source files')
+	
+	.example(
+		'$0 datapack -wvv',
+		'Compile source files from ./datapack into same directory with double verbosity.' +
+		'Additionally, watch for source file changes, and recompile on any changes.'
+	)
+
 	.command('init [path]', 'Initialize pack.json', yargs => {
 		yargs
 			.positional('path', {
@@ -58,6 +67,12 @@ const argv = yargs
 		group: COMPILE_GROUP
 	})
 
+	.option('no-color', {
+		description: 'Disable color logging',
+		boolean: true,
+		group: COMPILE_GROUP
+	})
+
 	.option('target-version', {
 		alias: 't',
 		type: 'string',
@@ -65,8 +80,6 @@ const argv = yargs
 		group: COMPILE_GROUP
 	})
 
-	.help('h')
-	.epilogue('This compiler is a work in progress. Expect bugs.')
 	.argv
 
 async function compile(argv:any): Promise<void> {

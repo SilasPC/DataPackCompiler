@@ -6,11 +6,16 @@ Object.defineProperty(exports, "__esModule", { value: true });
 require('source-map-support').install();
 const Datapack_1 = require("./codegen/Datapack");
 const yargs_1 = __importDefault(require("yargs"));
-const COMPILE_GROUP = 'Compile overrides:';
+const COMPILE_GROUP = 'Compilation overrides:';
 const argv = yargs_1.default
+    .scriptName('dpc')
     .version('0.1')
+    .epilogue('This compiler is a work in progress, expect bugs')
     .demandCommand(1)
-    // .usage('Usage: $0 [path] [path]')
+    .alias('h', 'help')
+    .usage('\nCompile datapacks from DataPack-Language source files')
+    .example('$0 datapack -wvv', 'Compile source files from ./datapack into same directory with double verbosity.' +
+    'Additionally, watch for source file changes, and recompile on any changes.')
     .command('init [path]', 'Initialize pack.json', yargs => {
     yargs
         .positional('path', {
@@ -51,14 +56,17 @@ const argv = yargs_1.default
     count: true,
     group: COMPILE_GROUP
 })
+    .option('no-color', {
+    description: 'Disable color logging',
+    boolean: true,
+    group: COMPILE_GROUP
+})
     .option('target-version', {
     alias: 't',
     type: 'string',
     description: 'Set the target Minecraft version',
     group: COMPILE_GROUP
 })
-    .help('h')
-    .epilogue('This compiler is a work in progress. Expect bugs.')
     .argv;
 async function compile(argv) {
     let datapack = null;

@@ -14,6 +14,7 @@ function compilerOptionDefaults(cfg) {
         optimize: def(cfg.optimize, false),
         noUnused: def(cfg.noUnused, false),
         verbosity: def(cfg.verbosity, 0),
+        colorLog: def(cfg.colorLog, true),
         targetVersion: def(cfg.targetVersion, 'latest')
     };
 }

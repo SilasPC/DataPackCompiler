@@ -17,6 +17,13 @@ class Scope {
     static createRoot(name, ctx) {
         return new Scope(null, SymbolTable_1.SymbolTable.createRoot(), name, ctx, ctx.scoreboards.getStatic([name, 'break']), null, 'NONE');
     }
+    /**
+     * This will give the instructions needed to break
+     * all scopes down to and including the scope specified.
+     *
+     * This also creates new flowbuffers for the scopes in question,
+     * so further code in the scopes wont run after triggering these instructions
+     */
     breakScopes(scope) {
         // maybe this should change
         let instr = {

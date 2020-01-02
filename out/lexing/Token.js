@@ -1,5 +1,10 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
+const CompileErrors_1 = require("../toolbox/CompileErrors");
+const safe_1 = __importDefault(require("colors/safe"));
 class SourceLine {
     constructor(previous, file, startIndex, line, nr) {
         this.previous = previous;
@@ -30,8 +35,8 @@ class SourceLine {
         msg.push(`${ws}|`);
         if (this.previous)
             msg.push(` ${(this.nr - 1).toString().padStart(nrLen, ' ')} | ${this.previous.line}`);
-        msg.push(` ${this.nr.toString().padStart(nrLen, ' ')} | ${this.line}`);
-        msg.push(`${ws}| ${' '.repeat(i)}${'^'.repeat(l)}`);
+        msg.push(` ${this.nr.toString().padStart(nrLen, ' ')} | ${this.line.slice(0, i)}${safe_1.default.inverse(this.line.substr(i, l))}${this.line.slice(i + l)}`);
+        // msg.push(`${ws}| ${' '.repeat(i)}${'^'.repeat(l)}`)
         if (this.next)
             msg.push(` ${(this.nr + 1).toString().padStart(nrLen, ' ')} | ${this.next.line}`);
         msg.push(`${ws}|`);
@@ -45,6 +50,14 @@ class Token {
         this.index = index;
         this.type = type;
         this.value = value;
+    }
+    error(msg) {
+        return new CompileErrors_1.CompileError(
+        /*this.line.file,
+        this.line.startIndex + this.index,
+        this.line.startIndex + this.index + this.value.length,
+        msg*/
+        this.line.errorMessage('type', msg, this.index, this.value.length));
     }
     expectType(...t) {
         if (!t.includes(this.type))
