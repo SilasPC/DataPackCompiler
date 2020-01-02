@@ -220,8 +220,7 @@ function operator(node, scope, ctx) {
         case '==':
         case '!=':
         default:
-            ctx.log2(0, 'err', 'i rly h8 boilerplate');
-            throw new Error();
+            return err.push(new CompileErrors_1.CompileError('i rly h8 boilerplate'));
     }
     throw new Error('unreachable');
 }

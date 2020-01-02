@@ -97,7 +97,8 @@ async function compile(argv) {
         try {
             await dp.compile({
                 targetVersion: argv.targetVersion,
-                verbosity: argv.verbose ? argv.verbose : undefined
+                verbosity: argv.verbose ? argv.verbose : undefined,
+                colorLog: argv.noColor ? false : undefined
             });
             if (!argv.noEmit)
                 await dp.emit();

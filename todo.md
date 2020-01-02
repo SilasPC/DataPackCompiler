@@ -30,6 +30,7 @@
 # IDEAS
 - Oregenerators
 - Classes
+- Namespaces
 
 # NOTES - Future errors
 - Determining lifetimes in instructions that includes commands that

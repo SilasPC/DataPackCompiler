@@ -67,6 +67,7 @@ const argv = yargs
 		group: COMPILE_GROUP
 	})
 
+	// this flag is actually hijacked by 'colors' module...
 	.option('no-color', {
 		description: 'Disable color logging',
 		boolean: true,
@@ -112,7 +113,8 @@ async function compile(argv:any): Promise<void> {
 
 			await dp.compile({
 				targetVersion: argv.targetVersion as string|undefined,
-				verbosity: argv.verbose ? argv.verbose as number : undefined
+				verbosity: argv.verbose ? argv.verbose as number : undefined,
+				colorLog: argv.noColor ? false : undefined
 			})
 			if (!argv.noEmit) await dp.emit()
 			

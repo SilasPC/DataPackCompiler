@@ -8,7 +8,7 @@ import { exhaust } from "../toolbox/other"
 import { exec } from "child_process"
 import { CompileContext } from "../toolbox/CompileContext"
 import { Scope } from "./Scope"
-import { Possible, CompileErrorSet } from "../toolbox/CompileErrors"
+import { Possible, CompileErrorSet, CompileError } from "../toolbox/CompileErrors"
 
 export function exprParser(node: ASTNode, scope: Scope, ctx: CompileContext): Possible<ESR> {
 
@@ -224,8 +224,7 @@ function operator(node:ASTOpNode,scope:Scope,ctx:CompileContext): Possible<IntES
 		case '!=':
 
 		default:
-			ctx.log2(0,'err','i rly h8 boilerplate')
-			throw new Error()
+			return err.push(new CompileError('i rly h8 boilerplate'))
 	}
 	throw new Error('unreachable')
 }
