@@ -56,6 +56,7 @@ const argv = yargs_1.default
     count: true,
     group: COMPILE_GROUP
 })
+    // this flag is actually hijacked by 'colors' module...
     .option('no-color', {
     description: 'Disable color logging',
     boolean: true,
