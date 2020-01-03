@@ -57,7 +57,15 @@ class Token {
         this.line.startIndex + this.index,
         this.line.startIndex + this.index + this.value.length,
         msg*/
-        this.line.errorMessage('type', msg, this.index, this.value.length));
+        this.line.errorMessage('type', msg, this.index, this.value.length), false);
+    }
+    warning(msg) {
+        return new CompileErrors_1.CompileError(
+        /*this.line.file,
+        this.line.startIndex + this.index,
+        this.line.startIndex + this.index + this.value.length,
+        msg*/
+        this.line.errorMessage('type', msg, this.index, this.value.length), true);
     }
     expectType(...t) {
         if (!t.includes(this.type))

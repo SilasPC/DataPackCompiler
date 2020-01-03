@@ -104,7 +104,7 @@ export class Datapack {
 			await SyntaxSheet.load(cfg.compilerOptions.targetVersion)
 		)
 
-		let err = new CompileErrorSet()
+		let err = new ReturnWrapper()
 		let errCount = 0
 
 		ctx.log2(1,'inf',`Begin compilation`)
@@ -122,12 +122,12 @@ export class Datapack {
 		pfiles.forEach(pf=>fileSyntaxParser(pf,ctx))
 		ctx.log2(1,'inf',`Syntax analysis complete`)
 
-		errCount = err.getCount()
-		pfiles.forEach(pf=>err.checkHasValue(semanticsParser(pf,ctx)))
+		errCount = err.getErrorCount()
+		pfiles.forEach(pf=>err.merge(semanticsParser(pf,ctx)))
 		ctx.log2(1,'inf',`Semantic analysis complete`)
-		if (errCount < err.getCount()) {
-			ctx.log2(1,'err',`Got ${err.getCount()-errCount} error(s)`)
-			errCount = err.getCount()
+		if (errCount < err.getErrorCount()) {
+			ctx.log2(1,'err',`Got ${err.getErrorCount()-errCount} error(s)`)
+			errCount = err.getErrorCount()
 		}
 
 
@@ -147,9 +147,14 @@ export class Datapack {
 		ctx.log2(1,'inf',`Compilation complete`)
 		ctx.log2(2,'inf',`Elapsed time: ${(moment.duration(moment().diff(start)) as any).format()}`)
 
-		if (!err.isEmpty()) {
-			ctx.log2(1,'err',`Found a total of ${err.getCount()} errors:`)
-			ctx.logErrors(err)	
+		if (err.hasErrors()) {
+			ctx.log2(1,'err',`Found a total of ${err.getErrorCount()} errors:`)
+			ctx.logErrors(err)
+		}
+
+		if (err.hasWarnings()) {
+			ctx.log2(1,'wrn',`Found a total of ${err.getWarningCount()} warnings:`)
+			ctx.logWarns(err)
 		}
 
 	}
@@ -237,7 +242,7 @@ function MKDIRP(path:string) {
 }
 
 import rimraf from 'rimraf'
-import { CompileErrorSet } from '../toolbox/CompileErrors';
+import { ReturnWrapper } from '../toolbox/CompileErrors';
 function RIMRAF(path:string) {
 	return new Promise(($,$r)=>{
 		rimraf(path,{},err=>{

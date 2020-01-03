@@ -35,6 +35,7 @@ class ParsingFile {
             throw new Error('export duplicate identifier');
         this.exports.set(identifier, declaration);
     }
+    hasExport(id) { return this.exports.has(id); }
     import(identifier) {
         if (!this.exports.has(identifier.value))
             identifier.throwDebug('no such exported member');

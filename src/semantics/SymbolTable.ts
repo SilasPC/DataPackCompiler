@@ -1,7 +1,7 @@
 
 import { Token } from "../lexing/Token"
 import { Declaration } from "./Declaration"
-import { Possible, CompileErrorSet } from "../toolbox/CompileErrors"
+import { Possible, ReturnWrapper } from "../toolbox/CompileErrors"
 
 export class SymbolTable {
 
@@ -20,6 +20,14 @@ export class SymbolTable {
         public readonly parent: SymbolTable|null
     ) {}
 
+    getUnreferenced() {
+        let ret: {[key:string]:Declaration} = {}
+        for (let [key,decl] of this.declarations.entries()) {
+            if (decl.refCounter == 0) ret[key] = decl.decl
+        }
+        return ret
+    }
+
     branch() {
         let child = new SymbolTable(this)
         this.children.push(child)
@@ -29,7 +37,7 @@ export class SymbolTable {
     getDeclaration(name:Token): Possible<Declaration>
     getDeclaration(name:string): Declaration|null
     getDeclaration(name:string|Token): Declaration|null|Possible<Declaration> {
-        let err = new CompileErrorSet()
+        let err = new ReturnWrapper<Declaration>()
         let id = (typeof name == 'string') ? name : name.value
         let decl = this.declarations.get(id)
         if (decl) {
@@ -42,10 +50,8 @@ export class SymbolTable {
             if (name instanceof Token) return this.parent.getDeclaration(name)
             return this.parent.getDeclaration(name)
         }
-        if (name instanceof Token) {
-            let err = new CompileErrorSet(name.error(`'${name.value}' not available in scope`))
-            return err.wrap<Declaration>()
-        }
+        if (name instanceof Token)
+            return err.wrap(name.error(`'${name.value}' not available in scope`))
         return null
     }
 

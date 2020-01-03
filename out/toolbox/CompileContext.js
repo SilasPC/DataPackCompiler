@@ -71,6 +71,13 @@ class CompileContext {
         }
         this.lastLogType = null;
     }
+    logWarns(errors) {
+        for (let err of errors.getWarnings()) {
+            this.lastLogType = null;
+            this.log2(0, 'wrn', err.getErrorString());
+        }
+        this.lastLogType = null;
+    }
     // private lastLogLevel2 = 0
     log2(level, type, msg) {
         if (level > this.options.verbosity)

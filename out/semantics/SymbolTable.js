@@ -12,13 +12,21 @@ class SymbolTable {
         return new SymbolTable(null);
     }
     static getAllDeclarations() { return this.allDeclarations; }
+    getUnreferenced() {
+        let ret = {};
+        for (let [key, decl] of this.declarations.entries()) {
+            if (decl.refCounter == 0)
+                ret[key] = decl.decl;
+        }
+        return ret;
+    }
     branch() {
         let child = new SymbolTable(this);
         this.children.push(child);
         return child;
     }
     getDeclaration(name) {
-        let err = new CompileErrors_1.CompileErrorSet();
+        let err = new CompileErrors_1.ReturnWrapper();
         let id = (typeof name == 'string') ? name : name.value;
         let decl = this.declarations.get(id);
         if (decl) {
@@ -33,10 +41,8 @@ class SymbolTable {
                 return this.parent.getDeclaration(name);
             return this.parent.getDeclaration(name);
         }
-        if (name instanceof Token_1.Token) {
-            let err = new CompileErrors_1.CompileErrorSet(name.error(`'${name.value}' not available in scope`));
-            return err.wrap();
-        }
+        if (name instanceof Token_1.Token)
+            return err.wrap(name.error(`'${name.value}' not available in scope`));
         return null;
     }
     declare(name, decl) {

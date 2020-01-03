@@ -8,39 +8,41 @@ const Types_1 = require("./Types");
 const other_1 = require("../toolbox/other");
 const CompileErrors_1 = require("../toolbox/CompileErrors");
 function exprParser(node, scope, ctx) {
-    const err = new CompileErrors_1.CompileErrorSet();
+    const err = new CompileErrors_1.ReturnWrapper();
     let symbols = scope.symbols;
     switch (node.type) {
         case AST_1.ASTNodeType.IDENTIFIER: {
             let possibleDecl = symbols.getDeclaration(node.identifier);
-            if (!err.checkHasValue(possibleDecl))
-                return err;
+            if (possibleDecl.hasError())
+                return err.wrap(possibleDecl);
             let decl = possibleDecl.value;
+            let token = Declaration_1.extractToken(decl);
             switch (decl.type) {
                 case Declaration_1.DeclarationType.IMPLICIT_VARIABLE:
                 // fallthrough
-                case Declaration_1.DeclarationType.VARIABLE:
+                case Declaration_1.DeclarationType.VARIABLE: {
                     let esr = decl.esr;
                     if (decl.varType.elementary) {
                         switch (decl.varType.type) {
                             case Types_1.ElementaryValueType.INT:
                                 if (esr.type != ESR_1.ESRType.INT)
-                                    return node.identifier.throwDebug('ESR type assertion failed');
+                                    return token.throwDebug('ESR type assertion failed');
                                 let res = { type: ESR_1.ESRType.INT, mutable: true, const: false, tmp: true, scoreboard: esr.scoreboard };
                                 return err.wrap(res);
                             case Types_1.ElementaryValueType.BOOL:
-                                return err.push(node.identifier.error('no bools rn'));
+                                return err.wrap(token.error('no bools rn'));
                             case Types_1.ElementaryValueType.VOID:
-                                return err.push(node.identifier.error('void var type wtf?'));
+                                return err.wrap(token.error('void var type wtf?'));
                             default:
                                 return other_1.exhaust(decl.varType.type);
                         }
                     }
                     else {
-                        return err.push(node.identifier.error('non-elementary ref not implemented'));
+                        return err.wrap(token.error('non-elementary ref not implemented'));
                     }
+                }
                 case Declaration_1.DeclarationType.FUNCTION:
-                    return err.push(node.identifier.error('non-invocation fn ref not implemented'));
+                    return err.wrap(token.error('non-invocation fn ref not implemented'));
                 default:
                     return other_1.exhaust(decl);
             }
@@ -55,7 +57,7 @@ function exprParser(node, scope, ctx) {
         case AST_1.ASTNodeType.NUMBER: {
             let n = Number(node.value.value);
             if (Number.isNaN(n) || !Number.isInteger(n))
-                return err.push(node.value.error('kkk only int primitives'));
+                return err.wrap(node.value.error('kkk only int primitives'));
             return err.wrap({ type: ESR_1.ESRType.INT, mutable: false, const: true, tmp: false, scoreboard: ctx.scoreboards.getConstant(n) });
         }
         case AST_1.ASTNodeType.OPERATION:
@@ -64,15 +66,15 @@ function exprParser(node, scope, ctx) {
             if (node.function.type != AST_1.ASTNodeType.IDENTIFIER)
                 throw new Error('only direct calls for now');
             let params = node.parameters.list.map(p => exprParser(p, scope, ctx));
-            params.forEach(p => p instanceof CompileErrors_1.CompileErrorSet ? err.merge(p) : null);
+            params.forEach(p => p instanceof CompileErrors_1.ReturnWrapper ? err.merge(p) : null);
             let decl = symbols.getDeclaration(node.function.identifier.value);
-            if (!decl)
-                return err.push(node.function.identifier.error('fn not declared'));
+            if (decl == null)
+                return err.wrap(node.function.identifier.error('fn not declared'));
             if (decl.type != Declaration_1.DeclarationType.FUNCTION)
-                return err.push(node.function.identifier.error('not a fn'));
+                return err.wrap(node.function.identifier.error('not a fn'));
             let paramTypes = decl.parameters.map(ESR_1.getESRType);
             if (params.length != paramTypes.length)
-                return err.push(node.function.identifier.error('param length unmatched'));
+                return err.wrap(node.function.identifier.error('param length unmatched'));
             for (let i = 0; i < params.length; i++) {
                 let param = params[i];
                 if (!param.hasValue())
@@ -143,7 +145,7 @@ function exprParser(node, scope, ctx) {
 }
 exports.exprParser = exprParser;
 function operator(node, scope, ctx) {
-    const err = new CompileErrors_1.CompileErrorSet();
+    const err = new CompileErrors_1.ReturnWrapper();
     switch (node.operator.value) {
         case '+':
         case '-':
@@ -152,14 +154,18 @@ function operator(node, scope, ctx) {
         case '%': {
             console.assert(node.operands.length == 2, 'two operands');
             let [o0, o1] = node.operands.map(o => exprParser(o, scope, ctx));
-            err.checkHasValue(o0);
-            err.checkHasValue(o1);
-            if (!o0.hasValue() || !o1.hasValue())
-                return err;
+            if (o0.hasError() || o1.hasError()) {
+                err.merge(o0);
+                err.merge(o1);
+                if (o0.hasError())
+                    return err.wrap(o0);
+                if (o1.hasError())
+                    return err.wrap(o1);
+            }
             if (o0.value.type != ESR_1.ESRType.INT)
-                return node.operator.throwDebug('only int op for now');
+                return err.wrap(node.operator.error('only int op for now'));
             if (o0.value.type != o1.value.type)
-                return node.operator.throwDebug('no op casting for now');
+                return err.wrap(node.operator.error('no op casting for now'));
             let res = { type: ESR_1.ESRType.INT, mutable: false, const: false, tmp: true, scoreboard: ctx.scoreboards.getStatic('tmp', scope) };
             // ???
             let op1 = { type: Instructions_1.InstrType.INT_OP, into: res, from: o0.value, op: '=' };
@@ -170,10 +176,14 @@ function operator(node, scope, ctx) {
         case '=': {
             console.assert(node.operands.length == 2, 'two operands');
             let [o0, o1] = node.operands.map(o => exprParser(o, scope, ctx));
-            err.checkHasValue(o0);
-            err.checkHasValue(o1);
-            if (!o0.hasValue() || !o1.hasValue())
-                return err;
+            if (o0.hasError() || o1.hasError()) {
+                err.merge(o0);
+                err.merge(o1);
+                if (o0.hasError())
+                    return err.wrap(o0);
+                if (o1.hasError())
+                    return err.wrap(o1);
+            }
             if (!o0.value.mutable)
                 throw new Error('left hand side immutable');
             if (o0.value.type != ESR_1.ESRType.INT)
@@ -192,10 +202,14 @@ function operator(node, scope, ctx) {
         case '%=': {
             console.assert(node.operands.length == 2, 'two operands');
             let [o0, o1] = node.operands.map(o => exprParser(o, scope, ctx));
-            err.checkHasValue(o0);
-            err.checkHasValue(o1);
-            if (!o0.hasValue() || !o1.hasValue())
-                return err;
+            if (o0.hasError() || o1.hasError()) {
+                err.merge(o0);
+                err.merge(o1);
+                if (o0.hasError())
+                    return err.wrap(o0);
+                if (o1.hasError())
+                    return err.wrap(o1);
+            }
             if (!o0.value.mutable)
                 throw new Error('left hand side immutable');
             if (o0.value.type != ESR_1.ESRType.INT)
@@ -220,7 +234,7 @@ function operator(node, scope, ctx) {
         case '==':
         case '!=':
         default:
-            return err.push(new CompileErrors_1.CompileError('i rly h8 boilerplate'));
+            return err.wrap(new CompileErrors_1.CompileError('i rly h8 boilerplate', false));
     }
     throw new Error('unreachable');
 }

@@ -41,6 +41,7 @@ export class ParsingFile {
         public readonly scope: Scope
         
     ) {}
+
     addToken(t:Token) {this.tokens.push(t)}
     getTokenIterator() {return new TokenIterator(this,this.tokens)}
 
@@ -52,6 +53,7 @@ export class ParsingFile {
         if (this.exports.has(identifier)) throw new Error('export duplicate identifier')
         this.exports.set(identifier,declaration)
     }
+    hasExport(id:string) {return this.exports.has(id)}
 
     import(identifier:Token): Declaration {
         if (!this.exports.has(identifier.value)) identifier.throwDebug('no such exported member')

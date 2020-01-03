@@ -9,7 +9,7 @@ import { Scope } from "../semantics/Scope";
 import { FnFile } from "../codegen/FnFile";
 import { getObscureName, getQualifiedName } from "./other";
 import cols from 'colors/safe'
-import { CompileError, CompileErrorSet } from "./CompileErrors";
+import { CompileError, ReturnWrapper } from "./CompileErrors";
 
 export class CompileContext {
 
@@ -73,10 +73,18 @@ export class CompileContext {
 		this.lastLogLevel = level
 	}
 
-	logErrors(errors:CompileErrorSet) {
+	logErrors(errors:ReturnWrapper<any>) {
 		for (let err of errors.getErrors()) {
 			this.lastLogType = null
 			this.log2(0,'err',err.getErrorString())
+		}
+		this.lastLogType = null
+	}
+
+	logWarns(errors:ReturnWrapper<any>) {
+		for (let err of errors.getWarnings()) {
+			this.lastLogType = null
+			this.log2(0,'wrn',err.getErrorString())
 		}
 		this.lastLogType = null
 	}

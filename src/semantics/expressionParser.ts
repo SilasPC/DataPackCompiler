@@ -2,17 +2,16 @@ import { ASTNode, ASTNodeType, ASTOpNode } from "../syntax/AST"
 import { SymbolTable } from "./SymbolTable"
 import { Instruction, INT_OP, InstrType, INVOKE } from "../codegen/Instructions"
 import { ESR, ESRType, IntESR, getESRType } from "./ESR"
-import { DeclarationType } from "./Declaration"
-import { ElementaryValueType, tokenToType, hasSharedType } from "./Types"
+import { DeclarationType, extractToken } from "./Declaration"
+import { ElementaryValueType, hasSharedType } from "./Types"
 import { exhaust } from "../toolbox/other"
-import { exec } from "child_process"
 import { CompileContext } from "../toolbox/CompileContext"
 import { Scope } from "./Scope"
-import { Possible, CompileErrorSet, CompileError } from "../toolbox/CompileErrors"
+import { Possible, ReturnWrapper, CompileError } from "../toolbox/CompileErrors"
 
 export function exprParser(node: ASTNode, scope: Scope, ctx: CompileContext): Possible<ESR> {
 
-	const err = new CompileErrorSet()
+	const err = new ReturnWrapper<ESR>()
 
 	let symbols = scope.symbols
 
@@ -20,31 +19,33 @@ export function exprParser(node: ASTNode, scope: Scope, ctx: CompileContext): Po
 
 		case ASTNodeType.IDENTIFIER: {
 			let possibleDecl = symbols.getDeclaration(node.identifier)
-			if (!err.checkHasValue(possibleDecl)) return err
+			if (possibleDecl.hasError()) return err.wrap(possibleDecl)
 			let decl = possibleDecl.value
+			let token = extractToken(decl)
 			switch (decl.type) {
 				case DeclarationType.IMPLICIT_VARIABLE:
 					// fallthrough
-				case DeclarationType.VARIABLE:
+				case DeclarationType.VARIABLE: {
 					let esr = decl.esr
 					if (decl.varType.elementary) {
 						switch (decl.varType.type) {
 							case ElementaryValueType.INT:
-								if (esr.type != ESRType.INT) return node.identifier.throwDebug('ESR type assertion failed')
+								if (esr.type != ESRType.INT) return token.throwDebug('ESR type assertion failed')
 								let res: IntESR = {type:ESRType.INT,mutable:true,const:false,tmp:true,scoreboard:esr.scoreboard}
 								return err.wrap(res)
 							case ElementaryValueType.BOOL:
-								return err.push(node.identifier.error('no bools rn'))
+								return err.wrap(token.error('no bools rn'))
 							case ElementaryValueType.VOID:
-								return err.push(node.identifier.error('void var type wtf?'))
+								return err.wrap(token.error('void var type wtf?'))
 							default:
 								return exhaust(decl.varType.type)
 						}
 					} else {
-						return err.push(node.identifier.error('non-elementary ref not implemented'))
+						return err.wrap(token.error('non-elementary ref not implemented'))
 					}
+				}
 				case DeclarationType.FUNCTION:
-						return err.push(node.identifier.error('non-invocation fn ref not implemented'))
+						return err.wrap(token.error('non-invocation fn ref not implemented'))
 				default:
 					return exhaust(decl)
 			}
@@ -60,8 +61,9 @@ export function exprParser(node: ASTNode, scope: Scope, ctx: CompileContext): Po
 
 		case ASTNodeType.NUMBER: {
 			let n = Number(node.value.value)
-			if (Number.isNaN(n)||!Number.isInteger(n)) return err.push(node.value.error('kkk only int primitives'))
-			return err.wrap<ESR>({type:ESRType.INT,mutable:false,const:true,tmp:false,scoreboard:ctx.scoreboards.getConstant(n)})
+			if (Number.isNaN(n)||!Number.isInteger(n))
+				return err.wrap(node.value.error('kkk only int primitives'))
+			return err.wrap({type:ESRType.INT,mutable:false,const:true,tmp:false,scoreboard:ctx.scoreboards.getConstant(n)})
 		}
 
 		case ASTNodeType.OPERATION:
@@ -71,14 +73,14 @@ export function exprParser(node: ASTNode, scope: Scope, ctx: CompileContext): Po
 			if (node.function.type != ASTNodeType.IDENTIFIER) throw new Error('only direct calls for now')
 			let params = node.parameters.list.map(p=>exprParser(p,scope,ctx))
 			params.forEach(
-				p => p instanceof CompileErrorSet ? err.merge(p) : null
+				p => p instanceof ReturnWrapper ? err.merge(p) : null
 			)
 			let decl = symbols.getDeclaration(node.function.identifier.value)
-			if (!decl) return err.push(node.function.identifier.error('fn not declared'))
+			if (decl == null) return err.wrap(node.function.identifier.error('fn not declared'))
 			if (decl.type != DeclarationType.FUNCTION)
-				return err.push(node.function.identifier.error('not a fn'))
+				return err.wrap(node.function.identifier.error('not a fn'))
 			let paramTypes = decl.parameters.map(getESRType)
-			if (params.length != paramTypes.length) return err.push(node.function.identifier.error('param length unmatched'))
+			if (params.length != paramTypes.length) return err.wrap(node.function.identifier.error('param length unmatched'))
 			for (let i = 0; i < params.length; i++) {
 				let param = params[i]
 				if (!param.hasValue()) continue
@@ -151,7 +153,7 @@ export function exprParser(node: ASTNode, scope: Scope, ctx: CompileContext): Po
 }
 
 function operator(node:ASTOpNode,scope:Scope,ctx:CompileContext): Possible<IntESR> {
-	const err = new CompileErrorSet()
+	const err = new ReturnWrapper<IntESR>()
 	switch (node.operator.value) {
 		case '+':
 		case '-':
@@ -160,11 +162,14 @@ function operator(node:ASTOpNode,scope:Scope,ctx:CompileContext): Possible<IntES
 		case '%': {
 			console.assert(node.operands.length == 2, 'two operands')
 			let [o0,o1] = node.operands.map(o=>exprParser(o,scope,ctx))
-			err.checkHasValue(o0)
-			err.checkHasValue(o1)
-			if (!o0.hasValue() || !o1.hasValue()) return err
-			if (o0.value.type != ESRType.INT) return node.operator.throwDebug('only int op for now')
-			if (o0.value.type != o1.value.type) return node.operator.throwDebug('no op casting for now')
+			if (o0.hasError() || o1.hasError()) {
+				err.merge(o0)
+				err.merge(o1)
+				if (o0.hasError()) return err.wrap(o0)
+				if (o1.hasError()) return err.wrap(o1)
+			}
+			if (o0.value.type != ESRType.INT) return err.wrap(node.operator.error('only int op for now'))
+			if (o0.value.type != o1.value.type) return err.wrap(node.operator.error('no op casting for now'))
 			let res: IntESR = {type:ESRType.INT,mutable:false,const:false,tmp:true,scoreboard:ctx.scoreboards.getStatic('tmp',scope)}
 			// ???
 			let op1: INT_OP = {type:InstrType.INT_OP,into:res,from:o0.value,op:'='}
@@ -176,9 +181,12 @@ function operator(node:ASTOpNode,scope:Scope,ctx:CompileContext): Possible<IntES
 		case '=': {
 			console.assert(node.operands.length == 2, 'two operands')
 			let [o0,o1] = node.operands.map(o=>exprParser(o,scope,ctx))
-			err.checkHasValue(o0)
-			err.checkHasValue(o1)
-			if (!o0.hasValue() || !o1.hasValue()) return err
+			if (o0.hasError() || o1.hasError()) {
+				err.merge(o0)
+				err.merge(o1)
+				if (o0.hasError()) return err.wrap(o0)
+				if (o1.hasError()) return err.wrap(o1)
+			}
 			if (!o0.value.mutable) throw new Error('left hand side immutable')
 			if (o0.value.type != ESRType.INT) return node.operator.throwDebug('only int op for now')
 			if (o0.value.type != o1.value.type) return node.operator.throwDebug('no op casting for now')
@@ -195,9 +203,12 @@ function operator(node:ASTOpNode,scope:Scope,ctx:CompileContext): Possible<IntES
 		case '%=': {
 			console.assert(node.operands.length == 2, 'two operands')
 			let [o0,o1] = node.operands.map(o=>exprParser(o,scope,ctx))
-			err.checkHasValue(o0)
-			err.checkHasValue(o1)
-			if (!o0.hasValue() || !o1.hasValue()) return err
+			if (o0.hasError() || o1.hasError()) {
+				err.merge(o0)
+				err.merge(o1)
+				if (o0.hasError()) return err.wrap(o0)
+				if (o1.hasError()) return err.wrap(o1)
+			}
 			if (!o0.value.mutable) throw new Error('left hand side immutable')
 			if (o0.value.type != ESRType.INT) return node.operator.throwDebug('only int op for now')
 			if (o0.value.type != o1.value.type) return node.operator.throwDebug('no op casting for now')
@@ -224,7 +235,7 @@ function operator(node:ASTOpNode,scope:Scope,ctx:CompileContext): Possible<IntES
 		case '!=':
 
 		default:
-			return err.push(new CompileError('i rly h8 boilerplate'))
+			return err.wrap(new CompileError('i rly h8 boilerplate',false))
 	}
 	throw new Error('unreachable')
 }

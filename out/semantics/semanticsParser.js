@@ -9,7 +9,7 @@ const other_1 = require("../toolbox/other");
 const Instructions_1 = require("../codegen/Instructions");
 const CompileErrors_1 = require("../toolbox/CompileErrors");
 function semanticsParser(pfile, ctx) {
-    const err = new CompileErrors_1.CompileErrorSet();
+    const err = new CompileErrors_1.ReturnWrapper();
     if (pfile.status == 'parsed')
         return err.wrap(null);
     if (pfile.status == 'parsing')
@@ -20,8 +20,10 @@ function semanticsParser(pfile, ctx) {
     let ast = pfile.getAST();
     tokenLoop: for (let node of ast) {
         let shouldExport = false;
-        if (node.type == AST_1.ASTNodeType.EXPORT)
+        if (node.type == AST_1.ASTNodeType.EXPORT) {
             node = node.node;
+            shouldExport = true;
+        }
         switch (node.type) {
             case AST_1.ASTNodeType.DEFINE: {
                 let type = Types_1.tokenToType(node.varType, symbols);
@@ -36,9 +38,7 @@ function semanticsParser(pfile, ctx) {
                 // we must create a new esr, then assign the above to that
                 // file-level declarations are assigned during init, so
                 // we must add the assignations instruction to datapack init
-                if (esr0.hasError())
-                    console.log(esr0.getErrors());
-                if (!err.checkHasValue(esr0))
+                if (err.merge(esr0))
                     continue;
                 let res = ESR_1.copyESRToLocal(esr0.value, ctx, scope, node.identifier.value);
                 let esr = res.esr;
@@ -115,6 +115,7 @@ function semanticsParser(pfile, ctx) {
                     }
                     let decl = {
                         type: Declaration_1.DeclarationType.IMPLICIT_VARIABLE,
+                        token: param.symbol,
                         varType: type,
                         esr
                     };
@@ -123,7 +124,7 @@ function semanticsParser(pfile, ctx) {
                 }
                 if (shouldExport)
                     pfile.addExport(node.identifier.value, decl);
-                if (!err.checkHasValue(parseBody(node.body, branch, ctx)))
+                if (err.merge(parseBody(node.body, branch, ctx)))
                     continue;
                 fn.add(...branch.mergeBuffers());
                 break;
@@ -144,22 +145,30 @@ function semanticsParser(pfile, ctx) {
                 return other_1.exhaust(node);
         }
     }
+    // Check unused
+    for (let [key, decl] of Object.entries(symbols.getUnreferenced())) {
+        if (!pfile.hasExport(key))
+            err.push(Declaration_1.extractToken(decl).warning('Unused'));
+    }
     pfile.status = 'parsed';
     return err.wrap(null);
 }
 exports.semanticsParser = semanticsParser;
 function parseBody(nodes, scope, ctx) {
-    let err = new CompileErrors_1.CompileErrorSet();
+    let err = new CompileErrors_1.ReturnWrapper();
     for (let node of nodes) {
         switch (node.type) {
             case AST_1.ASTNodeType.COMMAND: {
+                let foundErrors = false;
                 let interpolations = node.interpolations.flatMap(n => {
                     let x = expressionParser_1.exprParser(n, scope, ctx);
-                    if (err.checkHasValue(x))
-                        return [x.value];
-                    return [];
+                    if (err.merge(x)) {
+                        foundErrors = true;
+                        return [];
+                    }
+                    return [x.value];
                 });
-                if (!err.isEmpty())
+                if (foundErrors)
                     continue;
                 scope.push({
                     type: Instructions_1.InstrType.CMD,
@@ -169,7 +178,7 @@ function parseBody(nodes, scope, ctx) {
             }
             case AST_1.ASTNodeType.INVOKATION:
             case AST_1.ASTNodeType.OPERATION: {
-                err.checkHasValue(expressionParser_1.exprParser(node, scope, ctx));
+                err.merge(expressionParser_1.exprParser(node, scope, ctx));
                 break;
             }
             case AST_1.ASTNodeType.RETURN: {
@@ -184,7 +193,7 @@ function parseBody(nodes, scope, ctx) {
                     esr = { type: ESR_1.ESRType.VOID, const: false, tmp: false, mutable: false };
                 else {
                     let x = expressionParser_1.exprParser(node.node, scope, ctx);
-                    if (!err.checkHasValue(x))
+                    if (err.merge(x))
                         continue;
                     esr = x.value;
                 }
@@ -203,7 +212,7 @@ function parseBody(nodes, scope, ctx) {
                 throw new Error('valid, but pointless');
             case AST_1.ASTNodeType.CONDITIONAL: {
                 let esr = expressionParser_1.exprParser(node.expression, scope, ctx);
-                if (!err.checkHasValue(esr))
+                if (err.merge(esr))
                     continue;
                 if (esr.value.type != ESR_1.ESRType.BOOL)
                     throw new Error('if not bool esr');
@@ -224,7 +233,7 @@ function parseBody(nodes, scope, ctx) {
                 let esr0 = expressionParser_1.exprParser(node.initial, scope, ctx);
                 // the above cannot be used for the variables esr (might mutate const)
                 // we must create a new esr, then assign the above to that
-                if (!err.checkHasValue(esr0))
+                if (err.merge(esr0))
                     continue;
                 let res = ESR_1.copyESRToLocal(esr0.value, ctx, scope, node.identifier.value);
                 let esr = res.esr;

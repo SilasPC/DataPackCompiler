@@ -68,7 +68,7 @@ class Datapack {
             )
         });
         const ctx = this.ctx = new CompileContext_1.CompileContext(cfg.compilerOptions, await SyntaxSheet_1.SyntaxSheet.load(cfg.compilerOptions.targetVersion));
-        let err = new CompileErrors_1.CompileErrorSet();
+        let err = new CompileErrors_1.ReturnWrapper();
         let errCount = 0;
         ctx.log2(1, 'inf', `Begin compilation`);
         let start = moment_1.default();
@@ -80,12 +80,12 @@ class Datapack {
         ctx.log2(1, 'inf', `Lexical analysis complete`);
         pfiles.forEach(pf => fileSyntaxParser_1.fileSyntaxParser(pf, ctx));
         ctx.log2(1, 'inf', `Syntax analysis complete`);
-        errCount = err.getCount();
-        pfiles.forEach(pf => err.checkHasValue(semanticsParser_1.semanticsParser(pf, ctx)));
+        errCount = err.getErrorCount();
+        pfiles.forEach(pf => err.merge(semanticsParser_1.semanticsParser(pf, ctx)));
         ctx.log2(1, 'inf', `Semantic analysis complete`);
-        if (errCount < err.getCount()) {
-            ctx.log2(1, 'err', `Got ${err.getCount() - errCount} error(s)`);
-            errCount = err.getCount();
+        if (errCount < err.getErrorCount()) {
+            ctx.log2(1, 'err', `Got ${err.getErrorCount() - errCount} error(s)`);
+            errCount = err.getErrorCount();
         }
         let optres = instructionOptimizer_1.optimize(ctx);
         ctx.log2(1, 'inf', `Optimization complete`);
@@ -97,9 +97,13 @@ class Datapack {
         ctx.log2(1, 'inf', `Verification complete`);
         ctx.log2(1, 'inf', `Compilation complete`);
         ctx.log2(2, 'inf', `Elapsed time: ${moment_1.default.duration(moment_1.default().diff(start)).format()}`);
-        if (!err.isEmpty()) {
-            ctx.log2(1, 'err', `Found a total of ${err.getCount()} errors:`);
+        if (err.hasErrors()) {
+            ctx.log2(1, 'err', `Found a total of ${err.getErrorCount()} errors:`);
             ctx.logErrors(err);
+        }
+        if (err.hasWarnings()) {
+            ctx.log2(1, 'wrn', `Found a total of ${err.getWarningCount()} warnings:`);
+            ctx.logWarns(err);
         }
     }
     async emit() {

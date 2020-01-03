@@ -1,83 +1,109 @@
 
-export class CompileErrorSet extends Error implements PossibleFunc<never> {
+interface Exists<T> extends Base<T> {
+	valueExists: true,
+	value: T
+}
 
-	private readonly errors: CompileError[] = []
+interface NotExists<T> extends Base<T> {
+	valueExists: false,
+	value: undefined
+}
 
-	constructor(...errors:CompileError[]) {
-		super('Compilation error')
-		this.errors.push(...errors)
+export type Possible<T> = Exists<T> | NotExists<T>
+
+abstract class Base<T> {
+	
+	constructor (
+		public readonly wrapper: ReturnWrapper<T>,
+		public readonly valueExists: boolean
+	) {}
+
+	hasError(): this is NotExists<T> {return !this.valueExists}
+	hasValue(): this is Exists<T> {return this.valueExists}
+
+}
+
+class DefinitePossible<T> extends Base<T> implements Exists<T> {
+
+	public readonly valueExists = true
+
+	constructor(
+		wrapper: ReturnWrapper<T>,
+		public readonly value: T
+	) {
+		super(wrapper,true)
+		if (wrapper.hasErrors())
+			throw new Error('instantiated possible with value and error')
 	}
+
+}
+
+class NotPossible<T> extends Base<T> implements NotExists<T> {
+	
+	public readonly valueExists = false
+	public readonly value = undefined
+
+	constructor(
+		wrapper: ReturnWrapper<T>
+	) {
+		super(wrapper,false)
+		if (!wrapper.hasErrors())
+			throw new Error('instantiated not possible with no errors')
+	}
+
+}
+
+export class ReturnWrapper<T> {
+
+	private readonly errors: Set<CompileError> = new Set()
+	private readonly warnings: Set<CompileError> = new Set()
 
 	getErrors() {return this.errors}
-	hasError() {return true}
-	hasValue() {return false}
+	getWarnings() {return this.warnings}
+	hasWarnings() {return this.warnings.size > 0}
+	hasErrors() {return this.errors.size > 0}
 
-	isEmpty() {
-		return this.errors.length == 0
-	}
+	getErrorCount() {return this.errors.size}
+	getWarningCount() {return this.warnings.size}
 
-	getCount() {
-		return this.errors.length
-	}
-
-	merge(set:CompileErrorSet): this {
-		this.errors.push(...set.errors)
-		return this
-	}
-
-	/** 
-	 * Type guard for possible having a value.
-	 * If not, errors are merged into this
+	/**
+	 * Merges any errors and returns true if there were any errors to merge.
+	 * It also casts argument to NotExists<P>
 	 */
-	checkHasValue<T>(pos:Possible<T>): pos is DefinitePossible<T> {
-		if (pos.hasError()) {
-			this.merge(pos)
-			return false
-		}
-		if (!pos.hasValue()) throw new Error('possible must have value or error')
-		return true
+	merge<P>(arg:Possible<P>): arg is NotExists<P>
+	merge<P>(arg:ReturnWrapper<P>): void
+	merge<P>(arg:ReturnWrapper<P>|Possible<P>): boolean | void {
+		let val = arg instanceof ReturnWrapper ? arg : arg.wrapper
+		for (let err of val.errors) this.errors.add(err)
+		for (let err of val.warnings) this.warnings.add(err)
+		if (arg instanceof Base) return arg.hasError()
 	}
 
-	push(...errors:CompileError[]): this {
-		this.errors.push(...errors)
+	push(error:CompileError): this {
+		if (error.warnOnly) this.warnings.add(error)
+		else this.errors.add(error)
 		return this
 	}
 
-	wrap<T>(): Possible<T>
-	wrap<T>(val:Possible<T>): Possible<T>
-	wrap<T>(val:T): Possible<T>
-	wrap<T>(val?:T|Possible<T>): Possible<T> {
-		if (typeof val == 'undefined') return this
-		if (isPossible<T,T>(val)) {
-			if (val.hasError()) return this.merge(val)
-			return val
+	wrap(val:CompileError): NotExists<T>
+	wrap(val:Possible<T>): Possible<T>
+	wrap(val:NotExists<any>): Possible<T>
+	wrap(val:T): Possible<T>
+	wrap(val:T|CompileError|Base<any>): Possible<T> {
+		if (val instanceof Base) {
+			if (val.hasValue())
+				return val
+			for (let err of val.wrapper.errors) this.errors.add(err)
+			for (let err of val.wrapper.warnings) this.warnings.add(err)
+			return new NotPossible(this)
 		}
-		if (!this.isEmpty()) return this
-		return new DefinitePossible<T>(val)
+		if (val instanceof CompileError) {
+			this.push(val)
+			return new NotPossible<T>(this)
+		}
+		if (this.hasErrors()) return new NotPossible<T>(this)
+		return new DefinitePossible<T>(this,val)
 	}
-
-}
-
-function isPossible<T,P>(val:T|Possible<P>): val is Possible<P> {
-	return (
-		val instanceof DefinitePossible ||
-		val instanceof CompileErrorSet
-	)
-}
-
-export type Possible<T> = PossibleFunc<T> & (DefinitePossible<T> | CompileErrorSet)
-
-interface PossibleFunc<T> {
-	hasValue(): this is DefinitePossible<T>
-	hasError(): this is CompileErrorSet
-}
-
-class DefinitePossible<T> implements PossibleFunc<T> {
-
-	constructor(public readonly value: T) {}
-
-	hasError() {return false}
-	hasValue() {return true}
 
 }
 
@@ -88,7 +114,8 @@ export class CompileError extends Error {
 		public readonly indexStart: number,
 		public readonly indexEnd: number,
 		public readonly msg: string*/
-		private readonly errorString: string
+		private readonly errorString: string,
+		public readonly warnOnly: boolean
 	) {
 		super('Compilation error')
 	}
