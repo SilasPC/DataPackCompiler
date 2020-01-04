@@ -50,6 +50,7 @@ export class Datapack {
 	}
 	
 	private ctx: CompileContext | null = null
+	private errorIgnoreEmit = false
 	private fnMap: Map<string,string[]> | null = null;
 
 	private constructor(
@@ -148,9 +149,10 @@ export class Datapack {
 		ctx.log2(2,'inf',`Elapsed time: ${(moment.duration(moment().diff(start)) as any).format()}`)
 
 		if (err.hasErrors()) {
+			this.errorIgnoreEmit = true
 			ctx.log2(1,'err',`Found a total of ${err.getErrorCount()} errors:`)
 			ctx.logErrors(err)
-		}
+		} else this.errorIgnoreEmit = false
 
 		if (err.hasWarnings()) {
 			ctx.log2(1,'wrn',`Found a total of ${err.getWarningCount()} warnings:`)
@@ -159,8 +161,14 @@ export class Datapack {
 
 	}
 
+	canEmit() {
+		return Boolean(this.fnMap && this.ctx && !this.errorIgnoreEmit)
+	}
+
 	async emit() {
 		if (!this.fnMap || !this.ctx) throw new Error('Nothing to emit. Use .compile() first.')
+		if (this.errorIgnoreEmit) throw new Error('Datapack contains errors, ignoring emit.')
+
 		let emitDir = join(this.packDir,this.packJson.emitDir)
 
 		// I hate fs right now. Hence the caps.

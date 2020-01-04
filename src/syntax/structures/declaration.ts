@@ -10,6 +10,7 @@ export function parseDeclaration(iter:TokenIteratorI,ctx:CompileContext): ASTLet
     // allow destructured assignment?   let a,b,c = 1,2,3
     // or like this?                    let [a,b,c] = [1,2,3]
     // allow multi assignment?          let a = 1, b = 2, c = 3
+    let letToken = iter.current()
     let symbol = iter.next().expectType(TokenType.SYMBOL)
     let type = getType(iter)
     iter.next().expectType(TokenType.OPERATOR).expectValue('=')
@@ -19,6 +20,7 @@ export function parseDeclaration(iter:TokenIteratorI,ctx:CompileContext): ASTLet
         type: ASTNodeType.DEFINE,
         identifier: symbol,
         varType: type,
+        keyword: letToken,
         initial
     }
 }

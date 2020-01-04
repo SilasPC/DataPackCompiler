@@ -41,10 +41,12 @@ export function lineSyntaxParser(iter:TokenIteratorI,ctx:CompileContext): ASTNod
                     if (iter.peek().type == TokenType.MARKER && iter.peek().value == ';')
                         return {
                             type: ASTNodeType.RETURN,
+                            keyword: token,
                             node: null
                         }
                     else return {
                         type: ASTNodeType.RETURN,
+                        keyword: token,
                         node: expressionSyntaxParser(iter,ctx).ast
                     }
                 }

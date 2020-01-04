@@ -8,6 +8,7 @@ function parseDeclaration(iter, ctx) {
     // allow destructured assignment?   let a,b,c = 1,2,3
     // or like this?                    let [a,b,c] = [1,2,3]
     // allow multi assignment?          let a = 1, b = 2, c = 3
+    let letToken = iter.current();
     let symbol = iter.next().expectType(Token_1.TokenType.SYMBOL);
     let type = helpers_1.getType(iter);
     iter.next().expectType(Token_1.TokenType.OPERATOR).expectValue('=');
@@ -17,6 +18,7 @@ function parseDeclaration(iter, ctx) {
         type: AST_1.ASTNodeType.DEFINE,
         identifier: symbol,
         varType: type,
+        keyword: letToken,
         initial
     };
 }

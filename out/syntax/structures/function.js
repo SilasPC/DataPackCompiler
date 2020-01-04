@@ -5,6 +5,7 @@ const Token_1 = require("../../lexing/Token");
 const bodySyntaxParser_1 = require("../bodySyntaxParser");
 const helpers_1 = require("../helpers");
 function parseFunction(iter, ctx) {
+    let fnToken = iter.current();
     let fnSymbol = iter.next().expectType(Token_1.TokenType.SYMBOL);
     let parameters = [];
     iter.next().expectType(Token_1.TokenType.MARKER).expectValue('(');
@@ -26,6 +27,7 @@ function parseFunction(iter, ctx) {
         identifier: fnSymbol,
         parameters,
         body,
+        keyword: fnToken,
         returnType
     };
 }

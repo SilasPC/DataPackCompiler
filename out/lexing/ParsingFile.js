@@ -17,7 +17,7 @@ class ParsingFile {
     }
     static loadFile(path, ctx) {
         let fullPath = path_1.resolve(path);
-        let relativePath = './' + path_1.relative('./', fullPath).replace('\\', '/').split('.').slice(0, -1).join('.');
+        let relativePath = './' + path_1.relative('./', fullPath).replace(/\\/g, '/').split('.').slice(0, -1).join('.');
         let file = new ParsingFile(fullPath, relativePath, fs_1.readFileSync(fullPath).
             toString(), Scope_1.Scope.createRoot(path_1.basename(fullPath).split('.').slice(0, -1).join('.'), ctx));
         return file;
@@ -42,7 +42,7 @@ class ParsingFile {
         return this.exports.get(identifier.value);
     }
     throwUnexpectedEOF() {
-        return this.tokens.pop().fatal('Unexpected EOF');
+        return this.tokens.pop().line.fatal('Unexpected EOF', 0, 0);
     }
 }
 exports.ParsingFile = ParsingFile;

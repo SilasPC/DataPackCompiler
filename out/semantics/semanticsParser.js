@@ -156,7 +156,12 @@ function semanticsParser(pfile, ctx) {
 exports.semanticsParser = semanticsParser;
 function parseBody(nodes, scope, ctx) {
     let err = new CompileErrors_1.ReturnWrapper();
+    let diedAt = null;
     for (let node of nodes) {
+        if (diedAt) {
+            err.push(new CompileErrors_1.CompileError(AST_1.astErrorMsg(nodes.slice(nodes.indexOf(node)), 'Dead code detected'), true));
+            break;
+        }
         switch (node.type) {
             case AST_1.ASTNodeType.COMMAND: {
                 let foundErrors = false;
@@ -182,6 +187,8 @@ function parseBody(nodes, scope, ctx) {
                 break;
             }
             case AST_1.ASTNodeType.RETURN: {
+                if (!diedAt)
+                    diedAt = node;
                 let fnscope = scope.getSuperByType('FN');
                 if (!fnscope)
                     throw new Error('ast throw would be nice... return must be contained in fn scope');
@@ -197,8 +204,10 @@ function parseBody(nodes, scope, ctx) {
                         continue;
                     esr = x.value;
                 }
-                if (!Types_1.hasSharedType(ESR_1.getESRType(esr), ESR_1.getESRType(fnret)))
-                    throw new Error('ast throw would be nice... return must match fn return type');
+                if (!Types_1.hasSharedType(ESR_1.getESRType(esr), ESR_1.getESRType(fnret))) {
+                    err.push(new CompileErrors_1.CompileError(AST_1.astErrorMsg(node, 'return must match fn return type'), false));
+                    continue;
+                }
                 // return instructions
                 if (esr.type != ESR_1.ESRType.VOID)
                     scope.push(...ESR_1.assignESR(esr, fnret));

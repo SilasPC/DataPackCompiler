@@ -1,5 +1,5 @@
 import { ParsingFile } from "../lexing/ParsingFile"
-import { ASTNode, ASTNodeType, ASTOpNode } from "../syntax/AST"
+import { ASTNode, ASTNodeType, ASTOpNode, astErrorMsg } from "../syntax/AST"
 import { ESR, ESRType, getESRType, IntESR, copyESRToLocal, assignESR } from "./ESR"
 import { tokenToType, ElementaryValueType, ValueType, hasSharedType } from "./Types"
 import { DeclarationType, VarDeclaration, FnDeclaration, ImplicitVarDeclaration, extractToken } from "./Declaration"
@@ -8,7 +8,7 @@ import { exhaust } from "../toolbox/other"
 import { CompileContext } from "../toolbox/CompileContext"
 import { Scope } from "./Scope"
 import { InstrType } from "../codegen/Instructions"
-import { Possible, ReturnWrapper } from "../toolbox/CompileErrors"
+import { Possible, ReturnWrapper, CompileError } from "../toolbox/CompileErrors"
 
 export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): Possible<null> {
 
@@ -170,7 +170,20 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): Possible<
 
 function parseBody(nodes:ASTNode[],scope:Scope,ctx:CompileContext): Possible<null> {
 	let err = new ReturnWrapper<null>()
+	let diedAt: ASTNode | null = null
 	for (let node of nodes) {
+
+		if (diedAt) {
+			err.push(new CompileError(
+				astErrorMsg(
+					nodes.slice(nodes.indexOf(node)),
+					'Dead code detected'
+				),
+				true
+			))
+			break
+		}
+
 		switch (node.type) {
 			case ASTNodeType.COMMAND: {
 				let foundErrors = false
@@ -195,6 +208,7 @@ function parseBody(nodes:ASTNode[],scope:Scope,ctx:CompileContext): Possible<nul
 				break
 			}
 			case ASTNodeType.RETURN: {
+				if (!diedAt) diedAt = node
 				let fnscope = scope.getSuperByType('FN')
 				if (!fnscope) throw new Error('ast throw would be nice... return must be contained in fn scope')
 				let fnret = fnscope.getReturnVar()
@@ -207,8 +221,10 @@ function parseBody(nodes:ASTNode[],scope:Scope,ctx:CompileContext): Possible<nul
 					esr = x.value
 				}
 				
-				if (!hasSharedType(getESRType(esr),getESRType(fnret)))
-					throw new Error('ast throw would be nice... return must match fn return type')
+				if (!hasSharedType(getESRType(esr),getESRType(fnret))) {
+					err.push(new CompileError(astErrorMsg(node,'return must match fn return type'),false))
+					continue
+				}
 
 				// return instructions
 				if (esr.type != ESRType.VOID)
@@ -236,21 +252,21 @@ function parseBody(nodes:ASTNode[],scope:Scope,ctx:CompileContext): Possible<nul
 			}
 			case ASTNodeType.DEFINE: {
 				let type = tokenToType(node.varType,scope.symbols)
-					if (type.elementary && type.type == ElementaryValueType.VOID)
-						node.varType.throwDebug(`Cannot declare a variable of type 'void'`)
-					if (!type.elementary) node.varType.throwDebug('no non-elemn rn k')
-					let esr0 = exprParser(node.initial,scope,ctx)
-					// the above cannot be used for the variables esr (might mutate const)
-					// we must create a new esr, then assign the above to that
-					if (err.merge(esr0)) continue
-					let res = copyESRToLocal(esr0.value,ctx,scope,node.identifier.value)
-					let esr = res.esr
-					scope.push(res.copyInstr)
+				if (type.elementary && type.type == ElementaryValueType.VOID)
+					node.varType.throwDebug(`Cannot declare a variable of type 'void'`)
+				if (!type.elementary) node.varType.throwDebug('no non-elemn rn k')
+				let esr0 = exprParser(node.initial,scope,ctx)
+				// the above cannot be used for the variables esr (might mutate const)
+				// we must create a new esr, then assign the above to that
+				if (err.merge(esr0)) continue
+				let res = copyESRToLocal(esr0.value,ctx,scope,node.identifier.value)
+				let esr = res.esr
+				scope.push(res.copyInstr)
 
-					if (!hasSharedType(getESRType(esr),type)) node.identifier.throwDebug('type mismatch')
-					let decl: VarDeclaration = {type:DeclarationType.VARIABLE,varType:type,node,esr}
-					scope.symbols.declare(node.identifier,decl)
-					break
+				if (!hasSharedType(getESRType(esr),type)) node.identifier.throwDebug('type mismatch')
+				let decl: VarDeclaration = {type:DeclarationType.VARIABLE,varType:type,node,esr}
+				scope.symbols.declare(node.identifier,decl)
+				break
 			}
 			case ASTNodeType.LIST:
 			case ASTNodeType.FUNCTION:
@@ -260,5 +276,6 @@ function parseBody(nodes:ASTNode[],scope:Scope,ctx:CompileContext): Possible<nul
 				return exhaust(node)
 		}
 	}
+
 	return err.wrap(null)
 }

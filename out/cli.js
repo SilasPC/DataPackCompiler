@@ -101,7 +101,7 @@ async function compile(argv) {
                 verbosity: argv.verbose ? argv.verbose : undefined,
                 colorLog: argv.noColor ? false : undefined
             });
-            if (!argv.noEmit)
+            if (dp.canEmit() && !argv.noEmit)
                 await dp.emit();
         }
         catch (err) {

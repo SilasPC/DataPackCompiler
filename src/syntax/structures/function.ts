@@ -7,6 +7,7 @@ import { TokenIteratorI } from "../../lexing/TokenIterator"
 import { CompileContext } from "../../toolbox/CompileContext"
 
 export function parseFunction(iter:TokenIteratorI,ctx:CompileContext): ASTFnNode {
+    let fnToken = iter.current()
     let fnSymbol = iter.next().expectType(TokenType.SYMBOL)
     let parameters: {symbol:Token,type:Token}[] = []
     iter.next().expectType(TokenType.MARKER).expectValue('(')
@@ -27,6 +28,7 @@ export function parseFunction(iter:TokenIteratorI,ctx:CompileContext): ASTFnNode
         identifier: fnSymbol,
         parameters,
         body,
+        keyword: fnToken,
         returnType
     }
 }

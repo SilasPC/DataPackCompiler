@@ -2,16 +2,13 @@
 - Control flow
 	- Merge scopes *broken* vars into a single var per fn
 - Code generation
-- Make AST's throwable
 - Syntax sheet
   - Special parameters and substitution methods
 	- Return type annotation
 	- Version control
 	- Extend | destroy from older versions
 - Differentiate between datapack loading and initialization
-- Actually use ref-counter in symbol table
 - ASTNode subtypes like ASTExpression
-- No-dead-code flag
 - Actually add the check when invoking controlflow functions
 - Word boundaries around say keywords in lexer
 

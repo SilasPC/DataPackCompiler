@@ -1,5 +1,9 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
+const safe_1 = __importDefault(require("colors/safe"));
 class Base {
     constructor(wrapper, valueExists) {
         this.wrapper = wrapper;
@@ -80,7 +84,7 @@ class CompileError extends Error {
     public readonly indexEnd: number,
     public readonly msg: string*/
     errorString, warnOnly) {
-        super('Compilation error');
+        super(errorString);
         this.errorString = errorString;
         this.warnOnly = warnOnly;
     }
@@ -89,4 +93,41 @@ class CompileError extends Error {
     }
 }
 exports.CompileError = CompileError;
+function createErrorMessage(fl, ll, fi, li, err) {
+    let msg = [];
+    let nrLen = ll.nr.toString().length;
+    let ws = ' '.repeat(nrLen + 2);
+    msg.push(`At ("${fl.file.relativePath}":${fl.nr}:${fi - fl.startIndex}):`);
+    msg.push(`${ws}${err}`);
+    msg.push(`${ws}|`);
+    if (fl.previous)
+        msg.push(` ${(fl.nr - 1).toString().padStart(nrLen, ' ')} | ${fl.previous.line}`);
+    let l = fl;
+    let lines = [fl];
+    while (l != ll && l != null) {
+        lines.push(l);
+        l = l.next;
+    }
+    if (lines.length > 3) {
+        let prevLine = lines[0];
+        let placeholder = ':'.repeat((prevLine.nr).toString().length).padStart(nrLen, ' ');
+        lines = lines.slice(0, 1).concat(` ${placeholder} |`, lines.slice(-1));
+    }
+    for (let line of lines) {
+        if (typeof line == 'string') {
+            msg.push(line);
+            continue;
+        }
+        let wss = line.line.length - line.line.trimLeft().length;
+        let c0 = Math.max(fi - line.startIndex, wss);
+        let c1 = Math.min(li - line.startIndex, line.line.trimRight().length);
+        msg.push(` ${line.nr.toString().padStart(nrLen, ' ')} | ${line.line.slice(0, c0)}${safe_1.default.inverse(line.line.slice(c0, c1))}${line.line.slice(c1)}`);
+    }
+    if (ll.next)
+        msg.push(` ${(ll.nr + 1).toString().padStart(nrLen, ' ')} | ${ll.next.line}`);
+    // msg.push(`${ws}| ${' '.repeat(i)}${'^'.repeat(l)}`)
+    msg.push(`${ws}|`);
+    return msg.join('\n');
+}
+exports.createErrorMessage = createErrorMessage;
 //# sourceMappingURL=CompileErrors.js.map

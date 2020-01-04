@@ -23,6 +23,7 @@ class Datapack {
         this.packDir = packDir;
         this.packJson = packJson;
         this.ctx = null;
+        this.errorIgnoreEmit = false;
         this.fnMap = null;
     }
     static async initialize(path) {
@@ -98,17 +99,25 @@ class Datapack {
         ctx.log2(1, 'inf', `Compilation complete`);
         ctx.log2(2, 'inf', `Elapsed time: ${moment_1.default.duration(moment_1.default().diff(start)).format()}`);
         if (err.hasErrors()) {
+            this.errorIgnoreEmit = true;
             ctx.log2(1, 'err', `Found a total of ${err.getErrorCount()} errors:`);
             ctx.logErrors(err);
         }
+        else
+            this.errorIgnoreEmit = false;
         if (err.hasWarnings()) {
             ctx.log2(1, 'wrn', `Found a total of ${err.getWarningCount()} warnings:`);
             ctx.logWarns(err);
         }
     }
+    canEmit() {
+        return Boolean(this.fnMap && this.ctx && !this.errorIgnoreEmit);
+    }
     async emit() {
         if (!this.fnMap || !this.ctx)
             throw new Error('Nothing to emit. Use .compile() first.');
+        if (this.errorIgnoreEmit)
+            throw new Error('Datapack contains errors, ignoring emit.');
         let emitDir = path_1.join(this.packDir, this.packJson.emitDir);
         // I hate fs right now. Hence the caps.
         await MKDIRP(emitDir + '/data');

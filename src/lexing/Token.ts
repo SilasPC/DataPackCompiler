@@ -1,9 +1,8 @@
 import { ParsingFile } from "./ParsingFile"
-import { Errorable } from "../toolbox/other";
-import { CompileError } from "../toolbox/CompileErrors";
+import { CompileError, createErrorMessage } from "../toolbox/CompileErrors";
 import cols from 'colors/safe'
 
-export class SourceLine implements Errorable {
+export class SourceLine {
 
     public next: SourceLine|null = null
 
@@ -15,38 +14,18 @@ export class SourceLine implements Errorable {
         public readonly nr: number
     ) {}
 
-    warn(e:string,i?:number,l?:number) {
-        console.log(this.errorMessage('Warning',e,i,l))
-    }
-    fatal(e:string,i?:number,l?:number): never {
-        throw new Error(this.errorMessage('Fatal',e,i,l))
-    }
-    
-    errorMessage(type:string,e:string,i?:number,l?:number) {
-        if (typeof i == 'undefined') {i = 0; l = 1}
-        else if (typeof l == 'undefined') l = this.line.length
-        let nrLen = (this.nr+(this.next?1:0)).toString().length
-        let ws = ' '.repeat(nrLen+2)
-        let msg: string[] = []
-        msg.push(`${type} ("${this.file.relativePath}":${this.nr}:${i}):`)
-        msg.push(`${ws}${e}`)
-        msg.push(`${ws}|`)
-        if (this.previous)
-            msg.push(` ${(this.nr-1).toString().padStart(nrLen,' ')} | ${this.previous.line}`)
-        
-        msg.push(` ${this.nr.toString().padStart(nrLen,' ')} | ${this.line.slice(0,i)}${
-            cols.inverse(this.line.substr(i,l))
-        }${this.line.slice(i+l)}`)
-        // msg.push(`${ws}| ${' '.repeat(i)}${'^'.repeat(l)}`)
-        if (this.next)
-            msg.push(` ${(this.nr+1).toString().padStart(nrLen,' ')} | ${this.next.line}`)
-        msg.push(`${ws}|`)
-        return msg.join('\n')
+    fatal(e:string,index:number,length:number): never {
+        throw new Error(createErrorMessage(
+            this,this,
+            this.startIndex + index,
+            this.startIndex + index + length,
+            e
+        ))
     }
 
 }
 
-export class Token implements Errorable {
+export class Token {
 
     constructor(
         public readonly line: SourceLine,
@@ -56,48 +35,29 @@ export class Token implements Errorable {
     ) {}
     
     error(msg:string): CompileError {
+        let fi = this.line.startIndex + this.index
+        let li = fi + this.value.length
         return new CompileError(
-            /*this.line.file,
-            this.line.startIndex + this.index,
-            this.line.startIndex + this.index + this.value.length,
-            msg*/
-            this.line.errorMessage('type',msg,this.index,this.value.length),
+            createErrorMessage(this.line,this.line,fi,li,msg),
             false
         )
     }
 
     warning(msg:string) {
+        let fi = this.line.startIndex + this.index
+        let li = fi + this.value.length
         return new CompileError(
-            /*this.line.file,
-            this.line.startIndex + this.index,
-            this.line.startIndex + this.index + this.value.length,
-            msg*/
-            this.line.errorMessage('type',msg,this.index,this.value.length),
+            createErrorMessage(this.line,this.line,fi,li,msg),
             true
         )
     }
 
-    expectType(...t:TokenType[]) {
-        if (!t.includes(this.type)) return this.fatal('expected type(s) '+t.map(t=>TokenType[t]).toString())
-        return this
-    }
-
-    expectValue(...v:string[]) {
-        if (!v.includes(this.value)) return this.fatal('expected value(s) '+v.toString())
-        return this
-    }
-
-    expectSemiColon() {
-        return this.expectType(TokenType.MARKER).expectValue(';')
-    }
-
-    throwDebug(e:string) {return this.fatal('DEBUG: '+e)}
-
-    fatal(e:string) {return this.line.fatal(e,this.index,this.value.length)}
-    warn(e:string) {this.line.warn(e,this.index,this.value.length)}
-
-    throwUnexpectedKeyWord() {return this.fatal('Unexpected keyword: '+this.value)}
-    throwNotDefined() {return this.fatal('Identifier not defined in this scope')}
+    expectType(...t:TokenType[]) {if (!t.includes(this.type)) throw this.error('expected type(s) '+t.map(t=>TokenType[t]).toString());return this}
+    expectValue(...v:string[]) {if (!v.includes(this.value)) throw this.error('expected value(s) '+v.toString());return this}
+    expectSemiColon() {return this.expectType(TokenType.MARKER).expectValue(';')}
+    throwDebug(e:string): never {throw this.error('DEBUG '+e)}
+    throwUnexpectedKeyWord(): never {throw this.error('Unexpected keyword: '+this.value)}
+    throwNotDefined(): never {throw this.error('Identifier not defined in this scope')}
 
 }
 

@@ -8,7 +8,7 @@ import { CompileContext } from "../toolbox/CompileContext";
 
 export function fileSyntaxParser(pfile: ParsingFile, ctx: CompileContext): void {
     const iter = pfile.getTokenIterator()
-    let doExport = false
+    let doExport: Token | null = null
     for (let token of iter) {
         switch (token.type) {
             case TokenType.KEYWORD: {
@@ -18,15 +18,15 @@ export function fileSyntaxParser(pfile: ParsingFile, ctx: CompileContext): void 
                         return token.throwDebug('no import yet')
                     case 'export':
                         if (doExport) return token.throwUnexpectedKeyWord()
-                        doExport = true
+                        doExport = token
                         break
                     case 'fn':
                         pfile.addASTNode(wrapExport(parseFunction(iter,ctx),doExport))
-                        doExport = false
+                        doExport = null
                         break
                     case 'let':
                         pfile.addASTNode(wrapExport(parseDeclaration(iter,ctx),doExport))
-                        doExport = false
+                        doExport = null
                         break
                     default:
                         return token.throwUnexpectedKeyWord()

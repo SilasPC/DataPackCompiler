@@ -13,7 +13,7 @@ export class ParsingFile {
 
     static loadFile(path:string,ctx:CompileContext) {
         let fullPath = resolve(path)
-        let relativePath = './'+relative('./',fullPath).replace('\\','/').split('.').slice(0,-1).join('.')
+        let relativePath = './'+relative('./',fullPath).replace(/\\/g,'/').split('.').slice(0,-1).join('.')
         let file = new ParsingFile(
             fullPath,
             relativePath,
@@ -39,7 +39,6 @@ export class ParsingFile {
         public readonly relativePath: string,
         public readonly source: string,
         public readonly scope: Scope
-        
     ) {}
 
     addToken(t:Token) {this.tokens.push(t)}
@@ -61,7 +60,7 @@ export class ParsingFile {
     }
 
     throwUnexpectedEOF() {
-        return (<Token>this.tokens.pop()).fatal('Unexpected EOF')
+        return (<Token>this.tokens.pop()).line.fatal('Unexpected EOF',0,0)
     }
 
 }

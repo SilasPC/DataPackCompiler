@@ -6,7 +6,7 @@ const helpers_1 = require("./helpers");
 const declaration_1 = require("./structures/declaration");
 function fileSyntaxParser(pfile, ctx) {
     const iter = pfile.getTokenIterator();
-    let doExport = false;
+    let doExport = null;
     for (let token of iter) {
         switch (token.type) {
             case Token_1.TokenType.KEYWORD: {
@@ -18,15 +18,15 @@ function fileSyntaxParser(pfile, ctx) {
                     case 'export':
                         if (doExport)
                             return token.throwUnexpectedKeyWord();
-                        doExport = true;
+                        doExport = token;
                         break;
                     case 'fn':
                         pfile.addASTNode(helpers_1.wrapExport(function_1.parseFunction(iter, ctx), doExport));
-                        doExport = false;
+                        doExport = null;
                         break;
                     case 'let':
                         pfile.addASTNode(helpers_1.wrapExport(declaration_1.parseDeclaration(iter, ctx), doExport));
-                        doExport = false;
+                        doExport = null;
                         break;
                     default:
                         return token.throwUnexpectedKeyWord();

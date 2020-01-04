@@ -39,11 +39,13 @@ function lineSyntaxParser(iter, ctx) {
                     if (iter.peek().type == Token_1.TokenType.MARKER && iter.peek().value == ';')
                         return {
                             type: AST_1.ASTNodeType.RETURN,
+                            keyword: token,
                             node: null
                         };
                     else
                         return {
                             type: AST_1.ASTNodeType.RETURN,
+                            keyword: token,
                             node: expressionSyntaxParser_1.expressionSyntaxParser(iter, ctx).ast
                         };
                 }

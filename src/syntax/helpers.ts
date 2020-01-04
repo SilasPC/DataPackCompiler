@@ -8,9 +8,9 @@ export function getType(iter:TokenIteratorI): Token {
     return iter.next().expectType(TokenType.SYMBOL,TokenType.TYPE)
 }
 
-export function wrapExport(node:ASTNode,wrap:boolean): ASTNode {
-    if (wrap) {
-        let ret: ASTExportNode = {type:ASTNodeType.EXPORT,node}
+export function wrapExport(node:ASTNode,keyword:Token|null): ASTNode {
+    if (keyword) {
+        let ret: ASTExportNode = {type:ASTNodeType.EXPORT,keyword,node}
         return ret
     }
     return node

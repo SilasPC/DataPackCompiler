@@ -41,7 +41,7 @@ const argv = yargs
 			})
 	}, compile)
 
-	.option('no-emit', {
+	.option('no-emit', { // flag isn't working
 		boolean: true,
 		default: false,
 		description: 'Compile without emitting datapack',
@@ -116,7 +116,7 @@ async function compile(argv:any): Promise<void> {
 				verbosity: argv.verbose ? argv.verbose as number : undefined,
 				colorLog: argv.noColor ? false : undefined
 			})
-			if (!argv.noEmit) await dp.emit()
+			if (dp.canEmit() && !argv.noEmit) await dp.emit()
 			
 		} catch (err) {
 			if (err instanceof Error) {
