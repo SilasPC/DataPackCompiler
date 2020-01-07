@@ -11,6 +11,7 @@
 - ASTNode subtypes like ASTExpression
 - Actually add the check when invoking controlflow functions
 - Word boundaries around say keywords in lexer
+- Exhaustability / typing of token values
 
 # FUTURE
 - Make use of compiler options

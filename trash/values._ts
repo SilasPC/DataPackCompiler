@@ -1,6 +1,0 @@
-
-export const keywords: ReadonlyArray<string> = ['fn','let','var','break','for','event','while','return','if','else','class','tick','import','const','from','export']
-export const types: ReadonlyArray<string> = ['int','void']
-export const comments: ReadonlyArray<string> = ['//','/*','*/']
-export const mutatingOperators: ReadonlyArray<string> = ['=','+=','-=','*=','*=','%=','++','--']
-export const nonmutatingOperators: ReadonlyArray<string> = ['+','-','*','/','%','!','>','<','==','>=','<=','=','&&','||']
