@@ -1,16 +1,16 @@
 
 import { ParsingFile } from "./ParsingFile";
-import { Token } from "./Token";
+import { TokenI } from "./Token";
 
 export interface TokenIteratorI {
 
-    current(): Token
-    peek(): Token
-    next(): Token
+    current(): TokenI
+    peek(): TokenI
+    next(): TokenI
     skip(n:number): this
     isDone(): boolean
 
-    [Symbol.iterator](): Iterator<Token>
+    [Symbol.iterator](): Iterator<TokenI>
 
 }
 
@@ -18,7 +18,7 @@ export class TokenIterator implements TokenIteratorI {
 
     constructor(
         public readonly file: ParsingFile,
-        private readonly tokens: Token[],
+        private readonly tokens: TokenI[],
         private index = 0
     ) {}
 
@@ -45,7 +45,7 @@ export class TokenIterator implements TokenIteratorI {
 
 export class LiveIterator implements TokenIteratorI {
 
-    private readonly tokens: Token[] = []
+    private readonly tokens: TokenI[] = []
     private index = 0
     private done = false
 
@@ -59,8 +59,8 @@ export class LiveIterator implements TokenIteratorI {
         if (!this.tokens[this.index]) {
             let {done,value} = this.generator.next()
             if (done) this.done = true
-            this.tokens[this.index++] = value as Token
-            return value as Token
+            this.tokens[this.index++] = value as TokenI
+            return value as TokenI
         }
         return this.tokens[this.index++]
     }

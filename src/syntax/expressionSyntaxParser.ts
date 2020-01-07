@@ -1,5 +1,5 @@
 
-import { Token, TokenType } from "../lexing/Token";
+import { TokenI, TokenType } from "../lexing/Token";
 import { ASTNode, ASTNodeType, ASTIdentifierNode, ASTOpNode, ASTCallNode, ASTListNode } from "./AST";
 import { TokenIterator, TokenIteratorI } from "../lexing/TokenIterator";
 import { CompilerOptions } from "../toolbox/config";
@@ -13,7 +13,7 @@ enum OpType {
 }
 
 type Op = {
-    token: Token
+    token: TokenI
     op: string
     precedency: number
     leftToRight: boolean
@@ -237,7 +237,7 @@ export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext)
 
 }
 
-function opInfo(token:Token,prefix:boolean): Op {
+function opInfo(token:TokenI,prefix:boolean): Op {
     let [precedency,leftToRight,type] = p(token,prefix)
     if (prefix && type != OpType.PREFIX) token.throwDebug('Operator cannot be prefixed')
     // console.log('opinfo',token.value,precedency,leftToRight,OpType[type])
@@ -252,7 +252,7 @@ function opInfo(token:Token,prefix:boolean): Op {
     }
 }
 
-function p(t:Token,prefix:boolean): [number,boolean,OpType] {
+function p(t:TokenI,prefix:boolean): [number,boolean,OpType] {
     switch (t.value) {
 
         case '.':

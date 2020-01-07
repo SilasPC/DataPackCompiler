@@ -1,6 +1,6 @@
 
 import { ParsingFile } from "../lexing/ParsingFile";
-import { TokenType, Token } from "../lexing/Token";
+import { TokenType, TokenI } from "../lexing/Token";
 import { parseFunction } from "./structures/function";
 import { wrapExport } from "./helpers";
 import { parseDeclaration } from "./structures/declaration";
@@ -8,7 +8,7 @@ import { CompileContext } from "../toolbox/CompileContext";
 
 export function fileSyntaxParser(pfile: ParsingFile, ctx: CompileContext): void {
     const iter = pfile.getTokenIterator()
-    let doExport: Token | null = null
+    let doExport: TokenI | null = null
     for (let token of iter) {
         switch (token.type) {
             case TokenType.KEYWORD: {

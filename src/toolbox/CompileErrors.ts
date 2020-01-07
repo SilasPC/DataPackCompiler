@@ -1,5 +1,5 @@
 
-import { SourceLine } from "../lexing/Token"
+import { SourceLine } from "../lexing/SourceLine"
 import cols from 'colors/safe'
 
 interface Exists<T> extends Base<T> {

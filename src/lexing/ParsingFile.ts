@@ -1,11 +1,11 @@
 
-import { Token } from "./Token";
+import { TokenI } from "./Token";
 import { ASTNode } from "../syntax/AST";
 import { readFileSync } from "fs";
 import { resolve, relative, basename } from 'path'
 import { SymbolTable } from "../semantics/SymbolTable";
 import { TokenIterator } from "./TokenIterator";
-import { Declaration } from "../semantics/Declaration";
+import { DeclarationWrapper, Declaration } from "../semantics/Declaration";
 import { Scope } from "../semantics/Scope";
 import { CompileContext } from "../toolbox/CompileContext";
 
@@ -28,7 +28,7 @@ export class ParsingFile {
         return new ParsingFile('','',source,Scope.createRoot('source',ctx))
     }
 
-    private readonly tokens: Token[] = []
+    private readonly tokens: TokenI[] = []
     private readonly ast: ASTNode[] = []
     private readonly exports: Map<string,Declaration> = new Map()
 
@@ -41,26 +41,26 @@ export class ParsingFile {
         public readonly scope: Scope
     ) {}
 
-    addToken(t:Token) {this.tokens.push(t)}
+    addToken(t:TokenI) {this.tokens.push(t)}
     getTokenIterator() {return new TokenIterator(this,this.tokens)}
 
     addASTNode(n:ASTNode) {this.ast.push(n)}
     getAST() {return this.ast}
 
     getSymbolTable() {return this.scope.symbols}
-    addExport(identifier:string,declaration:Declaration) {
-        if (this.exports.has(identifier)) throw new Error('export duplicate identifier')
-        this.exports.set(identifier,declaration)
+    addExport(decl:DeclarationWrapper) {
+        if (this.exports.has(decl.token.value)) decl.token.throwDebug('export duplicate identifier')
+        this.exports.set(decl.token.value,decl.decl)
     }
     hasExport(id:string) {return this.exports.has(id)}
 
-    import(identifier:Token): Declaration {
+    import(identifier:TokenI): DeclarationWrapper {
         if (!this.exports.has(identifier.value)) identifier.throwDebug('no such exported member')
-        return this.exports.get(identifier.value) as Declaration
+        return {token:identifier,decl:this.exports.get(identifier.value) as Declaration}
     }
 
     throwUnexpectedEOF() {
-        return (<Token>this.tokens.pop()).line.fatal('Unexpected EOF',0,0)
+        return (<TokenI>this.tokens.pop()).line.fatal('Unexpected EOF',0,0)
     }
 
 }

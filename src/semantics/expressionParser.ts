@@ -2,7 +2,7 @@ import { ASTNode, ASTNodeType, ASTOpNode } from "../syntax/AST"
 import { SymbolTable } from "./SymbolTable"
 import { Instruction, INT_OP, InstrType, INVOKE } from "../codegen/Instructions"
 import { ESR, ESRType, IntESR, getESRType } from "./ESR"
-import { DeclarationType, extractToken } from "./Declaration"
+import { DeclarationType } from "./Declaration"
 import { ElementaryValueType, hasSharedType } from "./Types"
 import { exhaust } from "../toolbox/other"
 import { CompileContext } from "../toolbox/CompileContext"
@@ -20,11 +20,8 @@ export function exprParser(node: ASTNode, scope: Scope, ctx: CompileContext): Po
 		case ASTNodeType.IDENTIFIER: {
 			let possibleDecl = symbols.getDeclaration(node.identifier)
 			if (possibleDecl.hasError()) return err.wrap(possibleDecl)
-			let decl = possibleDecl.value
-			let token = extractToken(decl)
+			let {token,decl} = possibleDecl.value
 			switch (decl.type) {
-				case DeclarationType.IMPLICIT_VARIABLE:
-					// fallthrough
 				case DeclarationType.VARIABLE: {
 					let esr = decl.esr
 					if (decl.varType.elementary) {
@@ -75,8 +72,9 @@ export function exprParser(node: ASTNode, scope: Scope, ctx: CompileContext): Po
 			params.forEach(
 				p => p instanceof ReturnWrapper ? err.merge(p) : null
 			)
-			let decl = symbols.getDeclaration(node.function.identifier.value)
-			if (decl == null) return err.wrap(node.function.identifier.error('fn not declared'))
+			let declw = symbols.getDeclaration(node.function.identifier.value)
+			if (declw == null) return err.wrap(node.function.identifier.error('fn not declared'))
+			let decl = declw.decl
 			if (decl.type != DeclarationType.FUNCTION)
 				return err.wrap(node.function.identifier.error('not a fn'))
 			let paramTypes = decl.parameters.map(getESRType)
@@ -86,7 +84,7 @@ export function exprParser(node: ASTNode, scope: Scope, ctx: CompileContext): Po
 				if (!param.hasValue()) continue
 				let esr = decl.parameters[i]
 				if (!hasSharedType(getESRType(param.value),getESRType(esr))) {
-					err.push(node.function.identifier.throwDebug('param type mismatch'))
+					err.push(node.function.identifier.error('param type mismatch'))
 					continue
 				}
 				switch (esr.type) {

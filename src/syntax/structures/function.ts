@@ -1,6 +1,6 @@
 
 import { ASTFnNode, ASTNodeType } from "../AST"
-import { TokenType, Token } from "../../lexing/Token"
+import { TokenType, TokenI } from "../../lexing/Token"
 import { bodySyntaxParser } from "../bodySyntaxParser"
 import { getType } from "../helpers"
 import { TokenIteratorI } from "../../lexing/TokenIterator"
@@ -9,7 +9,7 @@ import { CompileContext } from "../../toolbox/CompileContext"
 export function parseFunction(iter:TokenIteratorI,ctx:CompileContext): ASTFnNode {
     let fnToken = iter.current()
     let fnSymbol = iter.next().expectType(TokenType.SYMBOL)
-    let parameters: {symbol:Token,type:Token}[] = []
+    let parameters: {symbol:TokenI,type:TokenI}[] = []
     iter.next().expectType(TokenType.MARKER).expectValue('(')
     while (iter.peek().type == TokenType.SYMBOL) {
         let symbol = iter.next()

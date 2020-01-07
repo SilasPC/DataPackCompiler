@@ -2,7 +2,7 @@ import { ParsingFile } from "../lexing/ParsingFile"
 import { ASTNode, ASTNodeType, ASTOpNode, astErrorMsg } from "../syntax/AST"
 import { ESR, ESRType, getESRType, IntESR, copyESRToLocal, assignESR } from "./ESR"
 import { tokenToType, ElementaryValueType, ValueType, hasSharedType } from "./Types"
-import { DeclarationType, VarDeclaration, FnDeclaration, ImplicitVarDeclaration, extractToken } from "./Declaration"
+import { DeclarationType, VarDeclaration, FnDeclaration } from "./Declaration"
 import { exprParser } from "./expressionParser"
 import { exhaust } from "../toolbox/other"
 import { CompileContext } from "../toolbox/CompileContext"
@@ -55,9 +55,10 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): Possible<
 					err.push(node.identifier.error('type mismatch'))
 					continue
 				}
-				let decl: VarDeclaration = {type:DeclarationType.VARIABLE,varType:type,node,esr}
-				symbols.declare(node.identifier,decl)
-				if (shouldExport) pfile.addExport(node.identifier.value,decl)
+				let decl: VarDeclaration = {type:DeclarationType.VARIABLE,varType:type,esr}
+				let declWrap = {decl,token:node.identifier}
+				symbols.declare(declWrap)
+				if (shouldExport) pfile.addExport(declWrap)
 				break
 			}
 	
@@ -88,11 +89,10 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): Possible<
 				let decl: FnDeclaration = {
 					type: DeclarationType.FUNCTION,
 					returns: esr,
-					node,
 					fn,
 					parameters
 				}
-				symbols.declare(node.identifier,decl)
+				symbols.declare({token:node.identifier,decl})
 				for (let param of node.parameters) {
 					let type = tokenToType(param.type,symbols)
 					if (!type.elementary) {
@@ -120,16 +120,15 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): Possible<
 						default:
 							return exhaust(type.type)
 					}
-					let decl: ImplicitVarDeclaration = {
-						type: DeclarationType.IMPLICIT_VARIABLE,
-						token: param.symbol,
+					let decl: VarDeclaration = {
+						type: DeclarationType.VARIABLE,
 						varType: type,
 						esr
 					}
 					parameters.push(esr)
-					branch.symbols.declare(param.symbol,decl)
+					branch.symbols.declare({token:param.symbol,decl})
 				}
-				if (shouldExport) pfile.addExport(node.identifier.value,decl)
+				if (shouldExport) pfile.addExport({token:node.identifier,decl})
 				if (err.merge(parseBody(node.body,branch,ctx))) continue
 
 				fn.add(...branch.mergeBuffers())
@@ -159,7 +158,7 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): Possible<
 
 	// Check unused
 	for (let [key,decl] of Object.entries(symbols.getUnreferenced())) {
-		if (!pfile.hasExport(key)) err.push(extractToken(decl).warning('Unused'))
+		if (!pfile.hasExport(key)) err.push(decl.token.warning('Unused'))
 	}
 
 	pfile.status = 'parsed'
@@ -264,8 +263,8 @@ function parseBody(nodes:ASTNode[],scope:Scope,ctx:CompileContext): Possible<nul
 				scope.push(res.copyInstr)
 
 				if (!hasSharedType(getESRType(esr),type)) node.identifier.throwDebug('type mismatch')
-				let decl: VarDeclaration = {type:DeclarationType.VARIABLE,varType:type,node,esr}
-				scope.symbols.declare(node.identifier,decl)
+				let decl: VarDeclaration = {type:DeclarationType.VARIABLE,varType:type,esr}
+				scope.symbols.declare({token:node.identifier,decl})
 				break
 			}
 			case ASTNodeType.LIST:

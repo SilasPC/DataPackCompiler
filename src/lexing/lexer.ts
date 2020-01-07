@@ -1,18 +1,16 @@
 
-import { Token, TokenType, SourceLine } from './Token'
+import { TokenI, TokenType, Token } from './Token'
 import { ParsingFile } from './ParsingFile'
 import { exhaust } from '../toolbox/other'
 import 'array-flat-polyfill'
 import { CompileContext } from '../toolbox/CompileContext'
 import { LiveIterator } from './TokenIterator'
+import { SourceLine } from './SourceLine'
+import { operators, keywords, markers, types } from './values'
 
-const keywords = "fn|let|var|break|for|event|while|return|if|else|class|tick|import|const|from|export"
-const types = 'int|void|bool'
 const comments = "//|/\\*|\\*/"
-const operators = "\\+=|-=|\\*=|/=|%=|\\+\\+|\\+|--|-|\\*|/|%|>|<|==|>=|<=|=|!|&&|\\|\\|"
 const primitives = "\\d+(?:\\.\\d+)?|true|false|'[^']*'"
 const symbol = "[a-zA-Z][a-zA-Z0-9]*"
-const markers = ";|:|\\.|,|\\(|\\)|\\[|\\]|\\{|\\}"
 const cmd = '/\\w.*?(?=\r?\n)'
 
 function getRgx() {
@@ -55,7 +53,7 @@ export function lexer(pfile:ParsingFile,ctx:CompileContext): void {
 
 }
 
-export function inlineLiveLexer(token:Token,offset:number) {
+export function inlineLiveLexer(token:TokenI,offset:number) {
     return new LiveIterator(inlineLexer(token.line,token.index+offset))
 }
 
@@ -77,7 +75,7 @@ function* inlineLexer(line:SourceLine,offset:number)/*: Generator<Token,void>*/ 
             }
             continue
         }
-        yield new Token(line,index+offset,groupToType(group),value)
+        yield Token.create(line,index+offset,groupToType(group),value)
     }
     return
 }
@@ -111,7 +109,7 @@ function* baseLex(pfile:ParsingFile,source:string)/*: Generator<Token,void>*/ {
         if (group == 'bad') {
             return line.fatal('Invalid token',index-line.startIndex,value.length)
         }
-        yield new Token(line,index-line.startIndex,groupToType(group),value)
+        yield Token.create(line,index-line.startIndex,groupToType(group),value)
     }
     return
 }

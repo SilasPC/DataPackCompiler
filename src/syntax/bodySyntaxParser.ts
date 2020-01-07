@@ -1,5 +1,5 @@
 
-import { TokenType, Token } from "../lexing/Token";
+import { TokenType, TokenI } from "../lexing/Token";
 import { ASTNode, ASTNodeType, ASTReturnNode } from "./AST";
 import { expressionSyntaxParser } from "./expressionSyntaxParser";
 import { parseConditional } from "./structures/conditional";
@@ -74,6 +74,6 @@ export function lineSyntaxParser(iter:TokenIteratorI,ctx:CompileContext): ASTNod
         case TokenType.TYPE:
             return token.throwDebug('unexpected')
         default:
-            return exhaust(token.type)
+            return exhaust(token)
     }
 }

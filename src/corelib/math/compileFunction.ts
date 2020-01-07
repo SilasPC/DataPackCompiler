@@ -1,5 +1,5 @@
 import { CompileContext } from "../../toolbox/CompileContext";
-import { FnDeclaration, DeclarationType, ImplicitVarDeclaration } from "../../semantics/Declaration";
+import { FnDeclaration, DeclarationType } from "../../semantics/Declaration";
 import { lexer } from "../../lexing/lexer";
 import { fileSyntaxParser } from "../../syntax/fileSyntaxParser";
 import { semanticsParser } from "../../semantics/semanticsParser";
@@ -25,9 +25,9 @@ export function compileCoreFunction(
 
 	let decl = pf.getSymbolTable().getDeclaration(fnName)
 
-	if (!decl || decl.type != DeclarationType.FUNCTION)
+	if (!decl || decl.decl.type != DeclarationType.FUNCTION)
 		throw new Error('failed to compile corelib function')
 
-	return decl
+	return decl.decl
 
 }

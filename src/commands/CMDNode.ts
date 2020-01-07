@@ -1,6 +1,6 @@
 import { expressionSyntaxParser } from "../syntax/expressionSyntaxParser"
 import { inlineLiveLexer } from "../lexing/lexer"
-import { Token, TokenType } from "../lexing/Token"
+import { TokenI, TokenType } from "../lexing/Token"
 import { CompileContext } from "../toolbox/CompileContext"
 import { Scope } from "../semantics/Scope"
 import { exprParser } from "../semantics/expressionParser"
@@ -17,7 +17,7 @@ export class CMDNode {
 	) {}
 
 	/** i is the current index. */
-	parseSyntax(token:Token,i:number,ctx:CompileContext): ASTNode[] {
+	parseSyntax(token:TokenI,i:number,ctx:CompileContext): ASTNode[] {
 		let l = this.tryConsume(token,i,ctx)
 		let cmd = token.value
 		if (l == -1) token.throwDebug('consume fail')
@@ -34,7 +34,7 @@ export class CMDNode {
 	}
 
 	/** Return child. j is next index */
-	findNext(token:Token,j:number,ctx:CompileContext): CMDNode {
+	findNext(token:TokenI,j:number,ctx:CompileContext): CMDNode {
 		let cmd = token.value
 		let [s,...d] = this.children.filter(c=>c.tryConsume(token,j,ctx) != -1)
 		// if (d.length) [s,...d] = this.children.filter(c=>c.tryConsume(token,j+1,ctx)) // try strict equal
@@ -46,7 +46,7 @@ export class CMDNode {
 	}
 
 	/** Find consumed length. -1 is failed. Includes whitespace. */
-	tryConsume(token:Token,i:number,ctx:CompileContext): number {
+	tryConsume(token:TokenI,i:number,ctx:CompileContext): number {
 		let cmd = token.value
 		if (cmd.length <= i) return -1
 		let x = cmd.slice(i).split(' ')[0]
@@ -59,13 +59,13 @@ export class SemanticalCMDNode extends CMDNode {
 
 	private lastAST: ASTNode | null = null
 
-	parseSyntax(token:Token,i:number,ctx:CompileContext): ASTNode[] {
+	parseSyntax(token:TokenI,i:number,ctx:CompileContext): ASTNode[] {
 		let ret = super.parseSyntax(token,i,ctx)
 		if (this.lastAST) ret.unshift(this.lastAST)
 		return ret
 	}
 
-	tryConsume(token:Token,i:number,ctx:CompileContext): number {
+	tryConsume(token:TokenI,i:number,ctx:CompileContext): number {
 		if (token.value.startsWith('${',i)) {
 			let lexer = inlineLiveLexer(token,i+2)
 			let {ast} = expressionSyntaxParser(

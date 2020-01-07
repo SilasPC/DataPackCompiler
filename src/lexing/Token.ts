@@ -1,33 +1,54 @@
 import { ParsingFile } from "./ParsingFile"
 import { CompileError, createErrorMessage } from "../toolbox/CompileErrors";
-import cols from 'colors/safe'
+import { SourceLine } from "./SourceLine";
+import { Keyword, Operator, Type, Marker } from "./values";
 
-export class SourceLine {
+export enum TokenType {
+    KEYWORD,
+    OPERATOR,
+    PRIMITIVE,
+    SYMBOL,
+    MARKER,
+    COMMAND,
+    TYPE
+}
 
-    public next: SourceLine|null = null
+export type TokenI = GenericToken | KeywordToken | OpToken | TypeToken | MarkerToken
 
-    constructor(
-        public readonly previous: SourceLine|null,
-        public readonly file: ParsingFile,
-        public readonly startIndex: number,
-        public readonly line: string,
-        public readonly nr: number
-    ) {}
+export interface GenericToken extends Token {
+    readonly type: TokenType.COMMAND | TokenType.PRIMITIVE | TokenType.SYMBOL
+    readonly value: string
+}
 
-    fatal(e:string,index:number,length:number): never {
-        throw new Error(createErrorMessage(
-            this,this,
-            this.startIndex + index,
-            this.startIndex + index + length,
-            e
-        ))
-    }
+export interface MarkerToken extends Token {
+    readonly type: TokenType.MARKER
+    readonly value: Marker
+}
 
+export interface KeywordToken extends Token {
+    readonly type: TokenType.KEYWORD
+    readonly value: Keyword
+}
+
+export interface OpToken extends Token {
+    readonly type: TokenType.OPERATOR
+    readonly value: Operator
+}
+
+export interface TypeToken extends Token {
+    readonly type: TokenType.TYPE
+    readonly value: Type
 }
 
 export class Token {
 
-    constructor(
+    // Workaround to ensure Lexeme behaves 
+    // as type Token during typechecking
+    static create(line: SourceLine, index: number, type: TokenType, value: string): TokenI {
+        return new Token(line,index,type,value) as TokenI
+    }
+
+    private constructor(
         public readonly line: SourceLine,
         public readonly index: number,
         public readonly type: TokenType,
@@ -43,7 +64,7 @@ export class Token {
         )
     }
 
-    warning(msg:string) {
+    warning(msg:string): CompileError {
         let fi = this.line.startIndex + this.index
         let li = fi + this.value.length
         return new CompileError(
@@ -59,14 +80,4 @@ export class Token {
     throwUnexpectedKeyWord(): never {throw this.error('Unexpected keyword: '+this.value)}
     throwNotDefined(): never {throw this.error('Identifier not defined in this scope')}
 
-}
-
-export enum TokenType {
-    KEYWORD,
-    OPERATOR,
-    PRIMITIVE,
-    SYMBOL,
-    MARKER,
-    COMMAND,
-    TYPE
 }

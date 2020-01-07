@@ -1,8 +1,9 @@
 
-import { Token, SourceLine } from "../lexing/Token";
+import { TokenI } from "../lexing/Token";
 import { exhaust } from "../toolbox/other";
 import cols from 'colors/safe'
 import { createErrorMessage } from "../toolbox/CompileErrors";
+import { SourceLine } from "../lexing/SourceLine";
 
 export function astErrorMsg(node:ASTNode|ASTNode[],err:string) {
     
@@ -12,7 +13,7 @@ export function astErrorMsg(node:ASTNode|ASTNode[],err:string) {
 }
 
 function info(node:ASTNode|ASTNode[]): [SourceLine,SourceLine,number,number] {
-    let arr: Token[] = []
+    let arr: TokenI[] = []
     if (Array.isArray(node))
         for (let sub of node)
             getRec(sub,arr)
@@ -30,7 +31,7 @@ function info(node:ASTNode|ASTNode[]): [SourceLine,SourceLine,number,number] {
     ]
 }
 
-function getRec(node:ASTNode,arr:Token[]): Token[] {
+function getRec(node:ASTNode,arr:TokenI[]): TokenI[] {
     switch (node.type) {
         case ASTNodeType.BOOLEAN:
             arr.push(node.value)
@@ -109,47 +110,47 @@ export type ASTNode = ASTReturnNode | ASTExportNode | ASTLetNode | ASTNumNode | 
 
 export interface ASTExportNode {
     type: ASTNodeType.EXPORT
-    keyword: Token
+    keyword: TokenI
     node: ASTNode
 }
 
 export interface ASTReturnNode {
     type: ASTNodeType.RETURN
-    keyword: Token
+    keyword: TokenI
     node: ASTNode | null
 }
 
 export interface ASTLetNode {
     type: ASTNodeType.DEFINE
-    identifier: Token
-    keyword: Token
-    varType: Token
+    identifier: TokenI
+    keyword: TokenI
+    varType: TokenI
     initial: ASTNode
 }
 
 export interface ASTStringNode {
     type: ASTNodeType.STRING
-    value: Token
+    value: TokenI
 }
 
 export interface ASTNumNode {
     type: ASTNodeType.NUMBER
-    value: Token
+    value: TokenI
 }
 
 export interface ASTBoolNode {
     type: ASTNodeType.BOOLEAN
-    value: Token
+    value: TokenI
 }
 
 export interface ASTIdentifierNode {
     type: ASTNodeType.IDENTIFIER
-    identifier: Token
+    identifier: TokenI
 }
 
 export interface ASTOpNode {
     type: ASTNodeType.OPERATION
-    operator: Token
+    operator: TokenI
     operands: ASTNode[]
 }
 
@@ -166,17 +167,17 @@ export interface ASTCallNode {
 
 export interface ASTFnNode {
     type: ASTNodeType.FUNCTION
-    identifier: Token
-    parameters: {symbol:Token,type:Token}[]
-    returnType: Token
+    identifier: TokenI
+    parameters: {symbol:TokenI,type:TokenI}[]
+    returnType: TokenI
     body: ASTNode[]
-    keyword: Token
+    keyword: TokenI
 }
 
 export interface ASTIfNode {
     type: ASTNodeType.CONDITIONAL
-    keyword: Token
-    keywordElse: Token|null
+    keyword: TokenI
+    keywordElse: TokenI|null
     expression: ASTNode
     primaryBranch: ASTNode[]
     secondaryBranch: ASTNode[]
@@ -184,7 +185,7 @@ export interface ASTIfNode {
 
 export interface ASTCMDNode {
     type: ASTNodeType.COMMAND
-    token: Token,
+    token: TokenI,
     interpolations: ASTNode[]
 }
 

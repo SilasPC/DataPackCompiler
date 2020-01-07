@@ -1,4 +1,4 @@
-import { Token, TokenType } from "../lexing/Token";
+import { TokenI, TokenType } from "../lexing/Token";
 import { SymbolTable } from "./SymbolTable";
 
 export type ValueType = ElementaryValue | NonElementaryValue
@@ -18,7 +18,7 @@ export enum ElementaryValueType {
 	VOID
 }
 
-export function tokenToType(token:Token,symbols:SymbolTable): ValueType {
+export function tokenToType(token:TokenI,symbols:SymbolTable): ValueType {
 	if (token.type == TokenType.TYPE) {
 		let type = token.value.toUpperCase() as keyof typeof ElementaryValueType
 		if (!(type in ElementaryValueType)) throw new Error('missing elementary value for '+type)

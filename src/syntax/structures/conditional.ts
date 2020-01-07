@@ -1,6 +1,6 @@
 
 import { ASTIfNode, ASTNodeType, ASTNode } from "../AST"
-import { TokenType, Token } from "../../lexing/Token"
+import { TokenType, TokenI } from "../../lexing/Token"
 import { expressionSyntaxParser } from "../expressionSyntaxParser"
 import { bodyOrLineSyntaxParser } from "../bodySyntaxParser"
 import { TokenIteratorI } from "../../lexing/TokenIterator"
@@ -14,7 +14,7 @@ export function parseConditional(iter:TokenIteratorI,ctx:CompileContext): ASTIfN
     iter.next().expectType(TokenType.MARKER).expectValue(')')
     let primaryBranch = bodyOrLineSyntaxParser(iter,ctx)
     let secondaryBranch: ASTNode[] = []
-    let elseToken: Token | null = null
+    let elseToken: TokenI | null = null
     if (iter.peek().type == TokenType.KEYWORD && iter.peek().value == 'else') {
         elseToken = iter.next()
         secondaryBranch = bodyOrLineSyntaxParser(iter,ctx)
