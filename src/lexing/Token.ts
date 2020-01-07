@@ -1,4 +1,4 @@
-import { ParsingFile } from "./ParsingFile"
+import { ParsingFile } from "../toolbox/ParsingFile"
 import { CompileError, createErrorMessage } from "../toolbox/CompileErrors";
 import { SourceLine } from "./SourceLine";
 import { Keyword, Operator, Type, Marker } from "./values";

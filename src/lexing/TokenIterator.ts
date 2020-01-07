@@ -1,5 +1,5 @@
 
-import { ParsingFile } from "./ParsingFile";
+import { ParsingFile } from "../toolbox/ParsingFile";
 import { TokenI } from "./Token";
 
 export interface TokenIteratorI {

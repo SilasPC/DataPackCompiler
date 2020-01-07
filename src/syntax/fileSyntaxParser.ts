@@ -1,5 +1,5 @@
 
-import { ParsingFile } from "../lexing/ParsingFile";
+import { ParsingFile } from "../toolbox/ParsingFile";
 import { TokenType, TokenI } from "../lexing/Token";
 import { parseFunction } from "./structures/function";
 import { wrapExport } from "./helpers";

@@ -1,6 +1,6 @@
 
 import { TokenI, TokenType, Token } from './Token'
-import { ParsingFile } from './ParsingFile'
+import { ParsingFile } from '../toolbox/ParsingFile'
 import { exhaust } from '../toolbox/other'
 import 'array-flat-polyfill'
 import { CompileContext } from '../toolbox/CompileContext'

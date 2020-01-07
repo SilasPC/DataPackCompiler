@@ -9,7 +9,7 @@ import { lexer as lexicalAnalysis } from "../lexing/lexer";
 import { fileSyntaxParser } from "../syntax/fileSyntaxParser";
 import { WeakCompilerOptions, CompilerOptions, compilerOptionDefaults } from "../toolbox/config";
 import { semanticsParser } from "../semantics/semanticsParser";
-import { ParsingFile } from "../lexing/ParsingFile";
+import { ParsingFile } from "../toolbox/ParsingFile";
 import { CompileContext } from "../toolbox/CompileContext";
 import { SyntaxSheet } from "../commands/SyntaxSheet";
 import { optimize } from "../optimization/instructionOptimizer";

@@ -143,8 +143,8 @@ export function createErrorMessage(fl:SourceLine,ll:SourceLine,fi:number,li:numb
 			msg.push(` ${(fl.nr-1).toString().padStart(nrLen,' ')} | ${fl.previous.line}`)
 
 	let l: SourceLine | null = fl
-	let lines: (string|SourceLine)[] = [fl]
-	while (l != ll && l != null) {
+	let lines: (string|SourceLine)[] = []
+	while ((ll.next ? l != ll.next : true) && l != null) {
 			lines.push(l)
 			l = l.next
 	}

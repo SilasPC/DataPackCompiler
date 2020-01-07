@@ -1,4 +1,4 @@
-import { ParsingFile } from "./ParsingFile"
+import { ParsingFile } from "../toolbox/ParsingFile"
 import { createErrorMessage } from "../toolbox/CompileErrors"
 
 export class SourceLine {

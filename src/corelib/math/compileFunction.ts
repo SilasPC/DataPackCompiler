@@ -3,7 +3,7 @@ import { FnDeclaration, DeclarationType } from "../../semantics/Declaration";
 import { lexer } from "../../lexing/lexer";
 import { fileSyntaxParser } from "../../syntax/fileSyntaxParser";
 import { semanticsParser } from "../../semantics/semanticsParser";
-import { ParsingFile } from "../../lexing/ParsingFile";
+import { ParsingFile } from "../../toolbox/ParsingFile";
 import { ESR, ESRType, IntESR } from "../../semantics/ESR";
 import { tokenToType, ElementaryValueType } from "../../semantics/Types";
 import { exhaust } from "../../toolbox/other";

@@ -1,4 +1,4 @@
-import { ParsingFile } from "../src/lexing/ParsingFile";
+import { ParsingFile } from "../src/toolbox/ParsingFile";
 import { expressionSyntaxParser } from "../src/syntax/expressionSyntaxParser";
 import { expect } from "chai";
 import { lexer } from "../src/lexing/lexer";

@@ -1,5 +1,5 @@
 
-import { ParsingFile } from "../lexing/ParsingFile";
+import { ParsingFile } from "../toolbox/ParsingFile";
 import { CompileContext } from "../toolbox/CompileContext";
 import { Datapack } from "./Datapack";
 import { FnDeclaration } from "../semantics/Declaration";

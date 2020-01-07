@@ -1,4 +1,4 @@
-import { ParsingFile } from "../lexing/ParsingFile"
+import { ParsingFile } from "../toolbox/ParsingFile"
 import { ASTNode, ASTNodeType, ASTOpNode, astErrorMsg } from "../syntax/AST"
 import { ESR, ESRType, getESRType, IntESR, copyESRToLocal, assignESR } from "./ESR"
 import { tokenToType, ElementaryValueType, ValueType, hasSharedType } from "./Types"

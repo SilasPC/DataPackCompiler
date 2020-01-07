@@ -26,9 +26,11 @@ fn x(y:int): int {
     // return 2;
 	a += y * (b + 1);
     return a - 5;
+    // some dead code
     a += 1;
     /say text
     /msg ${y;} ${1+2+3;}
+    a -= 1;
 }
 
 /*fn part(): void {

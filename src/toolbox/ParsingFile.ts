@@ -1,13 +1,13 @@
 
-import { TokenI } from "./Token";
+import { TokenI } from "../lexing/Token";
 import { ASTNode } from "../syntax/AST";
 import { readFileSync } from "fs";
 import { resolve, relative, basename } from 'path'
 import { SymbolTable } from "../semantics/SymbolTable";
-import { TokenIterator } from "./TokenIterator";
+import { TokenIterator } from "../lexing/TokenIterator";
 import { DeclarationWrapper, Declaration } from "../semantics/Declaration";
 import { Scope } from "../semantics/Scope";
-import { CompileContext } from "../toolbox/CompileContext";
+import { CompileContext } from "./CompileContext";
 
 export class ParsingFile {
 

@@ -2,7 +2,7 @@
 import { CompilerOptions, compilerOptionDefaults } from "./config";
 import { SyntaxSheet } from "../commands/SyntaxSheet";
 import { ScoreboardManager } from "./ScoreboardManager";
-import { ParsingFile } from "../lexing/ParsingFile";
+import { ParsingFile } from "./ParsingFile";
 import { resolve, relative, basename } from "path";
 import { readFileSync } from "fs";
 import { Scope } from "../semantics/Scope";

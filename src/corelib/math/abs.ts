@@ -1,6 +1,6 @@
 import { CompileContext } from "../../toolbox/CompileContext";
 import { lexer } from "../../lexing/lexer";
-import { ParsingFile } from "../../lexing/ParsingFile";
+import { ParsingFile } from "../../toolbox/ParsingFile";
 import { compileCoreFunction } from "./compileFunction";
 
 const fn = `

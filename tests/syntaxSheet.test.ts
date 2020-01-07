@@ -1,7 +1,7 @@
 import { expect } from "chai"
 import { SyntaxSheet } from '../src/commands/SyntaxSheet'
 import { Token, TokenType } from "../src/lexing/Token"
-import { ParsingFile } from "../src/lexing/ParsingFile"
+import { ParsingFile } from "../src/toolbox/ParsingFile"
 import { CompileContext } from "../src/toolbox/CompileContext"
 import { Datapack } from "../src/codegen/Datapack"
 import { compilerOptionDefaults } from "../src/toolbox/config"
