@@ -8,13 +8,14 @@ import { exhaust } from "../toolbox/other"
 import { CompileContext } from "../toolbox/CompileContext"
 import { Scope } from "./Scope"
 import { InstrType } from "../codegen/Instructions"
-import { Possible, ReturnWrapper, CompileError } from "../toolbox/CompileErrors"
+import { Maybe, MaybeWrapper } from "../toolbox/Maybe"
+import { CompileError } from "../toolbox/CompileErrors"
 
-export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): Possible<null> {
+export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): Maybe<null> {
 
-	const err = new ReturnWrapper<null>()
+	const maybe = new MaybeWrapper<null>()
 	
-	if (pfile.status == 'parsed') return err.wrap(null)
+	if (pfile.status == 'parsed') return maybe.wrap(null)
 	if (pfile.status == 'parsing') throw new Error('circular parsing')
 
 	pfile.status = 'parsing'
@@ -37,7 +38,7 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): Possible<
 			case ASTNodeType.DEFINE: {
 				let type = tokenToType(node.varType,symbols)
 				if (type.elementary && type.type == ElementaryValueType.VOID) {
-					err.push(node.varType.error(`Cannot declare a variable of type 'void'`))
+					ctx.addError(node.varType.error(`Cannot declare a variable of type 'void'`))
 					continue
 				}
 				if (!type.elementary) node.varType.throwDebug('no non-elemn rn k')
@@ -46,13 +47,13 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): Possible<
 				// we must create a new esr, then assign the above to that
 				// file-level declarations are assigned during init, so
 				// we must add the assignations instruction to datapack init
-				if (err.merge(esr0)) continue
+				if (maybe.merge(esr0)) continue
 				let res = copyESRToLocal(esr0.value,ctx,scope,node.identifier.value)
 				let esr = res.esr
 				// do something with res.copyInstr
 				
 				if (!hasSharedType(getESRType(esr),type)) {
-					err.push(node.identifier.error('type mismatch'))
+					ctx.addError(node.identifier.error('type mismatch'))
 					continue
 				}
 				let decl: VarDeclaration = {type:DeclarationType.VARIABLE,varType:type,esr}
@@ -68,7 +69,7 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): Possible<
 				let fn = ctx.createFnFile(branch.getScopeNames())
 				let type = tokenToType(node.returnType,symbols)
 				if (!type.elementary) {
-					err.push(node.returnType.error('nop thx'))
+					ctx.addError(node.returnType.error('nop thx'))
 					continue
 				}
 				let esr: ESR
@@ -96,13 +97,13 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): Possible<
 				for (let param of node.parameters) {
 					let type = tokenToType(param.type,symbols)
 					if (!type.elementary) {
-						err.push(param.type.error('elementary only thx'))
+						ctx.addError(param.type.error('elementary only thx'))
 						continue
 					}
 					let esr
 					switch (type.type) {
 						case ElementaryValueType.VOID:
-							err.push(param.type.error('not valid'))
+							ctx.addError(param.type.error('not valid'))
 							continue
 						case ElementaryValueType.INT:
 							let iesr: IntESR = {
@@ -115,7 +116,7 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): Possible<
 							esr = iesr
 							break
 						case ElementaryValueType.BOOL: {}
-							err.push(param.type.error('no bool yet thx'))
+							ctx.addError(param.type.error('no bool yet thx'))
 							continue
 						default:
 							return exhaust(type.type)
@@ -129,7 +130,7 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): Possible<
 					branch.symbols.declare({token:param.symbol,decl})
 				}
 				if (shouldExport) pfile.addExport({token:node.identifier,decl})
-				if (err.merge(parseBody(node.body,branch,ctx))) continue
+				if (maybe.merge(parseBody(node.body,branch,ctx))) continue
 
 				fn.add(...branch.mergeBuffers())
 				
@@ -158,17 +159,17 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): Possible<
 
 	// Check unused
 	for (let [key,decl] of Object.entries(symbols.getUnreferenced())) {
-		if (!pfile.hasExport(key)) err.push(decl.token.warning('Unused'))
+		if (!pfile.hasExport(key)) ctx.addError(decl.token.warning('Unused'))
 	}
 
 	pfile.status = 'parsed'
 
-	return err.wrap(null)
+	return maybe.wrap(null)
 
 }
 
-function parseBody(nodes:ASTNode[],scope:Scope,ctx:CompileContext): Possible<null> {
-	let err = new ReturnWrapper<null>()
+function parseBody(nodes:ASTNode[],scope:Scope,ctx:CompileContext): Maybe<null> {
+	let maybe = new MaybeWrapper<null>()
 	let diedAt: ASTNode | null = null
 	for (let node of nodes) {
 
@@ -177,7 +178,7 @@ function parseBody(nodes:ASTNode[],scope:Scope,ctx:CompileContext): Possible<nul
 				let foundErrors = false
 				let interpolations = node.interpolations.flatMap(n => {
 					let x = exprParser(n,scope,ctx)
-					if (err.merge(x)) {
+					if (maybe.merge(x)) {
 						foundErrors = true
 						return []
 					}
@@ -193,7 +194,7 @@ function parseBody(nodes:ASTNode[],scope:Scope,ctx:CompileContext): Possible<nul
 			}
 			case ASTNodeType.INVOKATION:
 			case ASTNodeType.OPERATION: {
-				err.merge(exprParser(node,scope,ctx))
+				maybe.merge(exprParser(node,scope,ctx))
 				break
 			}
 			case ASTNodeType.RETURN: {
@@ -205,12 +206,13 @@ function parseBody(nodes:ASTNode[],scope:Scope,ctx:CompileContext): Possible<nul
 				if (!node.node) esr = {type:ESRType.VOID,const:false,tmp:false,mutable:false}
 				else {
 					let x = exprParser(node.node,scope,ctx)
-					if (err.merge(x)) continue
+					if (maybe.merge(x)) continue
 					esr = x.value
 				}
 				
 				if (!hasSharedType(getESRType(esr),getESRType(fnret))) {
-					err.push(new CompileError(astErrorMsg(node,'return must match fn return type'),false))
+					ctx.addError(new CompileError(astErrorMsg(node,'return must match fn return type'),false))
+					maybe.noWrap()
 					continue
 				}
 
@@ -231,7 +233,7 @@ function parseBody(nodes:ASTNode[],scope:Scope,ctx:CompileContext): Possible<nul
 				throw new Error('valid, but pointless')
 			case ASTNodeType.CONDITIONAL: {
 				let esr = exprParser(node.expression,scope,ctx)
-				if (err.merge(esr)) continue
+				if (maybe.merge(esr)) continue
 				if (esr.value.type != ESRType.BOOL) throw new Error('if not bool esr')
 				/*parseBody(node.primaryBranch,scope.branch('if','NONE',{
 					type:ESRType.VOID, mutable: false, const: false, tmp: false
@@ -249,7 +251,7 @@ function parseBody(nodes:ASTNode[],scope:Scope,ctx:CompileContext): Possible<nul
 				let esr0 = exprParser(node.initial,scope,ctx)
 				// the above cannot be used for the variables esr (might mutate const)
 				// we must create a new esr, then assign the above to that
-				if (err.merge(esr0)) continue
+				if (maybe.merge(esr0)) continue
 				let res = copyESRToLocal(esr0.value,ctx,scope,node.identifier.value)
 				let esr = res.esr
 				if (!diedAt)
@@ -273,7 +275,7 @@ function parseBody(nodes:ASTNode[],scope:Scope,ctx:CompileContext): Possible<nul
 	if (diedAt) {
 		let dead = nodes.slice(nodes.indexOf(diedAt))
 		if (dead.length > 0)
-			err.push(new CompileError(
+			ctx.addError(new CompileError(
 				astErrorMsg(
 					dead,
 					'Dead code detected'
@@ -282,5 +284,5 @@ function parseBody(nodes:ASTNode[],scope:Scope,ctx:CompileContext): Possible<nul
 			))
 	}
 
-	return err.wrap(null)
+	return maybe.wrap(null)
 }

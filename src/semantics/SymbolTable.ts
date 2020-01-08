@@ -1,7 +1,8 @@
 
 import { TokenI, Token } from "../lexing/Token"
 import { DeclarationWrapper } from "./Declaration"
-import { Possible, ReturnWrapper } from "../toolbox/CompileErrors"
+import { Maybe, MaybeWrapper } from "../toolbox/Maybe"
+import { CompileContext } from "../toolbox/CompileContext"
 
 export class SymbolTable {
 
@@ -30,24 +31,21 @@ export class SymbolTable {
         return child
     }
 
-    getDeclaration(name:TokenI): Possible<DeclarationWrapper>
+    getDeclaration(name:TokenI,ctx:CompileContext): Maybe<DeclarationWrapper>
     getDeclaration(name:string): DeclarationWrapper|null
-    getDeclaration(name:string|TokenI): DeclarationWrapper|null|Possible<DeclarationWrapper> {
-        let err = new ReturnWrapper<DeclarationWrapper>()
+    getDeclaration(name:string|TokenI,ctx?:CompileContext): DeclarationWrapper|null|Maybe<DeclarationWrapper> {
+        let maybe = new MaybeWrapper<DeclarationWrapper>()
         let id = (typeof name == 'string') ? name : name.value
         let decl = this.declarations.get(id)
-        if (decl) {
-            decl.refCounter++
-            if (name instanceof Token) return err.wrap(decl.decl)
-            return decl.decl
+        if (decl) decl.refCounter++
+        else if (this.parent) return this.parent.getDeclaration(name as any,ctx as any)
+        if (name instanceof Token) {
+            if (decl) return maybe.wrap(decl.decl)
+            if (!ctx) throw new Error('overload not matched')
+            ctx.addError(name.error(`'${name.value}' not available in scope`))
+            return maybe.none()
         }
-        if (this.parent) {
-            // TypeScript needs explicit overload seperation here :/
-            if (name instanceof Token) return this.parent.getDeclaration(name)
-            return this.parent.getDeclaration(name)
-        }
-        if (name instanceof Token)
-            return err.wrap(name.error(`'${name.value}' not available in scope`))
+        if (decl) return decl.decl
         return null
     }
 

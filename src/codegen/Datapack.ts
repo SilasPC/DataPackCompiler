@@ -1,22 +1,17 @@
 
 import { watch } from 'chokidar'
-import { FnFile } from "./FnFile";
-import { promises as fs, constants, Stats, mkdir }  from 'fs'
+import { promises as fs, Stats }  from 'fs'
 import { exec } from 'child_process'
-import { resolve as resolvePath, join } from "path";
+import { join } from "path";
 import { lexer as lexicalAnalysis } from "../lexing/lexer";
-//import { generateCode } from "./generate";
 import { fileSyntaxParser } from "../syntax/fileSyntaxParser";
 import { WeakCompilerOptions, CompilerOptions, compilerOptionDefaults } from "../toolbox/config";
 import { semanticsParser } from "../semantics/semanticsParser";
-import { ParsingFile } from "../toolbox/ParsingFile";
 import { CompileContext } from "../toolbox/CompileContext";
 import { SyntaxSheet } from "../commands/SyntaxSheet";
 import { optimize } from "../optimization/instructionOptimizer";
 import moment from "moment"
 import 'moment-duration-format'
-import { Instruction } from "./Instructions";
-import { getObscureName, getQualifiedName } from "../toolbox/other";
 import { generate } from "./generate";
 
 interface WeakPackJSON {
@@ -105,11 +100,10 @@ export class Datapack {
 			await SyntaxSheet.load(cfg.compilerOptions.targetVersion)
 		)
 
-		let err = new ReturnWrapper()
-		let errCount = 0
-
 		ctx.log2(1,'inf',`Begin compilation`)
 		let start = moment()
+
+		let errCount = 0
 
 		const pfiles =
 			srcFiles
@@ -123,14 +117,12 @@ export class Datapack {
 		pfiles.forEach(pf=>fileSyntaxParser(pf,ctx))
 		ctx.log2(1,'inf',`Syntax analysis complete`)
 
-		errCount = err.getErrorCount()
-		pfiles.forEach(pf=>err.merge(semanticsParser(pf,ctx)))
+		pfiles.forEach(pf=>semanticsParser(pf,ctx))
 		ctx.log2(1,'inf',`Semantic analysis complete`)
-		if (errCount < err.getErrorCount()) {
-			ctx.log2(1,'err',`Got ${err.getErrorCount()-errCount} error(s)`)
-			errCount = err.getErrorCount()
+		if (errCount < ctx.getErrorCount()) {
+			ctx.log2(1,'err',`Got ${ctx.getErrorCount()-errCount} error(s)`)
+			errCount = ctx.getErrorCount()
 		}
-
 
 		let optres = optimize(ctx)
 		ctx.log2(1,'inf',`Optimization complete`)
@@ -148,15 +140,15 @@ export class Datapack {
 		ctx.log2(1,'inf',`Compilation complete`)
 		ctx.log2(2,'inf',`Elapsed time: ${(moment.duration(moment().diff(start)) as any).format()}`)
 
-		if (err.hasErrors()) {
+		if (ctx.hasErrors()) {
 			this.errorIgnoreEmit = true
-			ctx.log2(1,'err',`Found a total of ${err.getErrorCount()} errors:`)
-			ctx.logErrors(err)
+			ctx.log2(1,'err',`Got a total of ${ctx.getErrorCount()} errors:`)
+			ctx.logErrors()
 		} else this.errorIgnoreEmit = false
 
-		if (err.hasWarnings()) {
-			ctx.log2(1,'wrn',`Found a total of ${err.getWarningCount()} warnings:`)
-			ctx.logWarns(err)
+		if (ctx.hasWarnings()) {
+			ctx.log2(1,'wrn',`Got a total of ${ctx.getWarningCount()} warnings:`)
+			ctx.logWarns()
 		}
 
 	}
@@ -167,7 +159,7 @@ export class Datapack {
 
 	async emit() {
 		if (!this.fnMap || !this.ctx) throw new Error('Nothing to emit. Use .compile() first.')
-		if (this.errorIgnoreEmit) throw new Error('Datapack contains errors, ignoring emit.')
+		if (this.errorIgnoreEmit) throw new Error('Datapack contains errors, cannot emit.')
 
 		let emitDir = join(this.packDir,this.packJson.emitDir)
 
@@ -250,7 +242,6 @@ function MKDIRP(path:string) {
 }
 
 import rimraf from 'rimraf'
-import { ReturnWrapper } from '../toolbox/CompileErrors';
 function RIMRAF(path:string) {
 	return new Promise(($,$r)=>{
 		rimraf(path,{},err=>{

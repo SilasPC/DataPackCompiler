@@ -9,7 +9,8 @@ import { Scope } from "../semantics/Scope";
 import { FnFile } from "../codegen/FnFile";
 import { getObscureName, getQualifiedName } from "./other";
 import cols from 'colors/safe'
-import { CompileError, ReturnWrapper } from "./CompileErrors";
+import { CompileError } from "./CompileErrors";
+import { MaybeWrapper } from "./Maybe";
 
 export class CompileContext {
 
@@ -73,22 +74,6 @@ export class CompileContext {
 		this.lastLogLevel = level
 	}
 
-	logErrors(errors:ReturnWrapper<any>) {
-		for (let err of errors.getErrors()) {
-			this.lastLogType = null
-			this.log2(0,'err',err.getErrorString())
-		}
-		this.lastLogType = null
-	}
-
-	logWarns(errors:ReturnWrapper<any>) {
-		for (let err of errors.getWarnings()) {
-			this.lastLogType = null
-			this.log2(0,'wrn',err.getErrorString())
-		}
-		this.lastLogType = null
-	}
-
 	private lastLogType: LogType|null = null
 	// private lastLogLevel2 = 0
 	log2(level:number,type:LogType,msg:string) {
@@ -112,6 +97,35 @@ export class CompileContext {
 		// this.lastLogLevel2 = level
 		this.lastLogType = type
 
+	}
+
+	private readonly errs = new Set<CompileError>()
+	private readonly wrns = new Set<CompileError>()
+
+	addError(err:CompileError) {
+		if (err.warnOnly) this.wrns.add(err)
+		else this.errs.add(err)
+	}
+
+	hasErrors() {return this.errs.size > 0}
+	getErrorCount() {return this.errs.size}
+	hasWarnings() {return this.wrns.size > 0}
+	getWarningCount() {return this.wrns.size}
+
+	logErrors() {
+		for (let err of this.errs) {
+			this.lastLogType = null
+			this.log2(0,'err',err.getErrorString())
+		}
+		this.lastLogType = null
+	}
+
+	logWarns() {
+		for (let err of this.wrns) {
+			this.lastLogType = null
+			this.log2(0,'wrn',err.getErrorString())
+		}
+		this.lastLogType = null
 	}
 
 }
