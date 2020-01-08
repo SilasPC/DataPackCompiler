@@ -172,17 +172,6 @@ function parseBody(nodes:ASTNode[],scope:Scope,ctx:CompileContext): Possible<nul
 	let diedAt: ASTNode | null = null
 	for (let node of nodes) {
 
-		if (diedAt) {
-			err.push(new CompileError(
-				astErrorMsg(
-					nodes.slice(nodes.indexOf(node)),
-					'Dead code detected'
-				),
-				true
-			))
-			break
-		}
-
 		switch (node.type) {
 			case ASTNodeType.COMMAND: {
 				let foundErrors = false
@@ -195,10 +184,11 @@ function parseBody(nodes:ASTNode[],scope:Scope,ctx:CompileContext): Possible<nul
 					return [x.value]
 				})
 				if (foundErrors) continue
-				scope.push({
-					type:InstrType.CMD,
-					interpolations
-				})
+				if (!diedAt)
+					scope.push({
+						type:InstrType.CMD,
+						interpolations
+					})
 				break
 			}
 			case ASTNodeType.INVOKATION:
@@ -207,7 +197,6 @@ function parseBody(nodes:ASTNode[],scope:Scope,ctx:CompileContext): Possible<nul
 				break
 			}
 			case ASTNodeType.RETURN: {
-				if (!diedAt) diedAt = node
 				let fnscope = scope.getSuperByType('FN')
 				if (!fnscope) throw new Error('ast throw would be nice... return must be contained in fn scope')
 				let fnret = fnscope.getReturnVar()
@@ -226,10 +215,13 @@ function parseBody(nodes:ASTNode[],scope:Scope,ctx:CompileContext): Possible<nul
 				}
 
 				// return instructions
-				if (esr.type != ESRType.VOID)
-					scope.push(...assignESR(esr,fnret))
-				scope.push(...scope.breakScopes(fnscope))
-				
+				if (!diedAt) {
+					if (esr.type != ESRType.VOID)
+						scope.push(...assignESR(esr,fnret))
+					scope.push(...scope.breakScopes(fnscope))
+					diedAt = node
+				}
+
 				break
 			}
 			case ASTNodeType.NUMBER:
@@ -260,11 +252,13 @@ function parseBody(nodes:ASTNode[],scope:Scope,ctx:CompileContext): Possible<nul
 				if (err.merge(esr0)) continue
 				let res = copyESRToLocal(esr0.value,ctx,scope,node.identifier.value)
 				let esr = res.esr
-				scope.push(res.copyInstr)
+				if (!diedAt)
+					scope.push(res.copyInstr)
 
 				if (!hasSharedType(getESRType(esr),type)) node.identifier.throwDebug('type mismatch')
 				let decl: VarDeclaration = {type:DeclarationType.VARIABLE,varType:type,esr}
-				scope.symbols.declare({token:node.identifier,decl})
+				if (!diedAt)
+					scope.symbols.declare({token:node.identifier,decl})
 				break
 			}
 			case ASTNodeType.LIST:
@@ -274,6 +268,18 @@ function parseBody(nodes:ASTNode[],scope:Scope,ctx:CompileContext): Possible<nul
 			default:
 				return exhaust(node)
 		}
+	}
+
+	if (diedAt) {
+		let dead = nodes.slice(nodes.indexOf(diedAt))
+		if (dead.length > 0)
+			err.push(new CompileError(
+				astErrorMsg(
+					dead,
+					'Dead code detected'
+				),
+				true
+			))
 	}
 
 	return err.wrap(null)

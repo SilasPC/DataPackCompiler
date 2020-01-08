@@ -1,2 +1,2 @@
 
-export let xxx: int = 3;
+export let xxx: int = 3.abs();

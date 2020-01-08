@@ -64,7 +64,6 @@ export function exprParser(node: ASTNode, scope: Scope, ctx: CompileContext): Po
 		}
 
 		case ASTNodeType.OPERATION:
-			console.log('op',node.operator.value)
 			return err.wrap(operator(node,scope,ctx))
 
 		case ASTNodeType.INVOKATION: {
