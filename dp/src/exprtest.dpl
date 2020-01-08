@@ -1,9 +1,9 @@
 
-// import {xxx} from 'test';
+// import {xxx} from 'test'
 
-export let a: int = 2;
-let b: int = 3;
-// let c: bool = true;
+export let a: int = 2
+let b: int = 3
+// let c: bool = true
 
     /*************
     * Hiya there *
@@ -17,26 +17,27 @@ let b: int = 3;
     *************/
 
 /*fn fail(): void {
-    return 1;
+    return 1
 }*/
     
 fn x(y:int): int {
-    let local: int = a;
-    // if (a == b;) {a+=1;}
-    // return 2;
-	a += y * (b + 1);
-    return a - 5;
+    let local: int = a
+    // if (a == b) a+=1
+    // return 2
+	a += y * (b + 1)
+    return a - 5
     // some dead code
-    a += 1;
+    a += 1
+    a.abs()
     /say text
-    /msg ${y;} ${1+2+3;}
-    a -= 1;
+    /msg ${y} ${1+2+3}
+    a -= 1
 }
 
 /*fn part(): void {
     //particle smoke ${a+0} ${b+1} ${c+2}
     //particle smoke ${a,b,c}
-    x(1);
+    x(1)
 }*/
 
 /*

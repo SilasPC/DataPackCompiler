@@ -10,6 +10,9 @@ export interface TokenIteratorI {
     skip(n:number): this
     isDone(): boolean
 
+    currentFollowsNewline(): boolean
+    newLineFollows(): boolean
+
     [Symbol.iterator](): Iterator<TokenI>
 
 }
@@ -22,11 +25,22 @@ export class TokenIterator implements TokenIteratorI {
         private index = 0
     ) {}
 
+    private prev() {return this.tokens[this.index-2]}
     current() {return this.tokens[this.index-1]}
     peek() {return this.tokens[this.index]}
     next() {return this.tokens[this.index++]}
     skip(n:number) {this.index+=n;return this}
     isDone() {return this.index >= this.tokens.length}
+
+    currentFollowsNewline() {
+        if (!this.prev()) return false
+        return this.prev().line.nr < this.current().line.nr
+    }
+
+    newLineFollows() {
+        if (!this.peek()) return false
+        return this.peek().line.nr > this.current().line.nr
+    }
 
     [Symbol.iterator]() {
         let self = this
@@ -50,22 +64,41 @@ export class LiveIterator implements TokenIteratorI {
     private done = false
 
     constructor(
-        private readonly generator: /*Generator<Token,void>*/ Generator
+        private readonly generator: /*Generator<TokenI,void>*/ Generator
     ) {}
 
+    private prev() {return this.tokens[this.index-2]}
+    private load() {
+        if (this.tokens[this.index]) return
+        let {done,value} = this.generator.next()
+        if (done) this.done = true
+        this.tokens[this.index] = value as TokenI
+    }
     current() {return this.tokens[this.index-1]}
-    peek() {return this.tokens[this.index]}
+    peek() {
+        this.load()
+        return this.tokens[this.index]
+    }
     next() {
-        if (!this.tokens[this.index]) {
-            let {done,value} = this.generator.next()
-            if (done) this.done = true
-            this.tokens[this.index++] = value as TokenI
-            return value as TokenI
-        }
+        this.load()
         return this.tokens[this.index++]
     }
-    skip(n:number) {this.index+=n;return this}
+    skip(n:number) {
+        for (let i = 0; i < n; i++) this.next()
+        if (n < 0) this.index += n
+        return this
+    }
     isDone() {return this.done && this.index >= this.tokens.length}
+    
+    currentFollowsNewline() {
+        if (!this.prev()) return false
+        return this.prev().line.nr < this.current().line.nr
+    }
+
+    newLineFollows() {
+        if (!this.next()) return false
+        return this.next().line.nr > this.current().line.nr
+    }
 
     [Symbol.iterator]() {
         let self = this

@@ -63,7 +63,7 @@ function* inlineLexer(line:SourceLine,offset:number)/*: Generator<Token,void>*/ 
     for (let {group,value,index} of regexLexer(line.line.slice(offset))) {
         if (group == 'nwl') throw new Error('got newline inside source line in inline lexical generator')
         if (group == 'bad')
-            return line.fatal('Invalid token',index,value.length)
+            return line.fatal(`Invalid token '${value}'`,index,value.length)
         if (group == 'cmt') {
             if (value == '//') return
             if (value == '/*') inlineComment = true

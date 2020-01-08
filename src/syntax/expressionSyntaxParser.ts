@@ -22,7 +22,7 @@ type Op = {
     popable: boolean
 }
 
-export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext) {
+export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext,asi:boolean) {
 
     let ops: Op[] = []
     let que: ASTNode[] = []
@@ -36,6 +36,16 @@ export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext)
             case TokenType.OPERATOR:
                 let opop = opInfo(t,!lastWasOperand)
                 pushOperator(opop)
+
+                // exception for ++ and -- postfix operators,
+                // to allow automatic semicolon insertion in 'x++ \n y()'
+                if (
+                    asi &&
+                    tokens.newLineFollows() &&
+                    lastWasOperand &&
+                    (t.value == '++' || t.value == '--')
+                ) return finish()
+
                 lastWasOperand = opop.type == OpType.POSTFIX
                 break
             case TokenType.MARKER:
@@ -65,7 +75,7 @@ export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext)
                         pushOperator({
                             token: t,
                             op: t.value,
-                            precedency: 20 + (isFn?0:1),
+                            precedency: 30 + (isFn?0:1), // does this make a difference?
                             leftToRight: true,
                             type: OpType.PREFIX, // make sure we don't expect an operator
                             operands: 0,
@@ -83,9 +93,13 @@ export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext)
                         lastWasOperand = false
                         break
                     case ')':
-                        if (!fncalls.length) t.throwDebug('fncall mismatch')
+                        if (!fncalls.length) 
+                            if (!asi||!tokens.currentFollowsNewline()) t.throwDebug('fncall mismatch')
+                            else {tokens.skip(-1);return finish()}
+                        if (!ops.length)
+                            if (!asi||!tokens.currentFollowsNewline()) t.throwDebug('not matched')
+                            else {tokens.skip(-1);return finish()}
                         let openOp: Op
-                        if (!ops.length) t.throwDebug('not matched')
                         do {
                             openOp = ops.pop() as Op
                             if (!openOp.popable) break
@@ -94,6 +108,7 @@ export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext)
                         if (openOp.op != '(') t.throwDebug('cuts off other paren thing')
                         if (fncalls.pop()) {
                             if (que.length<2) t.throwDebug('wth') // this doesn't work so well when there are no parameters xd
+                                                                  // note to self: make better comments
                             let argnode = que.pop() as ASTNode
                             if (argnode.type != ASTNodeType.LIST) {
                                 let argAsList: ASTListNode = {
@@ -113,6 +128,7 @@ export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext)
                         }
                         lastWasOperand = true
                         break
+                    case '::':
                     case '.':
                         ops.push(opInfo(t,false))
                         lastWasOperand = false
@@ -129,19 +145,29 @@ export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext)
                         break
                     case ';':
                         return finish()
+                    case '}':
+                        if (!asi) t.throwDebug('no automatic semicolon insertion >:)')
+                        tokens.skip(-1)
+                        return finish()
                     default:
-                        t.throwDebug('marker not implemented')
+                        if (!asi||!tokens.currentFollowsNewline()) t.throwDebug('marker not implemented')
+                        tokens.skip(-1)
+                        return finish()
                 }
                 break
             case TokenType.SYMBOL:
-                if (lastWasOperand) t.throwDebug('Unexpected operand')
+                if (lastWasOperand)
+                    if (!asi||!tokens.currentFollowsNewline()) t.throwDebug('unexpected operand')
+                    else {tokens.skip(-1);return finish()}
                 let symnode: ASTIdentifierNode = {type:ASTNodeType.IDENTIFIER,identifier:t}
                 que.push(symnode)
                 postfix.push(t.value)
                 lastWasOperand = true
                 break
             case TokenType.PRIMITIVE: {
-                if (lastWasOperand) t.throwDebug('Unexpected operand')
+                if (lastWasOperand)
+                    if (!asi||!tokens.currentFollowsNewline()) t.throwDebug('unexpected operand')
+                    else {tokens.skip(-1);return finish()}
                 let node: ASTNode
                 if (t.value == 'false' || t.value == 'true') 
                     node = {type:ASTNodeType.BOOLEAN,value:t}
@@ -157,7 +183,9 @@ export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext)
             }
             default:
                 //return exhaust(t.type)
-                t.throwDebug('tokentype not implemented')
+                if (!asi||!tokens.currentFollowsNewline()) t.throwDebug('tokentype not implemented')
+                tokens.skip(-1)
+                return finish()
         }
     }
 
@@ -226,6 +254,16 @@ export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext)
                         que.push(list)
                         postfix.push(','+op.operands)
                         break
+                    case '.':
+                    case '::':
+                        let node: ASTOpNode = {
+                            type: ASTNodeType.OPERATION,
+                            operator: op.token,
+                            operands: que.splice(-2,2)
+                        }
+                        que.push(node)
+                        postfix.push(op.token.value)
+                        break
                     default:
                         throw new Error('could not use marker value '+op.op)
                 }
@@ -255,6 +293,10 @@ function opInfo(token:TokenI,prefix:boolean): Op {
 function p(t:TokenI,prefix:boolean): [number,boolean,OpType] {
     switch (t.value) {
 
+        // '(' has been set to 30 precedence for now
+
+        case '::':
+            return [21,true,OpType.INFIX]
         case '.':
             return [20,true,OpType.INFIX]
 

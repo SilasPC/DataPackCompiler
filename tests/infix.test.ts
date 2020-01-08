@@ -37,6 +37,10 @@ describe('infix conversion', () => {
 		const result = postfix('--c+-!2')
 		expect(result).to.equal('c --:pre 2 !:pre -:pre +')
 	})
+	it('accessors', () => {
+		const result = postfix('a::b::c.d')
+		expect(result).to.equal('a b c d . :: ::')
+	})
 })
 
 function postfix(infix:string): string {
@@ -45,7 +49,7 @@ function postfix(infix:string): string {
 	lexer(pfile, ctx)
 	const iter = pfile.getTokenIterator()
 	const res = expressionSyntaxParser(
-		iter, ctx
+		iter, ctx, false
 	).meta.postfix.join(' ')
 	expect(iter.isDone()).to.be.true
 	return res

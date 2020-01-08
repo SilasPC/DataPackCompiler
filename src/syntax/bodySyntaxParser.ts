@@ -47,23 +47,34 @@ export function lineSyntaxParser(iter:TokenIteratorI,ctx:CompileContext): ASTNod
                     else return {
                         type: ASTNodeType.RETURN,
                         keyword: token,
-                        node: expressionSyntaxParser(iter,ctx).ast
+                        node: expressionSyntaxParser(iter,ctx,true).ast
                     }
                 }
+                case 'fn':
+                case 'break':
+                case 'for':
+                case 'event':
+                case 'while':
+                case 'const':
+                    return token.throwDebug('keyword not implemented')
+                case 'var':
+                case 'export':
+                case 'else':
+                case 'from':
+                case 'import':
+                case 'tick':
+                case 'class':
+                    return token.throwDebug('keyword invalid here')
                 default:
-                    // ehm. I don't think I've implemented keywords in the expr parser
-                    // lol
-                    throw new Error('keywords cannot be passed to expr parser yet')
-                    return expressionSyntaxParser(iter.skip(-1),ctx).ast
+                    return exhaust(token.value)
             }
-            // return exhaust(token.value)
         }
         case TokenType.COMMAND:
             return ctx.syntaxSheet.readSyntax(iter.current(),ctx)
         case TokenType.OPERATOR:
         case TokenType.PRIMITIVE:
         case TokenType.SYMBOL:
-            return expressionSyntaxParser(iter.skip(-1),ctx).ast
+            return expressionSyntaxParser(iter.skip(-1),ctx,true).ast
         case TokenType.MARKER:
             switch (token.value) {
                 case ';': break

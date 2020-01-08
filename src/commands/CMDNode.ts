@@ -69,7 +69,7 @@ export class SemanticalCMDNode extends CMDNode {
 		if (token.value.startsWith('${',i)) {
 			let lexer = inlineLiveLexer(token,i+2)
 			let {ast} = expressionSyntaxParser(
-				lexer,ctx
+				lexer,ctx,true
 			)
 			let j = lexer
 				.next()

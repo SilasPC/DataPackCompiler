@@ -14,7 +14,7 @@ export function parseDeclaration(iter:TokenIteratorI,ctx:CompileContext): ASTLet
     let symbol = iter.next().expectType(TokenType.SYMBOL)
     let type = getType(iter)
     iter.next().expectType(TokenType.OPERATOR).expectValue('=')
-    let initial = expressionSyntaxParser(iter,ctx).ast
+    let initial = expressionSyntaxParser(iter,ctx,true).ast
     // iter.next().expectSemiColon() // needed?
     return {
         type: ASTNodeType.DEFINE,

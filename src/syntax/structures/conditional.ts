@@ -10,7 +10,7 @@ export function parseConditional(iter:TokenIteratorI,ctx:CompileContext): ASTIfN
 
     let ifToken = iter.current()
     iter.next().expectType(TokenType.MARKER).expectValue('(')
-    let expression = expressionSyntaxParser(iter,ctx).ast
+    let expression = expressionSyntaxParser(iter,ctx,true).ast
     iter.next().expectType(TokenType.MARKER).expectValue(')')
     let primaryBranch = bodyOrLineSyntaxParser(iter,ctx)
     let secondaryBranch: ASTNode[] = []
