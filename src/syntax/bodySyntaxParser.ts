@@ -1,6 +1,6 @@
 
 import { TokenType, TokenI } from "../lexing/Token";
-import { ASTNode, ASTNodeType, ASTReturnNode } from "./AST";
+import { ASTNode, ASTNodeType, ASTReturnNode, ASTStatement } from "./AST";
 import { expressionSyntaxParser } from "./expressionSyntaxParser";
 import { parseConditional } from "./structures/conditional";
 import { parseDeclaration } from "./structures/declaration";
@@ -8,15 +8,15 @@ import { TokenIteratorI, TokenIterator } from "../lexing/TokenIterator";
 import { exhaust } from "../toolbox/other";
 import { CompileContext } from "../toolbox/CompileContext";
 
-export function bodyOrLineSyntaxParser(iter:TokenIteratorI,ctx:CompileContext): ASTNode[] {
+export function bodyOrLineSyntaxParser(iter:TokenIteratorI,ctx:CompileContext): ASTStatement[] {
     if (iter.next().type == TokenType.MARKER && iter.current().value == '{')
         return bodySyntaxParser(iter,ctx)
     else
         return [lineSyntaxParser(iter,ctx)]
 }
 
-export function bodySyntaxParser(iter:TokenIteratorI,ctx:CompileContext): ASTNode[] {
-    let body: ASTNode[] = []
+export function bodySyntaxParser(iter:TokenIteratorI,ctx:CompileContext): ASTStatement[] {
+    let body: ASTStatement[] = []
     loop:
     for (let token of iter) {
         if (token.type == TokenType.MARKER && token.value == '}') return body
@@ -25,7 +25,7 @@ export function bodySyntaxParser(iter:TokenIteratorI,ctx:CompileContext): ASTNod
     throw new Error('body ran out, end of file')
 }
 
-export function lineSyntaxParser(iter:TokenIteratorI,ctx:CompileContext): ASTNode {
+export function lineSyntaxParser(iter:TokenIteratorI,ctx:CompileContext): ASTStatement {
     const token = iter.current()
     switch (token.type) {
         case TokenType.KEYWORD: {
@@ -64,6 +64,7 @@ export function lineSyntaxParser(iter:TokenIteratorI,ctx:CompileContext): ASTNod
                 case 'import':
                 case 'tick':
                 case 'class':
+                case 'namespace':
                     return token.throwDebug('keyword invalid here')
                 default:
                     return exhaust(token.value)

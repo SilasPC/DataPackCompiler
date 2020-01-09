@@ -35,6 +35,9 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): Maybe<nul
 
 		switch (node.type) {
 
+			case ASTNodeType.MODULE:
+				throw new Error('wait modules oka')
+
 			case ASTNodeType.DEFINE: {
 				let type = tokenToType(node.varType,symbols)
 				if (type.elementary && type.type == ElementaryValueType.VOID) {
@@ -266,6 +269,7 @@ function parseBody(nodes:ASTNode[],scope:Scope,ctx:CompileContext): Maybe<null> 
 			case ASTNodeType.LIST:
 			case ASTNodeType.FUNCTION:
 			case ASTNodeType.EXPORT:
+			case ASTNodeType.MODULE:
 				throw new Error('invalid ast structure')
 			default:
 				return exhaust(node)
@@ -273,7 +277,7 @@ function parseBody(nodes:ASTNode[],scope:Scope,ctx:CompileContext): Maybe<null> 
 	}
 
 	if (diedAt) {
-		let dead = nodes.slice(nodes.indexOf(diedAt))
+		let dead = nodes.slice(nodes.indexOf(diedAt)+1)
 		if (dead.length > 0)
 			ctx.addError(new CompileError(
 				astErrorMsg(

@@ -1,4 +1,4 @@
-import { ASTNode, ASTNodeType, ASTOpNode } from "../syntax/AST"
+import { ASTNode, ASTNodeType, ASTOpNode, ASTExpr } from "../syntax/AST"
 import { SymbolTable } from "./SymbolTable"
 import { Instruction, INT_OP, InstrType, INVOKE } from "../codegen/Instructions"
 import { ESR, ESRType, IntESR, getESRType } from "./ESR"
@@ -11,7 +11,7 @@ import { Maybe } from "../toolbox/Maybe"
 import { MaybeWrapper } from "../toolbox/Maybe"
 import { CompileError } from "../toolbox/CompileErrors"
 
-export function exprParser(node: ASTNode, scope: Scope, ctx: CompileContext): Maybe<ESR> {
+export function exprParser(node: ASTExpr, scope: Scope, ctx: CompileContext): Maybe<ESR> {
 
 	let maybe = new MaybeWrapper<ESR>()
 
@@ -146,16 +146,9 @@ export function exprParser(node: ASTNode, scope: Scope, ctx: CompileContext): Ma
 		case ASTNodeType.STRING:
 			throw new Error('no strings in expressions for now I guess')
 
-		// Invalid cases. These should never occur
-		case ASTNodeType.CONDITIONAL:
-		case ASTNodeType.RETURN:
-		case ASTNodeType.DEFINE:
-		case ASTNodeType.EXPORT:
-		case ASTNodeType.FUNCTION:
-		case ASTNodeType.COMMAND:
 		case ASTNodeType.LIST:
-			throw new Error('ohkayy')
-		
+			throw new Error('no lists in expr yet')
+
 		default:
 			return exhaust(node)
 

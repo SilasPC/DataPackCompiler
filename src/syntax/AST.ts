@@ -82,6 +82,10 @@ function getRec(node:ASTNode,arr:TokenI[]): TokenI[] {
             arr.push(node.keyword)
             getRec(node.node,arr)
             break
+        case ASTNodeType.MODULE:
+            arr.push(node.keyword,node.identifier)
+            for (let sub of node.body) getRec(sub,arr)
+            break
         default:
             return exhaust(node)
     }
@@ -103,21 +107,33 @@ export enum ASTNodeType {
     OPERATION,
     COMMAND,
     LIST,
-    RETURN
+    RETURN,
+    MODULE
 }
 
-export type ASTNode = ASTReturnNode | ASTExportNode | ASTLetNode | ASTNumNode | ASTBoolNode | ASTStringNode | ASTIdentifierNode | ASTOpNode | ASTListNode | ASTCallNode | ASTFnNode | ASTIfNode | ASTCMDNode
+export type ASTExpr = ASTNumNode | ASTBoolNode | ASTStringNode | ASTIdentifierNode | ASTOpNode | ASTListNode | ASTCallNode
+// export type ASTNode = ASTModuleNode | ASTReturnNode | ASTExportNode | ASTLetNode | ASTNumNode | ASTBoolNode | ASTStringNode | ASTIdentifierNode | ASTOpNode | ASTListNode | ASTCallNode | ASTFnNode | ASTIfNode | ASTCMDNode
+export type ASTStatement = ASTExpr | ASTReturnNode | ASTLetNode | ASTIfNode | ASTCMDNode
+export type ASTStaticDeclaration = ASTLetNode | ASTModuleNode | ASTFnNode | ASTExportNode
+export type ASTNode = ASTExpr | ASTStatement | ASTStaticDeclaration
+
+export interface ASTModuleNode {
+    type: ASTNodeType.MODULE
+    keyword: TokenI
+    identifier: TokenI
+    body: ASTStaticDeclaration[]
+}
 
 export interface ASTExportNode {
     type: ASTNodeType.EXPORT
     keyword: TokenI
-    node: ASTNode
+    node: ASTStaticDeclaration
 }
 
 export interface ASTReturnNode {
     type: ASTNodeType.RETURN
     keyword: TokenI
-    node: ASTNode | null
+    node: ASTExpr | null
 }
 
 export interface ASTLetNode {
@@ -125,7 +141,7 @@ export interface ASTLetNode {
     identifier: TokenI
     keyword: TokenI
     varType: TokenI
-    initial: ASTNode
+    initial: ASTExpr
 }
 
 export interface ASTStringNode {
@@ -151,17 +167,17 @@ export interface ASTIdentifierNode {
 export interface ASTOpNode {
     type: ASTNodeType.OPERATION
     operator: TokenI
-    operands: ASTNode[]
+    operands: ASTExpr[]
 }
 
 export interface ASTListNode {
     type: ASTNodeType.LIST
-    list: ASTNode[]
+    list: ASTExpr[]
 }
 
 export interface ASTCallNode {
     type: ASTNodeType.INVOKATION
-    function: ASTNode,
+    function: ASTExpr,
     parameters: ASTListNode
 }
 
@@ -170,7 +186,7 @@ export interface ASTFnNode {
     identifier: TokenI
     parameters: {symbol:TokenI,type:TokenI}[]
     returnType: TokenI
-    body: ASTNode[]
+    body: ASTStatement[]
     keyword: TokenI
 }
 
@@ -178,15 +194,15 @@ export interface ASTIfNode {
     type: ASTNodeType.CONDITIONAL
     keyword: TokenI
     keywordElse: TokenI|null
-    expression: ASTNode
-    primaryBranch: ASTNode[]
-    secondaryBranch: ASTNode[]
+    expression: ASTExpr
+    primaryBranch: ASTStatement[]
+    secondaryBranch: ASTStatement[]
 }
 
 export interface ASTCMDNode {
     type: ASTNodeType.COMMAND
     token: TokenI,
-    interpolations: ASTNode[]
+    interpolations: ASTExpr[]
 }
 
 /*

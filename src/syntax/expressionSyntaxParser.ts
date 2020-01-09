@@ -1,6 +1,6 @@
 
 import { TokenI, TokenType } from "../lexing/Token";
-import { ASTNode, ASTNodeType, ASTIdentifierNode, ASTOpNode, ASTCallNode, ASTListNode } from "./AST";
+import { ASTNode, ASTNodeType, ASTIdentifierNode, ASTOpNode, ASTCallNode, ASTListNode, ASTExpr } from "./AST";
 import { TokenIterator, TokenIteratorI } from "../lexing/TokenIterator";
 import { CompilerOptions } from "../toolbox/config";
 import { exhaust } from "../toolbox/other";
@@ -22,10 +22,12 @@ type Op = {
     popable: boolean
 }
 
-export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext,asi:boolean) {
+type ExprReturn = {meta:{postfix:string[]},ast:ASTExpr}
+
+export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext,asi:boolean): ExprReturn {
 
     let ops: Op[] = []
-    let que: ASTNode[] = []
+    let que: ASTExpr[] = []
     let postfix: string[] = []
 
     let fncalls: boolean[] = [] // store astnodes instead?
@@ -58,7 +60,7 @@ export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext,
                                 if (!que.length) t.throwDebug('no fn on queue?')
                                 let invnode: ASTCallNode = {
                                     type: ASTNodeType.INVOKATION,
-                                    function: que.pop() as ASTNode,
+                                    function: que.pop() as ASTExpr,
                                     parameters: {
                                         type: ASTNodeType.LIST,
                                         list: []
@@ -109,7 +111,7 @@ export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext,
                         if (fncalls.pop()) {
                             if (que.length<2) t.throwDebug('wth') // this doesn't work so well when there are no parameters xd
                                                                   // note to self: make better comments
-                            let argnode = que.pop() as ASTNode
+                            let argnode = que.pop() as ASTExpr
                             if (argnode.type != ASTNodeType.LIST) {
                                 let argAsList: ASTListNode = {
                                     type: ASTNodeType.LIST,
@@ -120,7 +122,7 @@ export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext,
                             }
                             let invnode: ASTCallNode = {
                                 type: ASTNodeType.INVOKATION,
-                                function: que.pop() as ASTNode,
+                                function: que.pop() as ASTExpr,
                                 parameters: argnode as ASTListNode
                             }
                             que.push(invnode)
@@ -191,7 +193,7 @@ export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext,
 
     throw new Error('no end here thanks')
 
-    function finish() {
+    function finish(): ExprReturn {
         for (let op of ops.reverse()) {
             if (!op.popable) op.token.throwDebug('possible parenthesis mismatch')
             applyOperator(op)

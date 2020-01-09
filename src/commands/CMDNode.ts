@@ -4,7 +4,7 @@ import { TokenI, TokenType } from "../lexing/Token"
 import { CompileContext } from "../toolbox/CompileContext"
 import { Scope } from "../semantics/Scope"
 import { exprParser } from "../semantics/expressionParser"
-import { ASTNode } from "../syntax/AST"
+import { ASTNode, ASTExpr } from "../syntax/AST"
 
 type Sem = {ctx:CompileContext,scope:Scope}
 
@@ -17,7 +17,7 @@ export class CMDNode {
 	) {}
 
 	/** i is the current index. */
-	parseSyntax(token:TokenI,i:number,ctx:CompileContext): ASTNode[] {
+	parseSyntax(token:TokenI,i:number,ctx:CompileContext): ASTExpr[] {
 		let l = this.tryConsume(token,i,ctx)
 		let cmd = token.value
 		if (l == -1) token.throwDebug('consume fail')
@@ -57,9 +57,9 @@ export class CMDNode {
 
 export class SemanticalCMDNode extends CMDNode {
 
-	private lastAST: ASTNode | null = null
+	private lastAST: ASTExpr | null = null
 
-	parseSyntax(token:TokenI,i:number,ctx:CompileContext): ASTNode[] {
+	parseSyntax(token:TokenI,i:number,ctx:CompileContext): ASTExpr[] {
 		let ret = super.parseSyntax(token,i,ctx)
 		if (this.lastAST) ret.unshift(this.lastAST)
 		return ret

@@ -1,6 +1,6 @@
 
 import { TokenType, TokenI } from "../lexing/Token";
-import { ASTNode, ASTExportNode, ASTNodeType } from "./AST";
+import { ASTNode, ASTExportNode, ASTNodeType, ASTStaticDeclaration } from "./AST";
 import { TokenIterator, TokenIteratorI } from "../lexing/TokenIterator";
 
 export function getType(iter:TokenIteratorI): TokenI {
@@ -8,7 +8,7 @@ export function getType(iter:TokenIteratorI): TokenI {
     return iter.next().expectType(TokenType.SYMBOL,TokenType.TYPE)
 }
 
-export function wrapExport(node:ASTNode,keyword:TokenI|null): ASTNode {
+export function wrapExport(node:ASTStaticDeclaration,keyword:TokenI|null): ASTStaticDeclaration {
     if (keyword) {
         let ret: ASTExportNode = {type:ASTNodeType.EXPORT,keyword,node}
         return ret
