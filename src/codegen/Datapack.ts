@@ -2,7 +2,7 @@
 import { watch } from 'chokidar'
 import { promises as fs, Stats }  from 'fs'
 import { exec } from 'child_process'
-import { join } from "path";
+import { join, resolve, relative, dirname } from "path";
 import { lexer as lexicalAnalysis } from "../lexing/lexer";
 import { fileSyntaxParser } from "../syntax/fileSyntaxParser";
 import { WeakCompilerOptions, CompilerOptions, compilerOptionDefaults } from "../toolbox/config";
@@ -121,7 +121,14 @@ export class Datapack {
 		pfiles.forEach(pf=>fileSyntaxParser(pf,ctx))
 		ctx.log2(1,'inf',`Syntax analysis complete`)
 
-		pfiles.forEach(pf=>semanticsParser(pf,ctx))
+		pfiles.forEach(pf=>semanticsParser(pf,ctx,(src:string)=>{
+			if (src.startsWith('.')) {
+				let path = resolve(dirname(pf.fullPath),src+'.dpl')
+				return pfiles.find(p=>p.fullPath == path) || null
+			}
+			// standard libraries
+			return null
+		}))
 		ctx.log2(1,'inf',`Semantic analysis complete`)
 		if (errCount < ctx.getErrorCount()) {
 			ctx.log2(1,'err',`Got ${ctx.getErrorCount()-errCount} error(s)`)

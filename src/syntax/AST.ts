@@ -31,6 +31,7 @@ function info(node:ASTNode|ASTNode[]): [SourceLine,SourceLine,number,number] {
     ]
 }
 
+// only really need to check first and last token
 function getRec(node:ASTNode,arr:TokenI[]): TokenI[] {
     switch (node.type) {
         case ASTNodeType.BOOLEAN:
@@ -90,6 +91,9 @@ function getRec(node:ASTNode,arr:TokenI[]): TokenI[] {
             arr.push(node.keyword)
             getRec(node.expr,arr)
             break
+        case ASTNodeType.IMPORT:
+            arr.push(node.keyword,node.source)
+            break
         default:
             return exhaust(node)
     }
@@ -113,13 +117,22 @@ export enum ASTNodeType {
     LIST,
     RETURN,
     MODULE,
-    REFERENCE
+    REFERENCE,
+    IMPORT
 }
 
 export type ASTExpr = ASTRefNode | ASTNumNode | ASTBoolNode | ASTStringNode | ASTIdentifierNode | ASTOpNode | ASTListNode | ASTCallNode
 export type ASTStatement = ASTExpr | ASTReturnNode | ASTLetNode | ASTIfNode | ASTCMDNode
-export type ASTStaticDeclaration = ASTLetNode | ASTModuleNode | ASTFnNode | ASTExportNode
+export type ASTStaticDeclaration = ASTLetNode | ASTModuleNode | ASTFnNode | ASTExportNode | ASTImportNode
 export type ASTNode = ASTExpr | ASTStatement | ASTStaticDeclaration
+
+export interface ASTImportNode {
+    type: ASTNodeType.IMPORT
+    keyword: TokenI
+    keyword2: TokenI
+    imports: TokenI[]
+    source: TokenI
+}
 
 export interface ASTRefNode {
     type: ASTNodeType.REFERENCE

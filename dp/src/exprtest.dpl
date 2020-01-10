@@ -1,5 +1,5 @@
 
-// import {xxx} from 'test'
+import {xxx} from './test'
 
 export let a: int = 2
 let b: int = 3

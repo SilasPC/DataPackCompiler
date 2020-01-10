@@ -6,6 +6,7 @@ import { wrapExport } from "./helpers";
 import { parseDeclaration } from "./structures/declaration";
 import { CompileContext } from "../toolbox/CompileContext";
 import { parseModule } from "./structures/namespace";
+import { parseImport } from "./structures/import";
 
 export function fileSyntaxParser(pfile: ParsingFile, ctx: CompileContext): void {
     const iter = pfile.getTokenIterator()
@@ -16,7 +17,9 @@ export function fileSyntaxParser(pfile: ParsingFile, ctx: CompileContext): void 
                 switch (token.value) {
                     case 'import':
                         if (doExport) return token.throwUnexpectedKeyWord()
-                        return token.throwDebug('no import yet')
+                        pfile.addASTNode(parseImport(iter,ctx))
+                        doExport = null
+                        break
                     case 'export':
                         if (doExport) return token.throwUnexpectedKeyWord()
                         doExport = token

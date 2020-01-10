@@ -21,7 +21,7 @@ export function compileCoreFunction(
 	
 	lexer(pf,ctx)
 	fileSyntaxParser(pf,ctx)
-	semanticsParser(pf,ctx)
+	semanticsParser(pf,ctx,()=>null)
 
 	let decl = pf.getSymbolTable().getDeclaration(fnName)
 

@@ -11,11 +11,11 @@ import { InstrType } from "../codegen/Instructions"
 import { Maybe, MaybeWrapper } from "../toolbox/Maybe"
 import { CompileError } from "../toolbox/CompileErrors"
 
-export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): Maybe<null> {
+export function semanticsParser(pfile:ParsingFile,ctx:CompileContext,fetcher:(src:string)=>ParsingFile|null): Maybe<true> {
 
-	const maybe = new MaybeWrapper<null>()
+	const maybe = new MaybeWrapper<true>()
 	
-	if (pfile.status == 'parsed') return maybe.wrap(null)
+	if (pfile.status == 'parsed') return maybe.wrap(true)
 	if (pfile.status == 'parsing') throw new Error('circular parsing')
 
 	pfile.status = 'parsing'
@@ -40,6 +40,34 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): Maybe<nul
 		}
 
 		switch (node.type) {
+
+			case ASTNodeType.IMPORT: {
+				let pf = fetcher(node.source.value.slice(1,-1))
+				if (pf) {
+					if (pf.status != 'parsing') {
+						if (semanticsParser(pf,ctx,fetcher).value) {
+							for (let t of node.imports) {
+								if (!(pf as ParsingFile).hasExport(t.value)) {
+									ctx.addError(t.error('source had no such export'))
+									maybe.noWrap()
+									break
+								}
+								scope.symbols.declare((pf as ParsingFile).import(t))
+							}
+						} else {
+							ctx.addError(node.source.error('source had errors'))
+							maybe.noWrap()
+						}
+					} else {
+						ctx.addError(node.source.error('circular dependency'))
+						maybe.noWrap()
+					}
+				} else {
+					ctx.addError(node.source.error('could not find source'))
+					maybe.noWrap()
+				}
+				break
+			}
 
 			case ASTNodeType.MODULE:
 				throw new Error('wait modules oka')
@@ -100,17 +128,18 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): Maybe<nul
 				}
 				symbols.declare({token:node.identifier,decl})
 				for (let param of node.parameters) {
+					let maybe2 = new MaybeWrapper<{ref:boolean,param:ESR}>()
 					let type = tokenToType(param.type,symbols)
 					if (!type.elementary) {
 						ctx.addError(param.type.error('elementary only thx'))
-						parameters.push(MaybeWrapper.direct())
+						parameters.push(maybe2.none())
 						continue
 					}
 					let esr
 					switch (type.type) {
 						case ElementaryValueType.VOID:
 							ctx.addError(param.type.error('not valid'))
-							parameters.push(MaybeWrapper.direct())
+							parameters.push(maybe2.none())
 							continue
 						case ElementaryValueType.INT:
 							let iesr: IntESR = {
@@ -122,9 +151,9 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): Maybe<nul
 							}
 							esr = iesr
 							break
-						case ElementaryValueType.BOOL: {}
+						case ElementaryValueType.BOOL:
 							ctx.addError(param.type.error('no bool yet thx'))
-							parameters.push(MaybeWrapper.direct())
+							parameters.push(maybe2.none())
 							continue
 						default:
 							return exhaust(type.type)
@@ -134,7 +163,7 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): Maybe<nul
 						varType: type,
 						esr
 					}
-					parameters.push(MaybeWrapper.direct({param:esr,ref:param.ref}))
+					parameters.push(maybe2.wrap({param:esr,ref:param.ref}))
 					branch.symbols.declare({token:param.symbol,decl})
 				}
 				if (shouldExport) pfile.addExport({token:node.identifier,decl})
@@ -159,7 +188,7 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): Maybe<nul
 
 	pfile.status = 'parsed'
 
-	return maybe.wrap(null)
+	return maybe.wrap(true)
 
 }
 
