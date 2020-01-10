@@ -1,6 +1,6 @@
 
 import { TokenI, TokenType } from "../lexing/Token";
-import { ASTNode, ASTNodeType, ASTIdentifierNode, ASTOpNode, ASTCallNode, ASTListNode, ASTExpr } from "./AST";
+import { ASTNode, ASTNodeType, ASTIdentifierNode, ASTOpNode, ASTCallNode, ASTListNode, ASTExpr, ASTRefNode } from "./AST";
 import { TokenIterator, TokenIteratorI } from "../lexing/TokenIterator";
 import { CompilerOptions } from "../toolbox/config";
 import { exhaust } from "../toolbox/other";
@@ -132,7 +132,7 @@ export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext,
                         break
                     case '::':
                     case '.':
-                        ops.push(opInfo(t,false))
+                        pushOperator(opInfo(t,!lastWasOperand))
                         lastWasOperand = false
                         break
                     case ',':
@@ -183,9 +183,24 @@ export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext,
                 lastWasOperand = true
                 break
             }
+            case TokenType.KEYWORD: {
+                switch (t.value) {
+                    case 'ref':
+                        pushOperator(opInfo(t,!lastWasOperand))
+                        lastWasOperand = false
+                        break
+                    default:
+                        if (!asi||!tokens.currentFollowsNewline())
+                        return t.throwUnexpectedKeyWord()
+                        tokens.skip(-1)
+                        return finish()
+                }
+                break
+            }
             default:
                 //return exhaust(t.type)
-                if (!asi||!tokens.currentFollowsNewline()) t.throwDebug('tokentype not implemented')
+                if (!asi||!tokens.currentFollowsNewline())
+                    return t.throwDebug('tokentype not implemented')
                 tokens.skip(-1)
                 return finish()
         }
@@ -223,6 +238,7 @@ export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext,
                 // the unary is popped and applied even though it is a
                 // prefix, and the operand is not on the queue yet
                 // fix: prefix unaries must be sorted rather than popped
+                // actually this should not be a problem, as binary doesn't directly follow prefix
             }
             ops.pop()
             // console.log('push apply',l.token.value)
@@ -233,9 +249,21 @@ export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext,
         // console.log('push out2',postfix.join(' '))
     }
 
-    function applyOperator(op:Op) {
+    function applyOperator(op:Op): void {
         if (que.length < op.operands) throw new Error('operator expected more operands on queue than available')
         switch (op.token.type) {
+            case TokenType.KEYWORD: {
+                if (op.token.value != 'ref') op.token.throwDebug('non-ref keyword')
+                let node: ASTRefNode = {
+                    type: ASTNodeType.REFERENCE,
+                    keyword: op.token,
+                    expr: que.pop() as ASTExpr
+                }
+                const map = {[OpType.POSTFIX]:':post',[OpType.PREFIX]:':pre',[OpType.INFIX]:''}
+                que.push(node)
+                postfix.push(op.op+map[op.type])
+                break
+            }
             case TokenType.OPERATOR:
                 let node: ASTOpNode = {
                     type: ASTNodeType.OPERATION,
@@ -280,6 +308,7 @@ export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext,
 function opInfo(token:TokenI,prefix:boolean): Op {
     let [precedency,leftToRight,type] = p(token,prefix)
     if (prefix && type != OpType.PREFIX) token.throwDebug('Operator cannot be prefixed')
+    if (!prefix && type == OpType.PREFIX) token.throwDebug('Operator can only be prefixed')
     // console.log('opinfo',token.value,precedency,leftToRight,OpType[type])
     return {
         token,
@@ -344,6 +373,9 @@ function p(t:TokenI,prefix:boolean): [number,boolean,OpType] {
         case '/=':
         case '%=':
             return [3,false,OpType.INFIX]
+
+        case 'ref':
+            return [2,false,OpType.PREFIX]
 
         case ',':
             // right to left to avoid pop and apply

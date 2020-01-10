@@ -52,7 +52,7 @@ function getRec(node:ASTNode,arr:TokenI[]): TokenI[] {
             break
         case ASTNodeType.FUNCTION:
             arr.push(node.identifier,node.keyword,node.returnType)
-            arr.push(...node.parameters.flatMap(p=>Object.values(p)))
+            arr.push(...node.parameters.flatMap(p=>[p.symbol,p.type]))
             for (let sub of node.body) getRec(sub,arr)
             break
         case ASTNodeType.IDENTIFIER:
@@ -86,6 +86,10 @@ function getRec(node:ASTNode,arr:TokenI[]): TokenI[] {
             arr.push(node.keyword,node.identifier)
             for (let sub of node.body) getRec(sub,arr)
             break
+        case ASTNodeType.REFERENCE:
+            arr.push(node.keyword)
+            getRec(node.expr,arr)
+            break
         default:
             return exhaust(node)
     }
@@ -108,14 +112,20 @@ export enum ASTNodeType {
     COMMAND,
     LIST,
     RETURN,
-    MODULE
+    MODULE,
+    REFERENCE
 }
 
-export type ASTExpr = ASTNumNode | ASTBoolNode | ASTStringNode | ASTIdentifierNode | ASTOpNode | ASTListNode | ASTCallNode
-// export type ASTNode = ASTModuleNode | ASTReturnNode | ASTExportNode | ASTLetNode | ASTNumNode | ASTBoolNode | ASTStringNode | ASTIdentifierNode | ASTOpNode | ASTListNode | ASTCallNode | ASTFnNode | ASTIfNode | ASTCMDNode
+export type ASTExpr = ASTRefNode | ASTNumNode | ASTBoolNode | ASTStringNode | ASTIdentifierNode | ASTOpNode | ASTListNode | ASTCallNode
 export type ASTStatement = ASTExpr | ASTReturnNode | ASTLetNode | ASTIfNode | ASTCMDNode
 export type ASTStaticDeclaration = ASTLetNode | ASTModuleNode | ASTFnNode | ASTExportNode
 export type ASTNode = ASTExpr | ASTStatement | ASTStaticDeclaration
+
+export interface ASTRefNode {
+    type: ASTNodeType.REFERENCE
+    keyword: TokenI
+    expr: ASTExpr
+}
 
 export interface ASTModuleNode {
     type: ASTNodeType.MODULE
@@ -184,7 +194,7 @@ export interface ASTCallNode {
 export interface ASTFnNode {
     type: ASTNodeType.FUNCTION
     identifier: TokenI
-    parameters: {symbol:TokenI,type:TokenI}[]
+    parameters: {ref:boolean,symbol:TokenI,type:TokenI}[]
     returnType: TokenI
     body: ASTStatement[]
     keyword: TokenI

@@ -69,17 +69,18 @@ export function assignESR(from:ESR,to:ESR): Instruction[] {
 }
 
 /** Copies esr into a new esr (with the returned instruction) */
-export function copyESRToLocal(esr:ESR,ctx:CompileContext,scope:Scope,name:string): {copyInstr:Instruction,esr:ESR} {
-	switch (esr.type) {
+export function copyESR<T extends ESR>(esr:T,ctx:CompileContext,scope:Scope,name:string,base:ESRBase): {copyInstr:Instruction,esr:T} {
+	let esr0 = esr as ESR
+	switch (esr0.type) {
 		case ESRType.VOID:
 			throw new Error('cannot copy void esr')
 		case ESRType.BOOL:
 			throw new Error('bool copy not supported yet')
 		case ESRType.INT:
-			let retEsr: IntESR = {type:ESRType.INT,mutable:false,const:false,tmp:false,scoreboard:ctx.scoreboards.getStatic(name,scope)}
-			let copyInstr: INT_OP = {type:InstrType.INT_OP,into:retEsr,from:esr,op:'='}
-			return {copyInstr,esr:retEsr}
+			let retEsr: IntESR = {type:ESRType.INT,...base,scoreboard:ctx.scoreboards.getStatic(name,scope)}
+			let copyInstr: INT_OP = {type:InstrType.INT_OP,into:retEsr,from:esr0,op:'='}
+			return {copyInstr,esr:retEsr as T}
 		default:
-			return exhaust(esr)
+			return exhaust(esr0)
 	}
 }

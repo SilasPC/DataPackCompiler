@@ -6,6 +6,7 @@ import { ESR } from "./ESR";
 import { FnFile } from "../codegen/FnFile";
 import { TokenI } from "../lexing/Token";
 import { exhaust } from "../toolbox/other";
+import { Maybe } from "../toolbox/Maybe";
 
 export type Declaration = VarDeclaration | FnDeclaration
 
@@ -27,7 +28,7 @@ export interface VarDeclaration {
 
 export interface FnDeclaration {
 	type: DeclarationType.FUNCTION
-	returns: ESR
-	parameters: ESR[]
+	esr: ESR
+	parameters: Maybe<{ref:boolean,param:ESR}>[]
 	fn: FnFile
 }

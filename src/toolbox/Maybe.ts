@@ -1,6 +1,12 @@
 
 export class MaybeWrapper<T> {
 
+	static direct(): Maybe<any>
+	static direct<T>(v:T): Maybe<T>
+	static direct<T>(v?:T|undefined): Maybe<T> {
+		return new MaybeClass<T>(v) as Maybe<T>
+	}
+
 	private hasErrored = false
 
 	/** Return true if maybe had no value. this.noWrap() will be called */

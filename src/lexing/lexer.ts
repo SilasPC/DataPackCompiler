@@ -18,7 +18,7 @@ function getRgx() {
         '(?<cmd>'+    cmd          +')|'+
         '(?<cmt>'+    comments     +')|'+
         '(?<ops>'+    operators    +')|'+
-        '(?<kwd>'+  keywords       +')|'+
+        '(?<kwd>'+  keywords       +`)(?![a-zA-Z0-9])|`+
         '(?<typ>'+  types          +')|'+
         '(?<pri>'+  primitives     +')|'+
         '(?<sym>'+  symbol	       +')|'+

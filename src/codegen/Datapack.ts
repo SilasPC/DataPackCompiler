@@ -90,8 +90,8 @@ export class Datapack {
 		let cfg = Datapack.getDefaultConfig({
 			...this.packJson, // all normal options
 			compilerOptions: merge( // override compileroptions:
+				this.packJson.compilerOptions, // use normal if nullish on override
 				cfgOverride, // override options
-				this.packJson.compilerOptions // use normal if nullish on override
 			)
 		})
 
@@ -124,9 +124,11 @@ export class Datapack {
 			errCount = ctx.getErrorCount()
 		}
 
-		let optres = optimize(ctx)
-		ctx.log2(1,'inf',`Optimization complete`)
-		ctx.log2(2,'inf',`Successful passes: ${optres.meta.passes}`)
+		if (ctx.options.optimize) {
+			let optres = optimize(ctx)
+			ctx.log2(1,'inf',`Optimization complete`)
+			ctx.log2(2,'inf',`Successful passes: ${optres.meta.passes}`)
+		}
 
 		this.fnMap = new Map(
 			ctx.getFnFiles()

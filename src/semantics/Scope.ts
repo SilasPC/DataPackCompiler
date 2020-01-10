@@ -43,8 +43,15 @@ export class Scope {
 	 * 
 	 * This also creates new flowbuffers for the scopes in question,
 	 * so further code in the scopes wont run after triggering these instructions
+	 * 
+	 * EDIT: No longer returns instructions, just adds them and breaks
+	 * 
 	 */
-	breakScopes(scope:Scope): Instruction[] {
+	breakScopes(scope:Scope) {
+		this.push(...this.breakScopesRec(scope))
+		this.newFlowBuffer()
+	}
+	private breakScopesRec(scope:Scope): Instruction[] {
 		// maybe this should change
 		let instr: INT_OP = {
 			type: InstrType.INT_OP,
@@ -52,10 +59,9 @@ export class Scope {
 			from: {type:ESRType.INT,const:false,tmp:false,mutable:false,scoreboard:this.ctx.scoreboards.getConstant(1)},
 			op: '='
 		}
-		this.newFlowBuffer()
 		if (scope == this) return [instr]
 		if (!this.parent) throw new Error('attempting to break beyond root scope')
-		return [...this.parent.breakScopes(scope),instr]
+		return [...this.parent.breakScopesRec(scope),instr]
 	}
 
 	getSuperByType(type:ScopeType): Scope|null {
@@ -73,7 +79,7 @@ export class Scope {
 		this.returnVar = esr
 	}
 
-	public newFlowBuffer() {
+	private newFlowBuffer() {
 		// we don't new a new instr buffer if the last one hasn't been used
 		if (this.instrBuffer.length)
 			this.stack.push(this.instrBuffer = [])

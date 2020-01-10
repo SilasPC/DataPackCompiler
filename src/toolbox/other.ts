@@ -1,4 +1,9 @@
 
+export function assertDefined<T>(v:T|undefined): T {
+	if (v == undefined) throw new Error('Assertion failed')
+	return v
+}
+
 export function exhaust(v:never): never {
 	throw new Error('Exhaustion failed')
 }

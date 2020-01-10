@@ -3,8 +3,8 @@
 // The first is inserted directly as a regex
 // Second value is the string sub-type that should be associated
 
-export const keywords = "namespace|fn|let|var|break|for|event|while|return|if|else|class|tick|import|const|from|export"
-export type Keyword = 'namespace' | 'fn' | 'let' | 'var' | 'break' | 'for' | 'event' | 'while' | 'return' | 'if' | 'else' | 'class' | 'tick' | 'import' | 'const' | 'from' | 'export'
+export const keywords = "ref|namespace|fn|let|var|break|for|event|while|return|if|else|class|tick|import|const|from|export"
+export type Keyword = 'ref' | 'namespace' | 'fn' | 'let' | 'var' | 'break' | 'for' | 'event' | 'while' | 'return' | 'if' | 'else' | 'class' | 'tick' | 'import' | 'const' | 'from' | 'export'
 
 // todo
 const reserved = 'this'

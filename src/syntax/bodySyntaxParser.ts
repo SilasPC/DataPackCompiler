@@ -65,6 +65,7 @@ export function lineSyntaxParser(iter:TokenIteratorI,ctx:CompileContext): ASTSta
                 case 'tick':
                 case 'class':
                 case 'namespace':
+                case 'ref':
                     return token.throwDebug('keyword invalid here')
                 default:
                     return exhaust(token.value)

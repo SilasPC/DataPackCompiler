@@ -1,6 +1,6 @@
 
 import { TokenI } from "../lexing/Token";
-import { ASTNode } from "../syntax/AST";
+import { ASTNode, ASTStaticDeclaration } from "../syntax/AST";
 import { readFileSync } from "fs";
 import { resolve, relative, basename } from 'path'
 import { SymbolTable } from "../semantics/SymbolTable";
@@ -29,7 +29,7 @@ export class ParsingFile {
     }
 
     private readonly tokens: TokenI[] = []
-    private readonly ast: ASTNode[] = []
+    private readonly ast: ASTStaticDeclaration[] = []
     private readonly exports: Map<string,Declaration> = new Map()
 
     public status: 'lexed'|'parsing'|'parsed'|'generating'|'generated' = 'lexed'
@@ -44,7 +44,7 @@ export class ParsingFile {
     addToken(t:TokenI) {this.tokens.push(t)}
     getTokenIterator() {return new TokenIterator(this,this.tokens)}
 
-    addASTNode(n:ASTNode) {this.ast.push(n)}
+    addASTNode(n:ASTStaticDeclaration) {this.ast.push(n)}
     getAST() {return this.ast}
 
     getSymbolTable() {return this.scope.symbols}

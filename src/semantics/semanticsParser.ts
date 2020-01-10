@@ -1,6 +1,6 @@
 import { ParsingFile } from "../toolbox/ParsingFile"
-import { ASTNode, ASTNodeType, ASTOpNode, astErrorMsg } from "../syntax/AST"
-import { ESR, ESRType, getESRType, IntESR, copyESRToLocal, assignESR } from "./ESR"
+import { ASTNode, ASTNodeType, ASTOpNode, astErrorMsg, ASTStatement } from "../syntax/AST"
+import { ESR, ESRType, getESRType, IntESR, copyESR, assignESR } from "./ESR"
 import { tokenToType, ElementaryValueType, ValueType, hasSharedType } from "./Types"
 import { DeclarationType, VarDeclaration, FnDeclaration } from "./Declaration"
 import { exprParser } from "./expressionParser"
@@ -33,6 +33,12 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): Maybe<nul
 			shouldExport = true
 		}
 
+		while (node.type == ASTNodeType.EXPORT) {
+			ctx.addError(node.keyword.error('Unexpected keyword'))
+			node = node.node
+			maybe.noWrap()
+		}
+
 		switch (node.type) {
 
 			case ASTNodeType.MODULE:
@@ -46,12 +52,8 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): Maybe<nul
 				}
 				if (!type.elementary) node.varType.throwDebug('no non-elemn rn k')
 				let esr0 = exprParser(node.initial,scope,ctx)
-				// the above cannot be used for the variables esr (could mutate const)
-				// we must create a new esr, then assign the above to that
-				// file-level declarations are assigned during init, so
-				// we must add the assignations instruction to datapack init
 				if (maybe.merge(esr0)) continue
-				let res = copyESRToLocal(esr0.value,ctx,scope,node.identifier.value)
+				let res = copyESR(esr0.value,ctx,scope,node.identifier.value,{tmp:false,mutable:true,const:false})
 				let esr = res.esr
 				// do something with res.copyInstr
 				
@@ -67,7 +69,7 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): Maybe<nul
 			}
 	
 			case ASTNodeType.FUNCTION: {
-				let parameters: ESR[] = []
+				let parameters: Maybe<{param:ESR,ref:boolean}>[] = []
 				let branch = scope.branch(node.identifier.value,'FN',null)
 				let fn = ctx.createFnFile(branch.getScopeNames())
 				let type = tokenToType(node.returnType,symbols)
@@ -92,7 +94,7 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): Maybe<nul
 				branch.setReturnVar(esr)
 				let decl: FnDeclaration = {
 					type: DeclarationType.FUNCTION,
-					returns: esr,
+					esr: esr,
 					fn,
 					parameters
 				}
@@ -101,18 +103,20 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): Maybe<nul
 					let type = tokenToType(param.type,symbols)
 					if (!type.elementary) {
 						ctx.addError(param.type.error('elementary only thx'))
+						parameters.push(MaybeWrapper.direct())
 						continue
 					}
 					let esr
 					switch (type.type) {
 						case ElementaryValueType.VOID:
 							ctx.addError(param.type.error('not valid'))
+							parameters.push(MaybeWrapper.direct())
 							continue
 						case ElementaryValueType.INT:
 							let iesr: IntESR = {
 								type: ESRType.INT,
 								scoreboard: ctx.scoreboards.getStatic(param.symbol.value,branch),
-								mutable: false, // this controls if function parameters are mutable
+								mutable: param.ref, // this controls if function parameters are mutable
 								const: false,
 								tmp: false
 							}
@@ -120,6 +124,7 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): Maybe<nul
 							break
 						case ElementaryValueType.BOOL: {}
 							ctx.addError(param.type.error('no bool yet thx'))
+							parameters.push(MaybeWrapper.direct())
 							continue
 						default:
 							return exhaust(type.type)
@@ -129,7 +134,7 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): Maybe<nul
 						varType: type,
 						esr
 					}
-					parameters.push(esr)
+					parameters.push(MaybeWrapper.direct({param:esr,ref:param.ref}))
 					branch.symbols.declare({token:param.symbol,decl})
 				}
 				if (shouldExport) pfile.addExport({token:node.identifier,decl})
@@ -139,19 +144,6 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): Maybe<nul
 				
 				break
 			}
-
-			case ASTNodeType.RETURN:
-			case ASTNodeType.IDENTIFIER:
-			case ASTNodeType.INVOKATION:
-			case ASTNodeType.OPERATION:
-			case ASTNodeType.BOOLEAN:
-			case ASTNodeType.NUMBER:
-			case ASTNodeType.STRING:
-			case ASTNodeType.EXPORT:
-			case ASTNodeType.COMMAND:
-			case ASTNodeType.CONDITIONAL:
-			case ASTNodeType.LIST:
-					throw new Error('wth man, ast invalid at file root')
 
 			default:
 				return exhaust(node)
@@ -171,7 +163,7 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): Maybe<nul
 
 }
 
-function parseBody(nodes:ASTNode[],scope:Scope,ctx:CompileContext): Maybe<null> {
+function parseBody(nodes:ASTStatement[],scope:Scope,ctx:CompileContext): Maybe<null> {
 	let maybe = new MaybeWrapper<null>()
 	let diedAt: ASTNode | null = null
 	for (let node of nodes) {
@@ -223,7 +215,7 @@ function parseBody(nodes:ASTNode[],scope:Scope,ctx:CompileContext): Maybe<null> 
 				if (!diedAt) {
 					if (esr.type != ESRType.VOID)
 						scope.push(...assignESR(esr,fnret))
-					scope.push(...scope.breakScopes(fnscope))
+					scope.breakScopes(fnscope)
 					diedAt = node
 				}
 
@@ -252,10 +244,8 @@ function parseBody(nodes:ASTNode[],scope:Scope,ctx:CompileContext): Maybe<null> 
 					node.varType.throwDebug(`Cannot declare a variable of type 'void'`)
 				if (!type.elementary) node.varType.throwDebug('no non-elemn rn k')
 				let esr0 = exprParser(node.initial,scope,ctx)
-				// the above cannot be used for the variables esr (might mutate const)
-				// we must create a new esr, then assign the above to that
 				if (maybe.merge(esr0)) continue
-				let res = copyESRToLocal(esr0.value,ctx,scope,node.identifier.value)
+				let res = copyESR(esr0.value,ctx,scope,node.identifier.value,{tmp:false,mutable:true,const:false})
 				let esr = res.esr
 				if (!diedAt)
 					scope.push(res.copyInstr)
@@ -267,10 +257,15 @@ function parseBody(nodes:ASTNode[],scope:Scope,ctx:CompileContext): Maybe<null> 
 				break
 			}
 			case ASTNodeType.LIST:
-			case ASTNodeType.FUNCTION:
-			case ASTNodeType.EXPORT:
-			case ASTNodeType.MODULE:
-				throw new Error('invalid ast structure')
+				ctx.addError(new CompileError(astErrorMsg(node,'list not here for now'),false))
+				maybe.noWrap()
+				break
+
+			case ASTNodeType.REFERENCE:
+				ctx.addError(node.keyword.error('unexpected keyword'))
+				maybe.noWrap()
+				break
+
 			default:
 				return exhaust(node)
 		}

@@ -1,0 +1,1 @@
+scoreboard players operation xprtst_rftst_nm globals += 1 constants
