@@ -89,16 +89,20 @@ export class Datapack {
 
 		let cfg = Datapack.getDefaultConfig({
 			...this.packJson, // all normal options
-			compilerOptions: merge( // override compileroptions:
-				this.packJson.compilerOptions, // use normal if nullish on override
-				cfgOverride, // override options
-			)
+			compilerOptions: { // override compileroptions:
+				...this.packJson.compilerOptions, // use normal if nullish on override
+				...purgeKeys(cfgOverride) // override options
+			}
 		})
 
 		const ctx = this.ctx = new CompileContext(
 			cfg.compilerOptions,
 			await SyntaxSheet.load(cfg.compilerOptions.targetVersion)
 		)
+		
+		ctx.log2(2,'inf','Overwritten configurations:')
+		for (let [key,val] of Object.entries(purgeKeys(cfgOverride)))
+			ctx.log2(2,'inf',`${key} => ${val}`)
 
 		ctx.log2(1,'inf',`Begin compilation`)
 		let start = moment()
@@ -132,7 +136,7 @@ export class Datapack {
 
 		this.fnMap = new Map(
 			ctx.getFnFiles()
-				.map(fn=>[fn.name,generate(fn)])
+				.flatMap(fn=>fn.isDead()?[]:[[fn.name,generate(fn)]])
 		)
 		ctx.log2(1,'inf',`Generation complete`)
 
@@ -199,6 +203,13 @@ export class Datapack {
 }
 
 function def<T>(val:T|undefined,def:T): T {return val == undefined ? def : val}
+
+function purgeKeys<T>(obj:T): T {
+	obj = {...obj}
+	for (let key in obj)
+		if ([null,undefined].includes(obj[key] as any)) delete obj[key]
+	return obj
+} 
 
 function merge<T>(target:T,source:T): T {
 	let obj = {...target}

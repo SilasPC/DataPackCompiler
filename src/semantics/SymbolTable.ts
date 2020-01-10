@@ -3,6 +3,7 @@ import { TokenI, Token } from "../lexing/Token"
 import { DeclarationWrapper } from "./Declaration"
 import { Maybe, MaybeWrapper } from "../toolbox/Maybe"
 import { CompileContext } from "../toolbox/CompileContext"
+import { keywords, types } from "../lexing/values"
 
 export class SymbolTable {
 
@@ -51,6 +52,10 @@ export class SymbolTable {
 
     declare(decl:DeclarationWrapper) {
         // check for reserved names here
+        if (
+            keywords.includes(decl.token.value) ||
+            types.includes(decl.token.value)
+        ) decl.token.throwDebug('cannot declare reserved/keyword')
         if (this.getDeclaration(decl.token.value)) decl.token.throwDebug('redefinition')
         this.declarations.set(decl.token.value,{decl,refCounter:0})
     }

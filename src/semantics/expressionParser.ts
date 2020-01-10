@@ -1,4 +1,4 @@
-import { ASTNode, ASTNodeType, ASTOpNode, ASTExpr, astErrorMsg } from "../syntax/AST"
+import { ASTNode, ASTNodeType, ASTOpNode, ASTExpr, astErrorMsg, ASTCallNode } from "../syntax/AST"
 import { SymbolTable } from "./SymbolTable"
 import { Instruction, INT_OP, InstrType, INVOKE } from "../codegen/Instructions"
 import { ESR, ESRType, IntESR, getESRType, assignESR, copyESR } from "./ESR"
@@ -11,7 +11,7 @@ import { Maybe } from "../toolbox/Maybe"
 import { MaybeWrapper } from "../toolbox/Maybe"
 import { CompileError } from "../toolbox/CompileErrors"
 
-export function exprParser(node: ASTExpr, scope: Scope, ctx: CompileContext): Maybe<ESR> {
+export function exprParser(node: ASTExpr, scope: Scope, ctx: CompileContext, evalOnly:boolean): Maybe<ESR> {
 
 	let maybe = new MaybeWrapper<ESR>()
 
@@ -73,103 +73,10 @@ export function exprParser(node: ASTExpr, scope: Scope, ctx: CompileContext): Ma
 		}
 
 		case ASTNodeType.OPERATION:
-			return operator(node,scope,ctx)
+			return operator(node,scope,ctx,evalOnly)
 
-		case ASTNodeType.INVOKATION: {
-			if (node.function.type != ASTNodeType.IDENTIFIER) throw new Error('only direct calls for now')
-			let params = node.parameters.list.map(p=>{
-				let maybe = new MaybeWrapper<{esr:ESR,ref:boolean}>()
-				if (p.type == ASTNodeType.REFERENCE) {
-					if (p.expr.type != ASTNodeType.IDENTIFIER) {
-						ctx.addError(p.keyword.error('Can only reference identifiers'))
-						exprParser(p,scope,ctx)
-						return maybe.none()
-					}
-					let declw = scope.symbols.getDeclaration(p.expr.identifier,ctx)
-					if (!declw.value) return maybe.none()
-					return maybe.wrap({ref:true,esr:declw.value.decl.esr})
-				}
-				let esr = exprParser(p,scope,ctx)
-				if (!esr.value) return maybe.none()
-				return maybe.wrap({esr:esr.value,ref:false})
-			})
-			let declw = symbols.getDeclaration(node.function.identifier.value)
-			if (!declw) {
-				ctx.addError(node.function.identifier.error('fn not declared'))
-				return maybe.none()
-			}
-			let decl = declw.decl
-			if (decl.type != DeclarationType.FUNCTION) {
-				ctx.addError(node.function.identifier.error('not a fn'))
-				return maybe.none()
-			}
-			if (params.length != decl.parameters.length) {
-				ctx.addError(node.function.identifier.error('param length unmatched'))
-				return maybe.none()
-			}
-			let copyBackInstrs: Instruction[] = []
-			for (let i = 0; i < params.length; i++) {
-				let param = params[i]
-				if (!param.value) continue
-				let declParam = decl.parameters[i]
-				if (!declParam.value) continue
-				let esr = declParam.value.param
-				let canNoDo = false
-				if (!hasSharedType(getESRType(param.value.esr),getESRType(esr))) {
-					ctx.addError(new CompileError(astErrorMsg(node.parameters.list[i],'param type mismatch'),false))
-					canNoDo = true
-				}
-				if (param.value.ref != declParam.value.ref) {
-					ctx.addError(new CompileError(astErrorMsg(node.parameters.list[i],'reference mismatch'),false))
-					canNoDo = true
-				}
-				if (canNoDo) {
-					maybe.noWrap()
-					continue
-				}
-				copyBackInstrs.push(...assignESR(declParam.value.param,param.value.esr))
-				switch (esr.type) {
-					case ESRType.BOOL:
-						throw new Error('no impl')
-					case ESRType.INT:
-						let instr: INT_OP = {
-							type: InstrType.INT_OP,
-							from: param.value.esr as IntESR,
-							into: esr,
-							op: '='
-						}
-						scope.push(instr)
-						break
-					case ESRType.VOID:
-						throw new Error(`this can't happen`)
-					default:
-						return exhaust(esr)
-				}
-			}
-			let returnType = getESRType(decl.esr)
-			let invokeInstr: INVOKE = {type:InstrType.INVOKE,fn:decl.fn}
-			if (returnType.elementary) {
-				switch (returnType.type) {
-					case ElementaryValueType.INT: {
-						let into: IntESR = {type:ESRType.INT,mutable:false,const:false,tmp:true,scoreboard:ctx.scoreboards.getStatic('tmp',scope)}
-						if (decl.esr.type != ESRType.INT) throw new Error('ESR error')
-						let copyRet: INT_OP = {type:InstrType.INT_OP,into,from:decl.esr,op:'='}
-						scope.push(invokeInstr,copyRet,...copyBackInstrs)
-						return maybe.wrap(into)
-					}
-					case ElementaryValueType.VOID: {
-						scope.push(invokeInstr,...copyBackInstrs)
-						return maybe.wrap({type:ESRType.VOID,mutable:false,const:false,tmp:false})
-					}
-					case ElementaryValueType.BOOL:
-						throw new Error('no bool ret rn')
-					default:
-						return exhaust(returnType.type)
-				}
-			} else {
-				throw new Error('non elementary return value not supported yet')
-			}
-		}
+		case ASTNodeType.INVOKATION:
+			return invokation(node,scope,ctx,evalOnly,maybe)
 
 		case ASTNodeType.STRING:
 			ctx.addError(node.value.error('no strings in expressions for now I guess'))
@@ -190,7 +97,107 @@ export function exprParser(node: ASTExpr, scope: Scope, ctx: CompileContext): Ma
 
 }
 
-function operator(node:ASTOpNode,scope:Scope,ctx:CompileContext): Maybe<IntESR> {
+function invokation(node:ASTCallNode,scope:Scope,ctx:CompileContext,evalOnly:boolean,maybe:MaybeWrapper<ESR>) {
+	const symbols = scope.symbols
+	if (node.function.type != ASTNodeType.IDENTIFIER) throw new Error('only direct calls for now')
+	let params = node.parameters.list.map(p=>{
+		let maybe = new MaybeWrapper<{esr:ESR,ref:boolean}>()
+		if (p.type == ASTNodeType.REFERENCE) {
+			if (p.expr.type != ASTNodeType.IDENTIFIER) {
+				ctx.addError(p.keyword.error('Can only reference identifiers'))
+				exprParser(p,scope,ctx,evalOnly)
+				return maybe.none()
+			}
+			let declw = scope.symbols.getDeclaration(p.expr.identifier,ctx)
+			if (!declw.value) return maybe.none()
+			return maybe.wrap({ref:true,esr:declw.value.decl.esr})
+		}
+		let esr = exprParser(p,scope,ctx,evalOnly)
+		if (!esr.value) return maybe.none()
+		return maybe.wrap({esr:esr.value,ref:false})
+	})
+	let declw = symbols.getDeclaration(node.function.identifier.value)
+	if (!declw) {
+		ctx.addError(node.function.identifier.error('fn not declared'))
+		return maybe.none()
+	}
+	let decl = declw.decl
+	if (decl.type != DeclarationType.FUNCTION) {
+		ctx.addError(node.function.identifier.error('not a fn'))
+		return maybe.none()
+	}
+	if (params.length != decl.parameters.length) {
+		ctx.addError(node.function.identifier.error('param length unmatched'))
+		return maybe.none()
+	}
+	let copyBackInstrs: Instruction[] = []
+	for (let i = 0; i < params.length; i++) {
+		let param = params[i]
+		if (!param.value) continue
+		let declParam = decl.parameters[i]
+		if (!declParam.value) continue
+		let esr = declParam.value.param
+		let canNoDo = false
+		if (!hasSharedType(getESRType(param.value.esr),getESRType(esr))) {
+			ctx.addError(new CompileError(astErrorMsg(node.parameters.list[i],'param type mismatch'),false))
+			canNoDo = true
+		}
+		if (param.value.ref != declParam.value.ref) {
+			ctx.addError(new CompileError(astErrorMsg(node.parameters.list[i],'reference mismatch'),false))
+			canNoDo = true
+		}
+		if (canNoDo) {
+			maybe.noWrap()
+			continue
+		}
+		copyBackInstrs.push(...assignESR(declParam.value.param,param.value.esr))
+		switch (esr.type) {
+			case ESRType.BOOL:
+				throw new Error('no impl')
+			case ESRType.INT:
+				let instr: INT_OP = {
+					type: InstrType.INT_OP,
+					from: param.value.esr as IntESR,
+					into: esr,
+					op: '='
+				}
+				if (!evalOnly)
+					scope.push(instr)
+				break
+			case ESRType.VOID:
+				throw new Error(`this can't happen`)
+			default:
+				return exhaust(esr)
+		}
+	}
+	let returnType = getESRType(decl.esr)
+	let invokeInstr: INVOKE = {type:InstrType.INVOKE,fn:decl.fn}
+	if (returnType.elementary) {
+		switch (returnType.type) {
+			case ElementaryValueType.INT: {
+				let into: IntESR = {type:ESRType.INT,mutable:false,const:false,tmp:true,scoreboard:ctx.scoreboards.getStatic('tmp',scope)}
+				if (decl.esr.type != ESRType.INT) throw new Error('ESR error')
+				let copyRet: INT_OP = {type:InstrType.INT_OP,into,from:decl.esr,op:'='}
+				if (!evalOnly)
+					scope.push(invokeInstr,copyRet,...copyBackInstrs)
+				return maybe.wrap(into)
+			}
+			case ElementaryValueType.VOID: {
+				if (!evalOnly)
+					scope.push(invokeInstr,...copyBackInstrs)
+				return maybe.wrap({type:ESRType.VOID,mutable:false,const:false,tmp:false})
+			}
+			case ElementaryValueType.BOOL:
+				throw new Error('no bool ret rn')
+			default:
+				return exhaust(returnType.type)
+		}
+	} else {
+		throw new Error('non elementary return value not supported yet')
+	}
+}
+
+function operator(node:ASTOpNode,scope:Scope,ctx:CompileContext,evalOnly:boolean): Maybe<IntESR> {
 	const maybe = new MaybeWrapper<IntESR>()
 	switch (node.operator.value) {
 		case '+':
@@ -199,7 +206,7 @@ function operator(node:ASTOpNode,scope:Scope,ctx:CompileContext): Maybe<IntESR> 
 		case '/':
 		case '%': {
 			console.assert(node.operands.length == 2, 'two operands')
-			let [o0,o1] = node.operands.map(o=>exprParser(o,scope,ctx))
+			let [o0,o1] = node.operands.map(o=>exprParser(o,scope,ctx,evalOnly))
 			if (!o0.value || !o1.value)
 				return maybe.none()
 			if (o0.value.type != ESRType.INT) {
@@ -213,13 +220,14 @@ function operator(node:ASTOpNode,scope:Scope,ctx:CompileContext): Maybe<IntESR> 
 
 			let copy = copyESR(o0.value,ctx,scope,'tmp',{tmp:true,const:false,mutable:false})
 			let op: INT_OP = {type:InstrType.INT_OP,into:copy.esr,from:o1.value,op:node.operator.value+'='}
-			scope.push(copy.copyInstr,op)
+			if (!evalOnly)
+				scope.push(copy.copyInstr,op)
 			return maybe.wrap(copy.esr)
 		}
 
 		case '=': {
 			console.assert(node.operands.length == 2, 'two operands')
-			let [o0,o1] = node.operands.map(o=>exprParser(o,scope,ctx))
+			let [o0,o1] = node.operands.map(o=>exprParser(o,scope,ctx,evalOnly))
 			if (!o0.value || !o1.value)
 				return maybe.none()
 			if (!o0.value.mutable) {
@@ -237,7 +245,8 @@ function operator(node:ASTOpNode,scope:Scope,ctx:CompileContext): Maybe<IntESR> 
 			
 			let copy = copyESR(o0.value,ctx,scope,'tmp',{tmp:true,const:false,mutable:false})
 			let op: INT_OP = {type:InstrType.INT_OP,into:o0.value,from:o1.value,op:'='}
-			scope.push(op,copy.copyInstr)
+			if (!evalOnly)
+				scope.push(op,copy.copyInstr)
 			return maybe.wrap(copy.esr)
 		}
 		
@@ -247,7 +256,7 @@ function operator(node:ASTOpNode,scope:Scope,ctx:CompileContext): Maybe<IntESR> 
 		case '/=':
 		case '%=': {
 			console.assert(node.operands.length == 2, 'two operands')
-			let [o0,o1] = node.operands.map(o=>exprParser(o,scope,ctx))
+			let [o0,o1] = node.operands.map(o=>exprParser(o,scope,ctx,evalOnly))
 			if (!o0.value || !o1.value)
 				return maybe.none()
 			if (!o0.value.mutable) {
@@ -264,7 +273,8 @@ function operator(node:ASTOpNode,scope:Scope,ctx:CompileContext): Maybe<IntESR> 
 			}
 			let copy = copyESR(o0.value,ctx,scope,'tmp',{tmp:true,const:false,mutable:false})
 			let op1: INT_OP = {type:InstrType.INT_OP,into:o0.value,from:o1.value,op:node.operator.value}
-			scope.push(op1,copy.copyInstr)
+			if (!evalOnly)
+				scope.push(op1,copy.copyInstr)
 			return maybe.wrap(copy.esr)
 		}
 

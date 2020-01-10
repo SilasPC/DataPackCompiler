@@ -21,8 +21,8 @@ fn reftest(ref num:int): void {
 }
 
 fn useRef(): void {
-    let local: int = 0
-    reftest(ref local)
+    let local1: int = 0
+    reftest(ref local1)
 }
 
 fn x(y:int): int {

@@ -3,11 +3,12 @@ import { CompileContext } from "../toolbox/CompileContext";
 import { FnFile } from "../codegen/FnFile";
 import { InstrType } from "../codegen/Instructions";
 import { antialias } from "./antiAlias";
+import { localInvokes } from "./localInvokes";
 // import { antiAlias } from "./AntiAlias";
 
 export type Optimizer = (fn:FnFile,ctx:CompileContext) => boolean
 
-const optimizers: Optimizer[] = [antialias]
+const optimizers: Optimizer[] = [antialias,localInvokes]
 
 export function optimize(ctx:CompileContext) {
 	let passes = ctx.getFnFiles().reduce((passes,fn)=>passes+recurseOptimize(fn,ctx),0)

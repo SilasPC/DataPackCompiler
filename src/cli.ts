@@ -67,6 +67,12 @@ const argv = yargs
 		group: COMPILE_GROUP
 	})
 
+	.option('no-optimize', {
+		description: 'Disable optimization',
+		boolean: true,
+		group: COMPILE_GROUP
+	})
+
 	// this flag is actually hijacked by 'colors' module...
 	.option('no-color', {
 		description: 'Disable color logging',
@@ -112,9 +118,10 @@ async function compile(argv:any): Promise<void> {
 		try {
 
 			await dp.compile({
-				targetVersion: argv.targetVersion as string|undefined,
+				targetVersion: argv['target-version'] as string|undefined,
 				verbosity: argv.verbose ? argv.verbose as number : undefined,
-				colorLog: argv.noColor ? false : undefined
+				colorLog: argv.color === false ? false : undefined,
+				optimize: argv.optimize === false ? false : undefined
 			})
 			if (dp.canEmit() && !argv.noEmit) await dp.emit()
 			

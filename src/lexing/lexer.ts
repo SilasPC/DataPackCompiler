@@ -15,14 +15,14 @@ const cmd = '/\\w.*?(?=\r?\n)'
 
 function getRgx() {
     return RegExp(
-        '(?<cmd>'+    cmd          +')|'+
-        '(?<cmt>'+    comments     +')|'+
-        '(?<ops>'+    operators    +')|'+
-        '(?<kwd>'+  keywords       +`)(?![a-zA-Z0-9])|`+
-        '(?<typ>'+  types          +')|'+
-        '(?<pri>'+  primitives     +')|'+
-        '(?<sym>'+  symbol	       +')|'+
-        '(?<mrk>'+    markers	   +')|'+
+        '(?<cmd>'+  cmd                  +')|'+
+        '(?<cmt>'+  comments             +')|'+
+        '(?<ops>'+  operators            +')|'+
+        '(?<kwd>'+  keywords.join('|')   +`)(?![a-zA-Z0-9])|`+
+        '(?<typ>'+  types.join('|')      +')|'+
+        '(?<pri>'+  primitives           +')|'+
+        '(?<sym>'+  symbol	             +')|'+
+        '(?<mrk>'+    markers	         +')|'+
         '(?<nwl>\n)|(?<bad>\\S)',
         'g'
     )

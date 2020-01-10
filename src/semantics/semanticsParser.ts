@@ -51,7 +51,7 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): Maybe<nul
 					continue
 				}
 				if (!type.elementary) node.varType.throwDebug('no non-elemn rn k')
-				let esr0 = exprParser(node.initial,scope,ctx)
+				let esr0 = exprParser(node.initial,scope,ctx,false)
 				if (maybe.merge(esr0)) continue
 				let res = copyESR(esr0.value,ctx,scope,node.identifier.value,{tmp:false,mutable:true,const:false})
 				let esr = res.esr
@@ -166,13 +166,16 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext): Maybe<nul
 function parseBody(nodes:ASTStatement[],scope:Scope,ctx:CompileContext): Maybe<null> {
 	let maybe = new MaybeWrapper<null>()
 	let diedAt: ASTNode | null = null
+
+	const evalOnly = () => ctx.options.optimize ? diedAt != null : false
+
 	for (let node of nodes) {
 
 		switch (node.type) {
 			case ASTNodeType.COMMAND: {
 				let foundErrors = false
 				let interpolations = node.interpolations.flatMap(n => {
-					let x = exprParser(n,scope,ctx)
+					let x = exprParser(n,scope,ctx,evalOnly())
 					if (maybe.merge(x)) {
 						foundErrors = true
 						return []
@@ -180,7 +183,7 @@ function parseBody(nodes:ASTStatement[],scope:Scope,ctx:CompileContext): Maybe<n
 					return [x.value]
 				})
 				if (foundErrors) continue
-				if (!diedAt)
+				if (!evalOnly())
 					scope.push({
 						type:InstrType.CMD,
 						interpolations
@@ -189,7 +192,7 @@ function parseBody(nodes:ASTStatement[],scope:Scope,ctx:CompileContext): Maybe<n
 			}
 			case ASTNodeType.INVOKATION:
 			case ASTNodeType.OPERATION: {
-				maybe.merge(exprParser(node,scope,ctx))
+				maybe.merge(exprParser(node,scope,ctx,evalOnly()))
 				break
 			}
 			case ASTNodeType.RETURN: {
@@ -200,7 +203,7 @@ function parseBody(nodes:ASTStatement[],scope:Scope,ctx:CompileContext): Maybe<n
 				let esr: ESR
 				if (!node.node) esr = {type:ESRType.VOID,const:false,tmp:false,mutable:false}
 				else {
-					let x = exprParser(node.node,scope,ctx)
+					let x = exprParser(node.node,scope,ctx,evalOnly())
 					if (maybe.merge(x)) continue
 					esr = x.value
 				}
@@ -212,7 +215,7 @@ function parseBody(nodes:ASTStatement[],scope:Scope,ctx:CompileContext): Maybe<n
 				}
 
 				// return instructions
-				if (!diedAt) {
+				if (!evalOnly()) {
 					if (esr.type != ESRType.VOID)
 						scope.push(...assignESR(esr,fnret))
 					scope.breakScopes(fnscope)
@@ -227,7 +230,7 @@ function parseBody(nodes:ASTStatement[],scope:Scope,ctx:CompileContext): Maybe<n
 			case ASTNodeType.IDENTIFIER:
 				throw new Error('valid, but pointless')
 			case ASTNodeType.CONDITIONAL: {
-				let esr = exprParser(node.expression,scope,ctx)
+				let esr = exprParser(node.expression,scope,ctx,evalOnly())
 				if (maybe.merge(esr)) continue
 				if (esr.value.type != ESRType.BOOL) throw new Error('if not bool esr')
 				/*parseBody(node.primaryBranch,scope.branch('if','NONE',{
@@ -243,16 +246,16 @@ function parseBody(nodes:ASTStatement[],scope:Scope,ctx:CompileContext): Maybe<n
 				if (type.elementary && type.type == ElementaryValueType.VOID)
 					node.varType.throwDebug(`Cannot declare a variable of type 'void'`)
 				if (!type.elementary) node.varType.throwDebug('no non-elemn rn k')
-				let esr0 = exprParser(node.initial,scope,ctx)
+				let esr0 = exprParser(node.initial,scope,ctx,evalOnly())
 				if (maybe.merge(esr0)) continue
 				let res = copyESR(esr0.value,ctx,scope,node.identifier.value,{tmp:false,mutable:true,const:false})
 				let esr = res.esr
-				if (!diedAt)
+				if (!evalOnly())
 					scope.push(res.copyInstr)
 
 				if (!hasSharedType(getESRType(esr),type)) node.identifier.throwDebug('type mismatch')
 				let decl: VarDeclaration = {type:DeclarationType.VARIABLE,varType:type,esr}
-				if (!diedAt)
+				if (!evalOnly())
 					scope.symbols.declare({token:node.identifier,decl})
 				break
 			}
