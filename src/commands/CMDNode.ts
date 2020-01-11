@@ -5,6 +5,8 @@ import { CompileContext } from "../toolbox/CompileContext"
 import { Scope } from "../semantics/Scope"
 import { exprParser } from "../semantics/expressionParser"
 import { ASTNode, ASTExpr } from "../syntax/AST"
+import { SheetSpecials } from "./sheetParser"
+import { exhaust } from "../toolbox/other"
 
 type Sem = {ctx:CompileContext,scope:Scope}
 
@@ -17,7 +19,7 @@ export class CMDNode {
 	) {}
 
 	/** i is the current index. */
-	parseSyntax(token:TokenI,i:number,ctx:CompileContext): ASTExpr[] {
+	parseSyntax(token:TokenI,i:number,ctx:CompileContext): {exprs:ASTExpr[],nodes:{node:CMDNode,capture:string}[]} {
 		let l = this.tryConsume(token,i,ctx)
 		let cmd = token.value
 		if (l == -1) token.throwDebug('consume fail')
@@ -27,7 +29,7 @@ export class CMDNode {
 				!this.restOptional &&
 				this.children.length > 0
 			) return token.throwDebug('match failed (expected more)')
-			return []
+			return {exprs:[],nodes:[{node:this,capture:cmd.substr(i,l-1)}]}
 		}
 		let sub = this.findNext(token,j,ctx)
 		return sub.parseSyntax(token,j,ctx)
@@ -59,9 +61,9 @@ export class SemanticalCMDNode extends CMDNode {
 
 	private lastAST: ASTExpr | null = null
 
-	parseSyntax(token:TokenI,i:number,ctx:CompileContext): ASTExpr[] {
+	parseSyntax(token:TokenI,i:number,ctx:CompileContext) {
 		let ret = super.parseSyntax(token,i,ctx)
-		if (this.lastAST) ret.unshift(this.lastAST)
+		if (this.lastAST) ret.exprs.unshift(this.lastAST)
 		return ret
 	}
 
@@ -79,7 +81,8 @@ export class SemanticalCMDNode extends CMDNode {
 			this.lastAST = ast
 			return j - token.index + 1
 		}
-		switch (this.cmpStr) {
+		let spec = this.cmpStr as SheetSpecials
+		switch (spec) {
 			case 'player':
 			case 'players':
 			case 'entity':
@@ -94,7 +97,7 @@ export class SemanticalCMDNode extends CMDNode {
 			case 'text':
 				return token.value.length - i
 			default:
-				throw new Error('NEED EXHAUSTION CHECK: '+this.cmpStr)
+				exhaust(spec)
 		}
 	}
 

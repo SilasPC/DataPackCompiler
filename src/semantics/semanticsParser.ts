@@ -203,7 +203,7 @@ function parseBody(nodes:ASTStatement[],scope:Scope,ctx:CompileContext): Maybe<n
 		switch (node.type) {
 			case ASTNodeType.COMMAND: {
 				let foundErrors = false
-				let interpolations = node.interpolations.flatMap(n => {
+				let interpolations = node.consume.exprs.flatMap(n => {
 					let x = exprParser(n,scope,ctx,evalOnly())
 					if (maybe.merge(x)) {
 						foundErrors = true

@@ -24,11 +24,10 @@ export class SyntaxSheet {
 	) {}
 
 	readSyntax(token:TokenI,ctx:CompileContext): ASTCMDNode {
-		let nodes = this.root.parseSyntax(token,1,ctx)
 		return {
 			type: ASTNodeType.COMMAND,
 			token,
-			interpolations: nodes
+			consume: this.root.parseSyntax(token,1,ctx)
 		}
 	}
 

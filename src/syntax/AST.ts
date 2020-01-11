@@ -4,6 +4,7 @@ import { exhaust } from "../toolbox/other";
 import cols from 'colors/safe'
 import { createErrorMessage } from "../toolbox/CompileErrors";
 import { SourceLine } from "../lexing/SourceLine";
+import { CMDNode } from "../commands/CMDNode";
 
 export function astErrorMsg(node:ASTNode|ASTNode[],err:string) {
     
@@ -224,8 +225,8 @@ export interface ASTIfNode {
 
 export interface ASTCMDNode {
     type: ASTNodeType.COMMAND
-    token: TokenI,
-    interpolations: ASTExpr[]
+    token: TokenI
+    consume: {exprs:ASTExpr[],nodes:{node:CMDNode,capture:string}[]}
 }
 
 /*

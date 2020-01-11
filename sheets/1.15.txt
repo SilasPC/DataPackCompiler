@@ -14,7 +14,7 @@ bossbar
     max <pint>
     name <id>
     players <entities>
-    style progress|notched_6|notched_10|notched_12|notched20
+    style progress|notched_6|notched_10|notched_12|notched_20
     value <uint>
     visible true|false
 
@@ -170,7 +170,25 @@ schedule
   clear <id>
   function <id> <time> [append|replace]
 
-#scoreboard
+scoreboard
+  objectives
+    list
+    add <id> <id> [<jtxt>]
+    remove <id>
+    setdisplay <id> [<id>]
+    modify <id>
+      displayname <jtxt>
+      rendertype hearts|integer
+  players
+    list *|[<entity]
+    get <entity> <id>
+    set *|<entities> <id> <int>
+    add *|<entities> <id> <int>
+    remove *|<entities> <id> <int>
+    reset *|<entities> [<id>]
+    enable *|<entities> <id>
+    operation *|<entities> <id> +=|-=|*=|/=|%=|=|<|>|>< *|<entities> <id>
+
 
 #setblock
 

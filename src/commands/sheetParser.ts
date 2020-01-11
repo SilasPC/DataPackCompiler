@@ -99,6 +99,7 @@ function parseTree(tree:Tree,defs:Def[]): CMDNode[] {
 	for (let [key,[vals,children]] of tree) {
 		if (key.startsWith(':')) {
 			key = key.slice(1)
+			if (!key.length) throw new Error('expected definition name')
 			if (findDef(key)) throw new Error('redefining :'+key)
 			if (vals.length) throw new Error('definition must only have children')
 			let defChildren: CMDNode[] = []
@@ -162,6 +163,7 @@ const validSpecials = [
 	'ufloat',
 	'text'
 ]
+export type SheetSpecials = 'player' | 'players' | 'entity' | 'entities' | 'pint' | 'uint' | 'int' | 'coords' | 'coords2' | 'float' | 'ufloat' | 'text'
 
 function parseSpecial(sub:string,children:Tree,findDef:(str:string)=>CMDNode[]|undefined): {spec?:string,nodes?:CMDNode[],sub?:string} {
 	if (sub.startsWith('<') && sub.endsWith('>')) {
