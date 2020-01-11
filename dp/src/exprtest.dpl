@@ -16,8 +16,10 @@ let b: int = 3
     * I sure do! *
     *************/
 
+import Math from 'Math'
+
 fn reftest(ref num:int): void {
-    num += 1
+    num = (Math::double)(num)
 }
 
 fn useRef(): void {
@@ -26,7 +28,6 @@ fn useRef(): void {
 }
 
 fn x(y:int): int {
-    Math::PI
     let local: int = a
     x(y)
     // if (a == b) a+=1

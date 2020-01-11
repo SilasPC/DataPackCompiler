@@ -151,7 +151,7 @@ export interface ASTImportNode {
     type: ASTNodeType.IMPORT
     keyword: KeywordToken
     keyword2: KeywordToken
-    imports: TokenI[]
+    imports: TokenI[]|TokenI
     source: GenericToken
 }
 

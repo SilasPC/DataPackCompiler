@@ -7,6 +7,7 @@ export interface WeakCompilerOptions {
 	emitComments?: boolean
 	optimize?: boolean
 	noUnused?: boolean
+	ignoreWarnings?: boolean
 	verbosity?: number
 	colorLog?: boolean
 	noInference?: boolean
@@ -18,19 +19,19 @@ export interface WeakCompilerOptions {
 export function compilerOptionDefaults(cfg?:WeakCompilerOptions): CompilerOptions {
 	if (!cfg) cfg = {}
 	return {
-		obscureNames: def(cfg.obscureNames,false),
-		obscureSeed: def(cfg.obscureSeed,''),
-		noInference: def(cfg.noInference,true),
-		noImplicitCast: def(cfg.noImplicitCast,true),
-		ignoreUnreachable: def(cfg.ignoreUnreachable,true),
-		sourceMap: def(cfg.sourceMap,false),
-		emitComments: def(cfg.emitComments,false),
-		optimize: def(cfg.optimize,false),
-		noUnused: def(cfg.noUnused,false),
-		verbosity: def(cfg.verbosity,0),
-		colorLog: def(cfg.colorLog,true),
-		targetVersion: def(cfg.targetVersion,'latest')
+		obscureNames: false,
+		obscureSeed: '',
+		noInference: true,
+		noImplicitCast: true,
+		ignoreUnreachable: true,
+		sourceMap: false,
+		emitComments: false,
+		optimize: false,
+		noUnused: false,
+		ignoreWarnings: false,
+		verbosity: 0,
+		colorLog: true,
+		targetVersion: 'latest',
+		...cfg
 	}
 }
-
-function def<T>(val:T|undefined,def:T): T {return val == undefined ? def : val}

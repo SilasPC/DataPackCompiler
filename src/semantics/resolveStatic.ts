@@ -5,7 +5,7 @@ import { Declaration, DeclarationType, ModDeclaration, DeclarationWrapper } from
 import { MaybeWrapper, Maybe } from "../toolbox/Maybe";
 import { TokenType, GenericToken, TokenI } from "../lexing/Token";
 import { CompileError } from "../toolbox/CompileErrors";
-import { SymbolTable, SymbolTableLike } from "./SymbolTable";
+import { SymbolTable } from "./SymbolTable";
 
 /*export function assertResolveStatic(node:ASTExpr,scope:Scope,ctx:CompileContext): Maybe<DeclarationWrapper> {
 	const maybe = new MaybeWrapper<DeclarationWrapper>()
@@ -32,13 +32,14 @@ export function resolveStatic(node:ASTStaticAccessNode|ASTIdentifierNode,scope:S
 	while (true) {
 		if (op.accessee.type == ASTNodeType.IDENTIFIER) {
 			accesses.push(op.accessee.identifier)
+			accesses.push(op.access)
 			break
 		}
 		accesses.push(op.access)
 		op = op.accessee
 	}
 
-	let decl: SymbolTableLike = scope.symbols
+	let decl: ModDeclaration|SymbolTable = scope.symbols
 	for (let i = 0; i < accesses.length; i++) {
 		let acc = accesses[i]
 		let declw: DeclarationWrapper|null = decl.getDeclaration(acc as TokenI)

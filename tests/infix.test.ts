@@ -39,13 +39,13 @@ describe('infix conversion', () => {
 	})
 	it('accessors', () => {
 		const result = postfix('a::b::c.d')
-		expect(result).to.equal('a b c d . :: ::')
+		expect(result).to.equal('a b :: c :: d .')
 	})
 })
 
 function postfix(infix:string): string {
 	const ctx = CompileContext.getDefaultWithNullSheet()
-	const pfile = ctx.loadFromSource(infix+';')
+	const pfile = ctx.loadFromSource(infix+';','test')
 	lexer(pfile, ctx)
 	const iter = pfile.getTokenIterator()
 	const res = expressionSyntaxParser(

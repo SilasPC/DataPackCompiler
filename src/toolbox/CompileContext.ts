@@ -11,7 +11,6 @@ import { getObscureName, getQualifiedName } from "./other";
 import cols from 'colors/safe'
 import { CompileError } from "./CompileErrors";
 import { MaybeWrapper } from "./Maybe";
-import { CoreLibrary } from "../corelib/standard";
 
 export class CompileContext {
 
@@ -22,8 +21,6 @@ export class CompileContext {
 		)
 	}
 
-	private readonly corelib: CoreLibrary
-
 	private readonly files: Map<string,ParsingFile> = new Map()
 	private fnFiles: Map<string,FnFile> = new Map()
 
@@ -32,13 +29,7 @@ export class CompileContext {
 	constructor(
 		public readonly options: CompilerOptions,
 		public readonly syntaxSheet: SyntaxSheet
-	) {
-		this.corelib = new CoreLibrary(this)
-	}
-
-	getCoreLibFetcher() {
-		return this.corelib.getFetcher()
-	}
+	) {}
 	
 	isFileLoaded(path:string) {
 		let fullPath = resolve(path)
@@ -86,6 +77,7 @@ export class CompileContext {
 	private lastLogType: LogType|null = null
 	// private lastLogLevel2 = 0
 	log2(level:number,type:LogType,msg:string) {
+		if (type == 'wrn' && this.options.ignoreWarnings) return
 		if (level > this.options.verbosity) return
 		let col = type == 'inf' ? cols.green : type == 'wrn' ? cols.yellow : cols.red
 		if (!this.options.colorLog) col = (s:string) => s

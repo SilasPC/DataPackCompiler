@@ -2,7 +2,7 @@ import { ParsingFile } from "../toolbox/ParsingFile"
 import { ASTNode, ASTNodeType, ASTOpNode, astErrorMsg, ASTStatement, astWarning } from "../syntax/AST"
 import { ESR, ESRType, getESRType, IntESR, copyESR, assignESR } from "./ESR"
 import { tokenToType, ElementaryValueType, ValueType, hasSharedType } from "./Types"
-import { DeclarationType, VarDeclaration, FnDeclaration, DeclarationWrapper } from "./Declaration"
+import { DeclarationType, VarDeclaration, FnDeclaration, DeclarationWrapper, Declaration } from "./Declaration"
 import { exprParser } from "./expressionParser"
 import { exhaust } from "../toolbox/other"
 import { CompileContext } from "../toolbox/CompileContext"
@@ -10,7 +10,6 @@ import { Scope } from "./Scope"
 import { InstrType } from "../codegen/Instructions"
 import { Maybe, MaybeWrapper } from "../toolbox/Maybe"
 import { CompileError } from "../toolbox/CompileErrors"
-import { SymbolTableLike } from "./SymbolTable"
 import { Fetcher } from "../codegen/Datapack"
 
 export function semanticsParser(pfile:ParsingFile,ctx:CompileContext,fetcher:Fetcher): Maybe<true> {
@@ -46,14 +45,18 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext,fetcher:Fet
 			case ASTNodeType.IMPORT: {
 				let st = fetcher(pfile,node.source)
 				if (st.value) {
-					for (let t of node.imports) {
-						let declw = st.value.getDeclaration(t)
-						if (!declw) {
-							ctx.addError(t.error('source had no such export'))
-							maybe.noWrap()
-							break
+					if (Array.isArray(node.imports)) {
+						for (let t of node.imports) {
+							let declw = st.value.getDeclaration(t)
+							if (!declw) {
+								ctx.addError(t.error('source had no such export'))
+								maybe.noWrap()
+								break
+							}
+							maybe.merge(scope.symbols.declare({decl:declw.decl,token:t},ctx))
 						}
-						maybe.merge(scope.symbols.declare({decl:declw.decl,token:t},ctx))
+					} else {
+						maybe.merge(scope.symbols.declare({token:node.imports,decl:st.value},ctx))
 					}
 				} else maybe.noWrap()
 				break
@@ -116,7 +119,10 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext,fetcher:Fet
 					fn,
 					parameters
 				}
-				maybe.merge(symbols.declare({token:node.identifier,decl},ctx))
+				let declWrap = {token:node.identifier,decl}
+				maybe.merge(symbols.declare(declWrap,ctx))
+				if (shouldExport)
+					pfile.addExport(declWrap)
 				for (let param of node.parameters) {
 					let maybe2 = new MaybeWrapper<{ref:boolean,param:ESR}>()
 					let type = tokenToType(param.type,symbols)
@@ -156,7 +162,6 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext,fetcher:Fet
 					parameters.push(maybe2.wrap({param:esr,ref:param.ref}))
 					maybe.merge(branch.symbols.declare({token:param.symbol,decl},ctx))
 				}
-				if (shouldExport) pfile.addExport({token:node.identifier,decl})
 				if (maybe.merge(parseBody(node.body,branch,ctx))) continue
 
 				fn.add(...branch.mergeBuffers())

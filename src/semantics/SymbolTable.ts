@@ -1,5 +1,5 @@
 
-import { TokenI, Token } from "../lexing/Token"
+import { TokenI, Token, TokenType } from "../lexing/Token"
 import { DeclarationWrapper } from "./Declaration"
 import { Maybe, MaybeWrapper } from "../toolbox/Maybe"
 import { CompileContext } from "../toolbox/CompileContext"
@@ -11,6 +11,11 @@ export class SymbolTableLike {
     protected readonly declarations: Map<string,{decl:DeclarationWrapper,refCounter:number}> = new Map()
 
     getDeclaration(name:TokenI): DeclarationWrapper|null {
+        let val
+        if (name.type == TokenType.PRIMITIVE)
+            val = name.value.slice(1,-1)
+        else
+            val = name.value
         let decl = this.declarations.get(name.value)
         if (decl) {
             decl.refCounter++
@@ -57,7 +62,10 @@ export class SymbolTable extends SymbolTableLike {
         if (decl) decl.refCounter++
         else if (this.parent) return this.parent.getDeclaration(name as any,ctx as any)
         if (name instanceof Token) {
-            if (decl) return maybe.wrap(decl.decl)
+            if (decl) {
+                if (ctx) return maybe.wrap(decl.decl)
+                return decl.decl
+            }
             if (!ctx) return null
             ctx.addError(name.error(`'${name.value}' not available in scope`))
             return maybe.none()

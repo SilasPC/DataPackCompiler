@@ -10,6 +10,7 @@
     "sourceMap": false,
     "emitComments": false,
     "optimize": true,
+    "ignoreWarnings": false,
     "noUnused": false,
     "verbosity": 0,
     "targetVersion": "latest"

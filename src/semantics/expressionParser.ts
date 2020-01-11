@@ -124,6 +124,7 @@ function invokation(node:ASTCallNode,scope:Scope,ctx:CompileContext,evalOnly:boo
 	if (!declw.value) return maybe.none()
 	let decl = declw.value.decl
 	if (decl.type != DeclarationType.FUNCTION) {
+		console.log(decl)
 		ctx.addError(astError(node.function,'not a fn'))
 		return maybe.none()
 	}

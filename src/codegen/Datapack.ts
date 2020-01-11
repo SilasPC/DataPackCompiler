@@ -148,13 +148,13 @@ export class Datapack {
 
 		if (ctx.hasErrors()) {
 			this.errorIgnoreEmit = true
-			ctx.log2(1,'err',`Got a total of ${ctx.getErrorCount()} errors:`)
 			ctx.logErrors()
+			ctx.log2(1,'err',`Raised ${ctx.getErrorCount()} error${ctx.getErrorCount()>1?'s':''}`)
 		} else this.errorIgnoreEmit = false
 
 		if (ctx.hasWarnings()) {
-			ctx.log2(1,'wrn',`Got a total of ${ctx.getWarningCount()} warnings:`)
 			ctx.logWarns()
+			ctx.log2(1,'wrn',`Raised ${ctx.getWarningCount()} warning${ctx.getWarningCount()>1?'s':''}`)
 		}
 
 	}
@@ -255,10 +255,11 @@ function MKDIRP(path:string) {
 }
 
 import rimraf from 'rimraf'
-import { SymbolTableLike, SymbolTable } from '../semantics/SymbolTable';
 import { Maybe, MaybeWrapper } from '../toolbox/Maybe';
 import { ParsingFile } from '../toolbox/ParsingFile';
 import { GenericToken } from '../lexing/Token';
+import { CoreLibrary } from '../corelib/CoreLibrary';
+import { ModDeclaration } from '../semantics/Declaration';
 function RIMRAF(path:string) {
 	return new Promise(($,$r)=>{
 		rimraf(path,{},err=>{
@@ -268,12 +269,14 @@ function RIMRAF(path:string) {
 	})
 }
 
-export type Fetcher = (origin:ParsingFile,token:GenericToken) => Maybe<SymbolTableLike>
+export type Fetcher = (origin:ParsingFile,token:GenericToken) => Maybe<ModDeclaration>
 
 function createFetcher(pfiles:ParsingFile[],ctx:CompileContext): Fetcher {
+	const coreLib = CoreLibrary.create(ctx)
 	return function fetcher(origin:ParsingFile,token:GenericToken) {
-		const maybe = new MaybeWrapper<SymbolTableLike>()
+		const maybe = new MaybeWrapper<ModDeclaration>()
 		let src = token.value.slice(1,-1)
+		// relative file import
 		if (src.startsWith('.')) {
 			let path = resolve(dirname(origin.fullPath),src+'.dpl')
 			let pf = pfiles.find(p=>p.fullPath == path)
@@ -293,9 +296,17 @@ function createFetcher(pfiles:ParsingFile[],ctx:CompileContext): Fetcher {
 				maybe.noWrap()
 			}
 		}
-		// standard libraries
-		ctx.addError(token.error('wait core lib'))
-		return maybe.none()
+		// core library import
+		let decl = coreLib.getDeclaration(token)
+		if (!decl) {
+			ctx.addError(token.error('could not find library'))
+			return maybe.none()
+		}
+		if (!(decl.decl instanceof ModDeclaration)) {
+			ctx.addError(token.error('not a library'))
+			return maybe.none()
+		}
+		return maybe.wrap(decl.decl)
 	}		
 
 }

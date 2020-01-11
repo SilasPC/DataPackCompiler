@@ -114,7 +114,7 @@ describe('syntax sheet - static semantics verification', () => {
 
 function readSyntax(source:string,ss:SyntaxSheet) {
 	const ctx = new CompileContext(compilerOptionDefaults(),ss)
-	let pfile = ctx.loadFromSource(source)
+	let pfile = ctx.loadFromSource(source,'test')
 	lexer(pfile,ctx)
 	let res: boolean[] = []
 	for (let token of pfile.getTokenIterator()) {

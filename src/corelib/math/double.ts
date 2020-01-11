@@ -4,13 +4,11 @@ import { ParsingFile } from "../../toolbox/ParsingFile";
 import { compileCoreFunction } from "../compileFunction";
 
 const fn = `
-export fn abs(num:int): int {
-	let ret: int = num
-	if (num < 0) ret += -2 * num;
-	return ret;
+export fn double(num:int): int {
+	return 2 * num
 }
 `
 
-export function createAbs(ctx:CompileContext) {
-	return compileCoreFunction(fn,'abs',ctx)
+export function createDouble(ctx:CompileContext) {
+	return compileCoreFunction(fn,'double',ctx)
 }

@@ -3,18 +3,18 @@ import { TokenI } from "../lexing/Token";
 import { ASTNode, ASTStaticDeclaration } from "../syntax/AST";
 import { readFileSync } from "fs";
 import { resolve, relative, basename } from 'path'
-import { SymbolTable, SymbolTableLike } from "../semantics/SymbolTable";
 import { TokenIterator } from "../lexing/TokenIterator";
-import { DeclarationWrapper, Declaration } from "../semantics/Declaration";
+import { DeclarationWrapper, Declaration, ModDeclaration } from "../semantics/Declaration";
 import { Scope } from "../semantics/Scope";
 import { CompileContext } from "./CompileContext";
 
-export class ParsingFile extends SymbolTableLike {
+export class ParsingFile extends ModDeclaration {
 
     static loadFile(path:string,ctx:CompileContext) {
         let fullPath = resolve(path)
         let relativePath = './'+relative('./',fullPath).replace(/\\/g,'/').split('.').slice(0,-1).join('.')
         let file = new ParsingFile(
+            relativePath,
             fullPath,
             relativePath,
             readFileSync(fullPath).
@@ -25,7 +25,7 @@ export class ParsingFile extends SymbolTableLike {
     }
 
     static fromSource(source:string,sourceName:string,ctx:CompileContext) {
-        return new ParsingFile('','',source,Scope.createRoot(sourceName,ctx))
+        return new ParsingFile(sourceName,'','',source,Scope.createRoot(sourceName,ctx))
     }
 
     private readonly tokens: TokenI[] = []
@@ -35,6 +35,7 @@ export class ParsingFile extends SymbolTableLike {
     public status: 'lexed'|'parsing'|'parsed'|'generating'|'generated' = 'lexed'
 
     private constructor(
+        public readonly displayName: string,
         public readonly fullPath: string,
         public readonly relativePath: string,
         public readonly source: string,
@@ -53,6 +54,7 @@ export class ParsingFile extends SymbolTableLike {
         this.exports.set(decl.token.value,decl.decl)
     }
     hasExport(id:string) {return this.exports.has(id)}
+    getExport(id:string) {return this.exports.get(id)}
 
     getDeclaration(identifier:TokenI) {
         if (!this.exports.has(identifier.value)) return null
