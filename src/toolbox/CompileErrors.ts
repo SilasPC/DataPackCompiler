@@ -28,7 +28,7 @@ export function createErrorMessage(fl:SourceLine,ll:SourceLine,fi:number,li:numb
 	let ws = ' '.repeat(nrLen+2)
 	
 	msg.push(`At ("${fl.file.relativePath}":${fl.nr}:${fi-fl.startIndex}):`)
-	msg.push(`${ws}${err}`)
+	msg.push(`${ws}# ${err}`)
 	msg.push(`${ws}|`)
 
 	if (fl.previous)

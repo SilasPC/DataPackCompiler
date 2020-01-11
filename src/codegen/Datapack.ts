@@ -121,14 +121,7 @@ export class Datapack {
 		pfiles.forEach(pf=>fileSyntaxParser(pf,ctx))
 		ctx.log2(1,'inf',`Syntax analysis complete`)
 
-		pfiles.forEach(pf=>semanticsParser(pf,ctx,(src:string)=>{
-			if (src.startsWith('.')) {
-				let path = resolve(dirname(pf.fullPath),src+'.dpl')
-				return pfiles.find(p=>p.fullPath == path) || null
-			}
-			// standard libraries
-			return null
-		}))
+		pfiles.forEach(pf=>semanticsParser(pf,ctx,createFetcher(pfiles,ctx)))
 		ctx.log2(1,'inf',`Semantic analysis complete`)
 		if (errCount < ctx.getErrorCount()) {
 			ctx.log2(1,'err',`Got ${ctx.getErrorCount()-errCount} error(s)`)
@@ -262,6 +255,10 @@ function MKDIRP(path:string) {
 }
 
 import rimraf from 'rimraf'
+import { SymbolTableLike, SymbolTable } from '../semantics/SymbolTable';
+import { Maybe, MaybeWrapper } from '../toolbox/Maybe';
+import { ParsingFile } from '../toolbox/ParsingFile';
+import { GenericToken } from '../lexing/Token';
 function RIMRAF(path:string) {
 	return new Promise(($,$r)=>{
 		rimraf(path,{},err=>{
@@ -269,4 +266,36 @@ function RIMRAF(path:string) {
 			else $()
 		})
 	})
+}
+
+export type Fetcher = (origin:ParsingFile,token:GenericToken) => Maybe<SymbolTableLike>
+
+function createFetcher(pfiles:ParsingFile[],ctx:CompileContext): Fetcher {
+	return function fetcher(origin:ParsingFile,token:GenericToken) {
+		const maybe = new MaybeWrapper<SymbolTableLike>()
+		let src = token.value.slice(1,-1)
+		if (src.startsWith('.')) {
+			let path = resolve(dirname(origin.fullPath),src+'.dpl')
+			let pf = pfiles.find(p=>p.fullPath == path)
+			if (pf instanceof ParsingFile) {
+				if (pf.status != 'parsing') {
+					if (!semanticsParser(pf,ctx,fetcher).value) {
+						ctx.addError(token.error('file has errors'))
+						return maybe.none()
+					}
+					return maybe.wrap(pf)
+				} else {
+					ctx.addError(token.error('circular dependency'))
+					return maybe.none()
+				}
+			} else {
+				ctx.addError(token.error('could not find source file'))
+				maybe.noWrap()
+			}
+		}
+		// standard libraries
+		ctx.addError(token.error('wait core lib'))
+		return maybe.none()
+	}		
+
 }

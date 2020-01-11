@@ -97,7 +97,7 @@ export class SemanticalCMDNode extends CMDNode {
 			case 'text':
 				return token.value.length - i
 			default:
-				exhaust(spec)
+				return exhaust(spec)
 		}
 	}
 

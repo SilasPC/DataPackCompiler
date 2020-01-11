@@ -1,8 +1,8 @@
 import { ParsingFile } from "../toolbox/ParsingFile"
-import { ASTNode, ASTNodeType, ASTOpNode, astErrorMsg, ASTStatement } from "../syntax/AST"
+import { ASTNode, ASTNodeType, ASTOpNode, astErrorMsg, ASTStatement, astWarning } from "../syntax/AST"
 import { ESR, ESRType, getESRType, IntESR, copyESR, assignESR } from "./ESR"
 import { tokenToType, ElementaryValueType, ValueType, hasSharedType } from "./Types"
-import { DeclarationType, VarDeclaration, FnDeclaration } from "./Declaration"
+import { DeclarationType, VarDeclaration, FnDeclaration, DeclarationWrapper } from "./Declaration"
 import { exprParser } from "./expressionParser"
 import { exhaust } from "../toolbox/other"
 import { CompileContext } from "../toolbox/CompileContext"
@@ -10,8 +10,10 @@ import { Scope } from "./Scope"
 import { InstrType } from "../codegen/Instructions"
 import { Maybe, MaybeWrapper } from "../toolbox/Maybe"
 import { CompileError } from "../toolbox/CompileErrors"
+import { SymbolTableLike } from "./SymbolTable"
+import { Fetcher } from "../codegen/Datapack"
 
-export function semanticsParser(pfile:ParsingFile,ctx:CompileContext,fetcher:(src:string)=>ParsingFile|null): Maybe<true> {
+export function semanticsParser(pfile:ParsingFile,ctx:CompileContext,fetcher:Fetcher): Maybe<true> {
 
 	const maybe = new MaybeWrapper<true>()
 	
@@ -42,30 +44,18 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext,fetcher:(sr
 		switch (node.type) {
 
 			case ASTNodeType.IMPORT: {
-				let pf = fetcher(node.source.value.slice(1,-1))
-				if (pf) {
-					if (pf.status != 'parsing') {
-						if (semanticsParser(pf,ctx,fetcher).value) {
-							for (let t of node.imports) {
-								if (!(pf as ParsingFile).hasExport(t.value)) {
-									ctx.addError(t.error('source had no such export'))
-									maybe.noWrap()
-									break
-								}
-								scope.symbols.declare((pf as ParsingFile).import(t))
-							}
-						} else {
-							ctx.addError(node.source.error('source had errors'))
+				let st = fetcher(pfile,node.source)
+				if (st.value) {
+					for (let t of node.imports) {
+						let declw = st.value.getDeclaration(t)
+						if (!declw) {
+							ctx.addError(t.error('source had no such export'))
 							maybe.noWrap()
+							break
 						}
-					} else {
-						ctx.addError(node.source.error('circular dependency'))
-						maybe.noWrap()
+						maybe.merge(scope.symbols.declare({decl:declw.decl,token:t},ctx))
 					}
-				} else {
-					ctx.addError(node.source.error('could not find source'))
-					maybe.noWrap()
-				}
+				} else maybe.noWrap()
 				break
 			}
 
@@ -91,7 +81,7 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext,fetcher:(sr
 				}
 				let decl: VarDeclaration = {type:DeclarationType.VARIABLE,varType:type,esr}
 				let declWrap = {decl,token:node.identifier}
-				symbols.declare(declWrap)
+				maybe.merge(symbols.declare(declWrap,ctx))
 				if (shouldExport) pfile.addExport(declWrap)
 				break
 			}
@@ -122,11 +112,11 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext,fetcher:(sr
 				branch.setReturnVar(esr)
 				let decl: FnDeclaration = {
 					type: DeclarationType.FUNCTION,
-					esr: esr,
+					returns: esr,
 					fn,
 					parameters
 				}
-				symbols.declare({token:node.identifier,decl})
+				maybe.merge(symbols.declare({token:node.identifier,decl},ctx))
 				for (let param of node.parameters) {
 					let maybe2 = new MaybeWrapper<{ref:boolean,param:ESR}>()
 					let type = tokenToType(param.type,symbols)
@@ -164,7 +154,7 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext,fetcher:(sr
 						esr
 					}
 					parameters.push(maybe2.wrap({param:esr,ref:param.ref}))
-					branch.symbols.declare({token:param.symbol,decl})
+					maybe.merge(branch.symbols.declare({token:param.symbol,decl},ctx))
 				}
 				if (shouldExport) pfile.addExport({token:node.identifier,decl})
 				if (maybe.merge(parseBody(node.body,branch,ctx))) continue
@@ -182,9 +172,8 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext,fetcher:(sr
 	}
 
 	// Check unused
-	for (let [key,decl] of Object.entries(symbols.getUnreferenced())) {
-		if (!pfile.hasExport(key)) ctx.addError(decl.token.warning('Unused'))
-	}
+	for (let [key,decl] of symbols.getUnreferenced().filter(([k])=>!pfile.hasExport(k)))
+		ctx.addError(decl.token.warning('Unused'))
 
 	pfile.status = 'parsed'
 
@@ -256,8 +245,11 @@ function parseBody(nodes:ASTStatement[],scope:Scope,ctx:CompileContext): Maybe<n
 			case ASTNodeType.NUMBER:
 			case ASTNodeType.STRING:
 			case ASTNodeType.BOOLEAN:
+			case ASTNodeType.STATIC_ACCESS:
 			case ASTNodeType.IDENTIFIER:
-				throw new Error('valid, but pointless')
+				ctx.addError(astWarning(node,'unused expression'))
+				exprParser(node,scope,ctx,evalOnly())
+				break
 			case ASTNodeType.CONDITIONAL: {
 				let esr = exprParser(node.expression,scope,ctx,evalOnly())
 				if (maybe.merge(esr)) continue
@@ -285,7 +277,7 @@ function parseBody(nodes:ASTStatement[],scope:Scope,ctx:CompileContext): Maybe<n
 				if (!hasSharedType(getESRType(esr),type)) node.identifier.throwDebug('type mismatch')
 				let decl: VarDeclaration = {type:DeclarationType.VARIABLE,varType:type,esr}
 				if (!evalOnly())
-					scope.symbols.declare({token:node.identifier,decl})
+					maybe.merge(scope.symbols.declare({token:node.identifier,decl},ctx))
 				break
 			}
 			case ASTNodeType.LIST:
@@ -301,6 +293,10 @@ function parseBody(nodes:ASTStatement[],scope:Scope,ctx:CompileContext): Maybe<n
 			default:
 				return exhaust(node)
 		}
+	}
+
+	for (let [,decl] of scope.symbols.getUnreferenced()) {
+		ctx.addError(decl.token.warning('Unused local'))
 	}
 
 	if (diedAt) {

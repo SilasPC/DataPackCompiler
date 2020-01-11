@@ -7,8 +7,9 @@ import { FnFile } from "../codegen/FnFile";
 import { TokenI } from "../lexing/Token";
 import { exhaust } from "../toolbox/other";
 import { Maybe } from "../toolbox/Maybe";
+import { SymbolTable, SymbolTableLike } from "./SymbolTable";
 
-export type Declaration = VarDeclaration | FnDeclaration
+export type Declaration = VarDeclaration | FnDeclaration | ModDeclaration
 
 export interface DeclarationWrapper {
 	token: TokenI
@@ -17,7 +18,12 @@ export interface DeclarationWrapper {
 
 export enum DeclarationType {
 	VARIABLE,
-	FUNCTION
+	FUNCTION,
+	MODULE
+}
+
+export class ModDeclaration extends SymbolTableLike {
+	public readonly type = DeclarationType.MODULE
 }
 
 export interface VarDeclaration {
@@ -28,7 +34,7 @@ export interface VarDeclaration {
 
 export interface FnDeclaration {
 	type: DeclarationType.FUNCTION
-	esr: ESR
+	returns: ESR
 	parameters: Maybe<{ref:boolean,param:ESR}>[]
 	fn: FnFile
 }

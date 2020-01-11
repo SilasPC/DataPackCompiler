@@ -1,10 +1,18 @@
 
-import { TokenI } from "../lexing/Token";
+import { TokenI, OpToken, KeywordToken, MarkerToken, GenericToken } from "../lexing/Token";
 import { exhaust } from "../toolbox/other";
 import cols from 'colors/safe'
-import { createErrorMessage } from "../toolbox/CompileErrors";
+import { createErrorMessage, CompileError } from "../toolbox/CompileErrors";
 import { SourceLine } from "../lexing/SourceLine";
 import { CMDNode } from "../commands/CMDNode";
+
+export function astError(node:ASTNode|ASTNode[],err:string): CompileError {
+    return new CompileError(astErrorMsg(node,err),false)
+}
+
+export function astWarning(node:ASTNode|ASTNode[],err:string): CompileError {
+    return new CompileError(astErrorMsg(node,err),true)
+}
 
 export function astErrorMsg(node:ASTNode|ASTNode[],err:string) {
     
@@ -90,10 +98,14 @@ function getRec(node:ASTNode,arr:TokenI[]): TokenI[] {
             break
         case ASTNodeType.REFERENCE:
             arr.push(node.keyword)
-            getRec(node.expr,arr)
+            getRec(node.ref,arr)
             break
         case ASTNodeType.IMPORT:
             arr.push(node.keyword,node.source)
+            break
+        case ASTNodeType.STATIC_ACCESS:
+            arr.push(node.access)
+            getRec(node.accessee,arr)
             break
         default:
             return exhaust(node)
@@ -119,78 +131,86 @@ export enum ASTNodeType {
     RETURN,
     MODULE,
     REFERENCE,
-    IMPORT
+    IMPORT,
+    STATIC_ACCESS
 }
 
-export type ASTExpr = ASTRefNode | ASTNumNode | ASTBoolNode | ASTStringNode | ASTIdentifierNode | ASTOpNode | ASTListNode | ASTCallNode
+export type ASTStatic = ASTStaticAccessNode | ASTIdentifierNode
+export type ASTExpr = ASTStaticAccessNode | ASTRefNode | ASTNumNode | ASTBoolNode | ASTStringNode | ASTIdentifierNode | ASTOpNode | ASTListNode | ASTCallNode
 export type ASTStatement = ASTExpr | ASTReturnNode | ASTLetNode | ASTIfNode | ASTCMDNode
 export type ASTStaticDeclaration = ASTLetNode | ASTModuleNode | ASTFnNode | ASTExportNode | ASTImportNode
 export type ASTNode = ASTExpr | ASTStatement | ASTStaticDeclaration
 
+export interface ASTStaticAccessNode {
+    type: ASTNodeType.STATIC_ACCESS
+    access: GenericToken
+    accessee: ASTStatic
+}
+
 export interface ASTImportNode {
     type: ASTNodeType.IMPORT
-    keyword: TokenI
-    keyword2: TokenI
+    keyword: KeywordToken
+    keyword2: KeywordToken
     imports: TokenI[]
-    source: TokenI
+    source: GenericToken
 }
 
 export interface ASTRefNode {
     type: ASTNodeType.REFERENCE
     keyword: TokenI
-    expr: ASTExpr
+    ref: ASTStatic
 }
 
 export interface ASTModuleNode {
     type: ASTNodeType.MODULE
-    keyword: TokenI
+    keyword: KeywordToken
     identifier: TokenI
     body: ASTStaticDeclaration[]
 }
 
 export interface ASTExportNode {
     type: ASTNodeType.EXPORT
-    keyword: TokenI
+    keyword: KeywordToken
     node: ASTStaticDeclaration
 }
 
 export interface ASTReturnNode {
     type: ASTNodeType.RETURN
-    keyword: TokenI
+    keyword: KeywordToken
     node: ASTExpr | null
 }
 
 export interface ASTLetNode {
     type: ASTNodeType.DEFINE
-    identifier: TokenI
-    keyword: TokenI
+    identifier: GenericToken
+    keyword: KeywordToken
     varType: TokenI
     initial: ASTExpr
 }
 
 export interface ASTStringNode {
     type: ASTNodeType.STRING
-    value: TokenI
+    value: GenericToken
 }
 
 export interface ASTNumNode {
     type: ASTNodeType.NUMBER
-    value: TokenI
+    value: GenericToken
 }
 
 export interface ASTBoolNode {
     type: ASTNodeType.BOOLEAN
-    value: TokenI
+    value: GenericToken
 }
 
 export interface ASTIdentifierNode {
     type: ASTNodeType.IDENTIFIER
-    identifier: TokenI
+    identifier: GenericToken
 }
 
 export interface ASTOpNode {
     type: ASTNodeType.OPERATION
-    operator: TokenI
+    operator: OpToken|MarkerToken
     operands: ASTExpr[]
 }
 
@@ -201,23 +221,23 @@ export interface ASTListNode {
 
 export interface ASTCallNode {
     type: ASTNodeType.INVOKATION
-    function: ASTExpr,
+    function: ASTStatic,
     parameters: ASTListNode
 }
 
 export interface ASTFnNode {
     type: ASTNodeType.FUNCTION
-    identifier: TokenI
+    identifier: GenericToken
     parameters: {ref:boolean,symbol:TokenI,type:TokenI}[]
     returnType: TokenI
     body: ASTStatement[]
-    keyword: TokenI
+    keyword: KeywordToken
 }
 
 export interface ASTIfNode {
     type: ASTNodeType.CONDITIONAL
-    keyword: TokenI
-    keywordElse: TokenI|null
+    keyword: KeywordToken
+    keywordElse: KeywordToken|null
     expression: ASTExpr
     primaryBranch: ASTStatement[]
     secondaryBranch: ASTStatement[]

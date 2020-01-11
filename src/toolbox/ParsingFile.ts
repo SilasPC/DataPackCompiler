@@ -3,13 +3,13 @@ import { TokenI } from "../lexing/Token";
 import { ASTNode, ASTStaticDeclaration } from "../syntax/AST";
 import { readFileSync } from "fs";
 import { resolve, relative, basename } from 'path'
-import { SymbolTable } from "../semantics/SymbolTable";
+import { SymbolTable, SymbolTableLike } from "../semantics/SymbolTable";
 import { TokenIterator } from "../lexing/TokenIterator";
 import { DeclarationWrapper, Declaration } from "../semantics/Declaration";
 import { Scope } from "../semantics/Scope";
 import { CompileContext } from "./CompileContext";
 
-export class ParsingFile {
+export class ParsingFile extends SymbolTableLike {
 
     static loadFile(path:string,ctx:CompileContext) {
         let fullPath = resolve(path)
@@ -24,8 +24,8 @@ export class ParsingFile {
         return file
     }
 
-    static fromSource(source:string,ctx:CompileContext) {
-        return new ParsingFile('','',source,Scope.createRoot('source',ctx))
+    static fromSource(source:string,sourceName:string,ctx:CompileContext) {
+        return new ParsingFile('','',source,Scope.createRoot(sourceName,ctx))
     }
 
     private readonly tokens: TokenI[] = []
@@ -39,7 +39,7 @@ export class ParsingFile {
         public readonly relativePath: string,
         public readonly source: string,
         public readonly scope: Scope
-    ) {}
+    ) {super()}
 
     addToken(t:TokenI) {this.tokens.push(t)}
     getTokenIterator() {return new TokenIterator(this,this.tokens)}
@@ -54,8 +54,8 @@ export class ParsingFile {
     }
     hasExport(id:string) {return this.exports.has(id)}
 
-    import(identifier:TokenI): DeclarationWrapper {
-        if (!this.exports.has(identifier.value)) identifier.throwDebug('no such exported member')
+    getDeclaration(identifier:TokenI) {
+        if (!this.exports.has(identifier.value)) return null
         return {token:identifier,decl:this.exports.get(identifier.value) as Declaration}
     }
 

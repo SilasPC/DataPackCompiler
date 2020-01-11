@@ -11,6 +11,7 @@ import { getObscureName, getQualifiedName } from "./other";
 import cols from 'colors/safe'
 import { CompileError } from "./CompileErrors";
 import { MaybeWrapper } from "./Maybe";
+import { CoreLibrary } from "../corelib/standard";
 
 export class CompileContext {
 
@@ -21,6 +22,8 @@ export class CompileContext {
 		)
 	}
 
+	private readonly corelib: CoreLibrary
+
 	private readonly files: Map<string,ParsingFile> = new Map()
 	private fnFiles: Map<string,FnFile> = new Map()
 
@@ -29,7 +32,13 @@ export class CompileContext {
 	constructor(
 		public readonly options: CompilerOptions,
 		public readonly syntaxSheet: SyntaxSheet
-	) {}
+	) {
+		this.corelib = new CoreLibrary(this)
+	}
+
+	getCoreLibFetcher() {
+		return this.corelib.getFetcher()
+	}
 	
 	isFileLoaded(path:string) {
 		let fullPath = resolve(path)
@@ -47,8 +56,8 @@ export class CompileContext {
 		return ParsingFile.loadFile(path,this)
 	}
 
-	loadFromSource(source:string) {
-		return ParsingFile.fromSource(source,this)
+	loadFromSource(source:string,sourceName:string) {
+		return ParsingFile.fromSource(source,sourceName,this)
 	}
 	
 	createFnFile(names:string[]) {

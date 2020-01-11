@@ -1,10 +1,11 @@
 
 import { TokenI, TokenType } from "../lexing/Token";
-import { ASTNode, ASTNodeType, ASTIdentifierNode, ASTOpNode, ASTCallNode, ASTListNode, ASTExpr, ASTRefNode } from "./AST";
+import { ASTNode, ASTNodeType, ASTIdentifierNode, ASTOpNode, ASTCallNode, ASTListNode, ASTExpr, ASTRefNode, ASTStaticAccessNode } from "./AST";
 import { TokenIterator, TokenIteratorI } from "../lexing/TokenIterator";
 import { CompilerOptions } from "../toolbox/config";
 import { exhaust } from "../toolbox/other";
 import { CompileContext } from "../toolbox/CompileContext";
+import { access } from "fs";
 
 enum OpType {
     INFIX,
@@ -58,9 +59,12 @@ export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext,
                             let next = tokens.peek()
                             if (next.type == TokenType.MARKER && next.value == ')') {
                                 if (!que.length) t.throwDebug('no fn on queue?')
+                                let fn = que.pop() as ASTExpr
+                                if (fn.type != ASTNodeType.IDENTIFIER && fn.type != ASTNodeType.STATIC_ACCESS)
+                                    return t.throwDebug('not static fn')
                                 let invnode: ASTCallNode = {
                                     type: ASTNodeType.INVOKATION,
-                                    function: que.pop() as ASTExpr,
+                                    function: fn,
                                     parameters: {
                                         type: ASTNodeType.LIST,
                                         list: []
@@ -120,9 +124,12 @@ export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext,
                                 argnode = argAsList
                                 postfix.push(',1')
                             }
+                            let fn = que.pop() as ASTExpr
+                            if (fn.type != ASTNodeType.IDENTIFIER && fn.type != ASTNodeType.STATIC_ACCESS)
+                                return t.throwDebug('not static fn')
                             let invnode: ASTCallNode = {
                                 type: ASTNodeType.INVOKATION,
-                                function: que.pop() as ASTExpr,
+                                function: fn,
                                 parameters: argnode as ASTListNode
                             }
                             que.push(invnode)
@@ -254,10 +261,13 @@ export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext,
         switch (op.token.type) {
             case TokenType.KEYWORD: {
                 if (op.token.value != 'ref') op.token.throwDebug('non-ref keyword')
+                let ref = que.pop() as ASTExpr
+                if (ref.type != ASTNodeType.IDENTIFIER && ref.type != ASTNodeType.STATIC_ACCESS)
+                    return op.token.throwDebug('not static ref')
                 let node: ASTRefNode = {
                     type: ASTNodeType.REFERENCE,
                     keyword: op.token,
-                    expr: que.pop() as ASTExpr
+                    ref
                 }
                 const map = {[OpType.POSTFIX]:':post',[OpType.PREFIX]:':pre',[OpType.INFIX]:''}
                 que.push(node)
@@ -284,8 +294,21 @@ export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext,
                         que.push(list)
                         postfix.push(','+op.operands)
                         break
+                    case '::': {
+                        let [o0,o1] = que.splice(-2,2)
+                        if (o1.type != ASTNodeType.IDENTIFIER) return op.token.throwDebug('unexpected')
+                        if (o0.type != ASTNodeType.IDENTIFIER && o0.type != ASTNodeType.STATIC_ACCESS)
+                            return op.token.throwDebug('unexpected')
+                        let node: ASTStaticAccessNode = {
+                            type: ASTNodeType.STATIC_ACCESS,
+                            access: o1.identifier,
+                            accessee: o0
+                        }
+                        que.push(node)
+                        postfix.push(op.token.value)
+                        break
+                    }
                     case '.':
-                    case '::':
                         let node: ASTOpNode = {
                             type: ASTNodeType.OPERATION,
                             operator: op.token,

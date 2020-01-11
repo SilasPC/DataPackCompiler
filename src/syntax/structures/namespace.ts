@@ -8,9 +8,11 @@ import { CompileContext } from "../../toolbox/CompileContext"
 import { ParsingFile } from "../../toolbox/ParsingFile"
 import { parseFunction } from "./function"
 import { parseDeclaration } from "./declaration"
+import { keywords } from "../../lexing/values"
 
 export function parseModule(iter:TokenIteratorI,ctx:CompileContext): ASTModuleNode {
     let keyword = iter.current()
+    if (keyword.type != TokenType.KEYWORD) throw new Error('token typing error')
     let identifier = iter.next().expectType(TokenType.SYMBOL)
     iter.next().expectType(TokenType.MARKER).expectValue('{')
     let body = parser(iter,ctx)

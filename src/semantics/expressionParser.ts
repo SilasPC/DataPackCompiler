@@ -1,4 +1,4 @@
-import { ASTNode, ASTNodeType, ASTOpNode, ASTExpr, astErrorMsg, ASTCallNode } from "../syntax/AST"
+import { ASTNode, ASTNodeType, ASTOpNode, ASTExpr, astErrorMsg, ASTCallNode, astError } from "../syntax/AST"
 import { SymbolTable } from "./SymbolTable"
 import { Instruction, INT_OP, InstrType, INVOKE } from "../codegen/Instructions"
 import { ESR, ESRType, IntESR, getESRType, assignESR, copyESR } from "./ESR"
@@ -10,6 +10,7 @@ import { Scope } from "./Scope"
 import { Maybe } from "../toolbox/Maybe"
 import { MaybeWrapper } from "../toolbox/Maybe"
 import { CompileError } from "../toolbox/CompileErrors"
+import { resolveStatic } from "./resolveStatic"
 
 export function exprParser(node: ASTExpr, scope: Scope, ctx: CompileContext, evalOnly:boolean): Maybe<ESR> {
 
@@ -19,8 +20,9 @@ export function exprParser(node: ASTExpr, scope: Scope, ctx: CompileContext, eva
 
 	switch (node.type) {
 
+		case ASTNodeType.STATIC_ACCESS:
 		case ASTNodeType.IDENTIFIER: {
-			let possibleDecl = symbols.getDeclaration(node.identifier,ctx)
+			let possibleDecl = resolveStatic(node,scope,ctx)
 			if (!possibleDecl.value) return maybe.none()
 			let {token,decl} = possibleDecl.value
 			switch (decl.type) {
@@ -50,6 +52,9 @@ export function exprParser(node: ASTExpr, scope: Scope, ctx: CompileContext, eva
 				case DeclarationType.FUNCTION:
 						ctx.addError(token.error('cannot use function as variable'))
 						return maybe.none()
+				case DeclarationType.MODULE:
+					ctx.addError(token.error('cannot use module as variable'))
+					return maybe.none()
 				default:
 					return exhaust(decl)
 			}
@@ -99,35 +104,31 @@ export function exprParser(node: ASTExpr, scope: Scope, ctx: CompileContext, eva
 
 function invokation(node:ASTCallNode,scope:Scope,ctx:CompileContext,evalOnly:boolean,maybe:MaybeWrapper<ESR>) {
 	const symbols = scope.symbols
-	if (node.function.type != ASTNodeType.IDENTIFIER) throw new Error('only direct calls for now')
+	if (node.function.type != ASTNodeType.IDENTIFIER && node.function.type != ASTNodeType.STATIC_ACCESS) throw new Error('only direct calls for now')
 	let params = node.parameters.list.map(p=>{
 		let maybe = new MaybeWrapper<{esr:ESR,ref:boolean}>()
 		if (p.type == ASTNodeType.REFERENCE) {
-			if (p.expr.type != ASTNodeType.IDENTIFIER) {
-				ctx.addError(p.keyword.error('Can only reference identifiers'))
-				exprParser(p,scope,ctx,evalOnly)
+			let declw = resolveStatic(p.ref,scope,ctx) // scope.symbols.getDeclaration(p.expr.identifier,ctx)
+			if (!declw.value) return maybe.none()
+			if (declw.value.decl.type != DeclarationType.VARIABLE) {
+				ctx.addError(astError(p.ref,'can only reference variables'))
 				return maybe.none()
 			}
-			let declw = scope.symbols.getDeclaration(p.expr.identifier,ctx)
-			if (!declw.value) return maybe.none()
 			return maybe.wrap({ref:true,esr:declw.value.decl.esr})
 		}
 		let esr = exprParser(p,scope,ctx,evalOnly)
 		if (!esr.value) return maybe.none()
 		return maybe.wrap({esr:esr.value,ref:false})
 	})
-	let declw = symbols.getDeclaration(node.function.identifier.value)
-	if (!declw) {
-		ctx.addError(node.function.identifier.error('fn not declared'))
-		return maybe.none()
-	}
-	let decl = declw.decl
+	let declw = resolveStatic(node.function,scope,ctx) //symbols.getDeclaration(node.function.identifier.value)
+	if (!declw.value) return maybe.none()
+	let decl = declw.value.decl
 	if (decl.type != DeclarationType.FUNCTION) {
-		ctx.addError(node.function.identifier.error('not a fn'))
+		ctx.addError(astError(node.function,'not a fn'))
 		return maybe.none()
 	}
 	if (params.length != decl.parameters.length) {
-		ctx.addError(node.function.identifier.error('param length unmatched'))
+		ctx.addError(astError(node.function,'param length unmatched'))
 		return maybe.none()
 	}
 	let copyBackInstrs: Instruction[] = []
@@ -170,14 +171,14 @@ function invokation(node:ASTCallNode,scope:Scope,ctx:CompileContext,evalOnly:boo
 				return exhaust(esr)
 		}
 	}
-	let returnType = getESRType(decl.esr)
+	let returnType = getESRType(decl.returns)
 	let invokeInstr: INVOKE = {type:InstrType.INVOKE,fn:decl.fn}
 	if (returnType.elementary) {
 		switch (returnType.type) {
 			case ElementaryValueType.INT: {
 				let into: IntESR = {type:ESRType.INT,mutable:false,const:false,tmp:true,scoreboard:ctx.scoreboards.getStatic('tmp',scope)}
-				if (decl.esr.type != ESRType.INT) throw new Error('ESR error')
-				let copyRet: INT_OP = {type:InstrType.INT_OP,into,from:decl.esr,op:'='}
+				if (decl.returns.type != ESRType.INT) throw new Error('ESR error')
+				let copyRet: INT_OP = {type:InstrType.INT_OP,into,from:decl.returns,op:'='}
 				if (!evalOnly)
 					scope.push(invokeInstr,copyRet,...copyBackInstrs)
 				return maybe.wrap(into)

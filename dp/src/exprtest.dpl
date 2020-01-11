@@ -26,6 +26,7 @@ fn useRef(): void {
 }
 
 fn x(y:int): int {
+    Math::PI
     let local: int = a
     x(y)
     // if (a == b) a+=1
