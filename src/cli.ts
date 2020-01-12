@@ -130,7 +130,7 @@ async function compile(argv:any): Promise<void> {
 				optimize: argv.optimize === false ? false : undefined,
 				ignoreWarnings: argv.warn === false ? true : undefined
 			})
-			if (dp.canEmit() && !argv.noEmit) await dp.emit()
+			if (dp.canEmit() && argv.emit !== false) await dp.emit()
 			
 		} catch (err) {
 			if (err instanceof Error) {
