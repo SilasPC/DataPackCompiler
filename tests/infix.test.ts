@@ -41,6 +41,10 @@ describe('infix conversion', () => {
 		const result = postfix('a::b::c.d')
 		expect(result).to.equal('a b :: c :: d .')
 	})
+	it('invoke accessor', () => {
+		const result = postfix('a::b(c)')
+		expect(result).to.equal('a b :: c ,1 $')
+	})
 })
 
 function postfix(infix:string): string {

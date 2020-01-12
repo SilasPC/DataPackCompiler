@@ -55,33 +55,11 @@ export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext,
                 switch (t.value) {
                     case '(':
                         let isFn = lastWasOperand
-                        if (isFn) {
-                            let next = tokens.peek()
-                            if (next.type == TokenType.MARKER && next.value == ')') {
-                                if (!que.length) t.throwDebug('no fn on queue?')
-                                let fn = que.pop() as ASTExpr
-                                if (fn.type != ASTNodeType.IDENTIFIER && fn.type != ASTNodeType.STATIC_ACCESS)
-                                    return t.throwDebug('not static fn')
-                                let invnode: ASTCallNode = {
-                                    type: ASTNodeType.INVOKATION,
-                                    function: fn,
-                                    parameters: {
-                                        type: ASTNodeType.LIST,
-                                        list: []
-                                    }
-                                }
-                                que.push(invnode)
-                                postfix.push(',0','$')
-                                tokens.skip(1)
-                                lastWasOperand = true
-                                break
-                            }
-                        }
                         fncalls.push(isFn)
                         pushOperator({
                             token: t,
                             op: t.value,
-                            precedency: 30 + (isFn?0:1), // does this make a difference?
+                            precedency: 20,
                             leftToRight: true,
                             type: OpType.PREFIX, // make sure we don't expect an operator
                             operands: 0,
@@ -93,7 +71,7 @@ export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext,
                             precedency: 1,
                             leftToRight: false, // this may break later
                             type: OpType.INFIX,
-                            operands: 1,
+                            operands: tokens.peek().value == ')' ? 0 : 1,
                             popable: true
                         })
                         lastWasOperand = false
@@ -115,25 +93,9 @@ export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext,
                         if (fncalls.pop()) {
                             if (que.length<2) t.throwDebug('wth') // this doesn't work so well when there are no parameters xd
                                                                   // note to self: make better comments
-                            let argnode = que.pop() as ASTExpr
-                            if (argnode.type != ASTNodeType.LIST) {
-                                let argAsList: ASTListNode = {
-                                    type: ASTNodeType.LIST,
-                                    list: [argnode]
-                                }
-                                argnode = argAsList
-                                postfix.push(',1')
-                            }
-                            let fn = que.pop() as ASTExpr
-                            if (fn.type != ASTNodeType.IDENTIFIER && fn.type != ASTNodeType.STATIC_ACCESS)
-                                return t.throwDebug('not static fn')
-                            let invnode: ASTCallNode = {
-                                type: ASTNodeType.INVOKATION,
-                                function: fn,
-                                parameters: argnode as ASTListNode
-                            }
-                            que.push(invnode)
-                            postfix.push('$')
+                            let op = opInfo(t,false)
+                            op.operands = 2
+                            pushOperator(op)
                         }
                         lastWasOperand = true
                         break
@@ -317,6 +279,21 @@ export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext,
                         que.push(node)
                         postfix.push(op.token.value)
                         break
+                    case ')':
+                        let argnode = que.pop() as ASTExpr
+                        if (argnode.type != ASTNodeType.LIST)
+                            throw new Error('not list arg')
+                        let fn = que.pop() as ASTExpr
+                        if (fn.type != ASTNodeType.IDENTIFIER && fn.type != ASTNodeType.STATIC_ACCESS)
+                            return op.token.throwDebug('not static fn')
+                        let invnode: ASTCallNode = {
+                            type: ASTNodeType.INVOKATION,
+                            function: fn,
+                            parameters: argnode
+                        }
+                        que.push(invnode)
+                        postfix.push('$')
+                        break
                     default:
                         throw new Error('could not use marker value '+op.op)
                 }
@@ -349,8 +326,10 @@ function p(t:TokenI,prefix:boolean): [number,boolean,OpType] {
 
         // '(' has been set to 30 precedence for now
 
+        case ')':
+            return [20,true,OpType.POSTFIX]
+
         case '::':
-            return [21,true,OpType.INFIX]
         case '.':
             return [20,true,OpType.INFIX]
 
