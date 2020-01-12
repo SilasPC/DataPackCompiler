@@ -1,0 +1,19 @@
+
+// Line comments are declared like this
+/* This and the following shows inline/multiline comments */
+
+    /*************
+    * Hiya there *
+    *    ()()    *
+    *  \(^.^)/   *
+    *    ( . )   *
+    *     ¨ ¨    *
+    * You like.. *
+    *  ..coding? *
+    * I sure do! *
+    *************/
+
+// Defining a simple function that broadcasts 'Hello world!'
+fn helloWorld(): void {
+	/tellraw @a Hello world!
+}

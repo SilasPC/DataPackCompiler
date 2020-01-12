@@ -1,0 +1,16 @@
+
+// A function that adds 10 to an integer
+fn test(x:int): int {
+	return x + 10
+}
+
+// Declaring a file scoped integer variable:
+let var: int = 2 * 20
+
+// A function that calls another function
+fn invokeTest(): void {
+	// Declaring a local variable and invoking with an integer directly:
+	let x: int = test(10)
+	// Invoking with the local variable
+	x = test(x)
+}

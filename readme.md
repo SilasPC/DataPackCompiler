@@ -27,6 +27,10 @@ When/if finished, there will also be a bunch of cool features like
 ### Examples
 See /examples
 
+You might find the syntax sorta similar to a blend between TypeScript and Rust.
+
+With some domain specific features and limitations of course.
+
 ### Command line interface
 Eventually the CLI will ship as an install script.
 
