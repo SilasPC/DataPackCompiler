@@ -80,6 +80,8 @@ export function lineSyntaxParser(iter:TokenIteratorI,ctx:CompileContext): ASTSta
         case TokenType.MARKER:
             switch (token.value) {
                 case ';': break
+                case '(':
+                    return expressionSyntaxParser(iter.skip(-1),ctx,true).ast
                 default:
                     return token.throwDebug('unexpected marker')
             }

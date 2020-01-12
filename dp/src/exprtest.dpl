@@ -19,6 +19,7 @@ let b: int = 3
 import Math from 'Math'
 
 fn reftest(ref num:int): void {
+    (Math::double)(num)
     num = (Math::double)(num)
 }
 

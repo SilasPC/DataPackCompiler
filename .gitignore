@@ -4,6 +4,8 @@
 
 out
 trash
+dp/data
+dp/pack.mcmeta
 
 ### Node ###
 # Logs
