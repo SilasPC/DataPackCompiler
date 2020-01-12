@@ -7,6 +7,9 @@ trash
 dp/data
 dp/pack.mcmeta
 
+# vscode
+.vscode/**/*
+
 ### Node ###
 # Logs
 logs

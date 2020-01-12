@@ -7,7 +7,7 @@ import { FnFile } from "../codegen/FnFile";
 import { TokenI } from "../lexing/Token";
 import { exhaust } from "../toolbox/other";
 import { Maybe } from "../toolbox/Maybe";
-import { SymbolTable, SymbolTableLike } from "./SymbolTable";
+import { SymbolTable } from "./SymbolTable";
 
 export type Declaration = VarDeclaration | FnDeclaration | ModDeclaration
 
@@ -22,7 +22,7 @@ export enum DeclarationType {
 	MODULE
 }
 
-export class ModDeclaration extends SymbolTableLike {
+export class ModDeclaration {
 	public readonly type = DeclarationType.MODULE
 }
 

@@ -23,7 +23,8 @@ export function resolveStatic(node:ASTStaticAccessNode|ASTIdentifierNode,scope:S
 	const maybe = new MaybeWrapper<DeclarationWrapper>()
 
 	if (node.type == ASTNodeType.IDENTIFIER) {
-		return scope.symbols.getDeclaration(node.identifier,ctx)
+		let xxx = scope.symbols.getDeclaration(node.identifier,ctx)
+		return xxx
 	}
 
 	let op = node
@@ -40,7 +41,7 @@ export function resolveStatic(node:ASTStaticAccessNode|ASTIdentifierNode,scope:S
 	}
 
 	let decl: ModDeclaration|SymbolTable = scope.symbols
-	for (let i = 0; i < accesses.length; i++) {
+	/*for (let i = 0; i < accesses.length; i++) {
 		let acc = accesses[i]
 		let declw: DeclarationWrapper|null = decl.getDeclaration(acc as TokenI)
 		if (!declw) {
@@ -57,7 +58,7 @@ export function resolveStatic(node:ASTStaticAccessNode|ASTIdentifierNode,scope:S
 			return maybe.none()
 		}
 		return maybe.wrap(declw)
-	}
+	}*/
 
 	throw new Error('cannot happen')
 

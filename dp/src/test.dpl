@@ -1,2 +1,8 @@
 
-export let xxx: int = 3;
+fn x(): void {
+	a += b
+	x()
+}
+
+let a: int = b;
+let b: int = 1;

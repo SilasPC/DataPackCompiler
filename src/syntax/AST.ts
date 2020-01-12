@@ -171,7 +171,7 @@ export interface ASTModuleNode {
 export interface ASTExportNode {
     type: ASTNodeType.EXPORT
     keyword: KeywordToken
-    node: ASTStaticDeclaration
+    node: Exclude<ASTStaticDeclaration,ASTExportNode>
 }
 
 export interface ASTReturnNode {
