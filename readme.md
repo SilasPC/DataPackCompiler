@@ -1,5 +1,5 @@
 # WARNING
-This project is *highly experimental*, and stability is *NOT* guarenteed.
+This project is **highly experimental**, and stability is **NOT** guarenteed.
 
 # What is this?
 This is a high-level language that compiles to Minecraft datapacks.
