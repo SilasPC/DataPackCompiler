@@ -18,23 +18,23 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext,fetcher:Fet
 	const maybe = new MaybeWrapper<true>()
 	
 	if (pfile.status == 'parsed') return maybe.wrap(true)
-	if (pfile.status == 'parsing') throw new Error('circular parsing')
+	if (pfile.status == 'parsing') return maybe.wrap(true) // throw new Error('circular parsing')
 
 	pfile.status = 'parsing'
 
-	let symbols = pfile.getSymbolTable()
+	let symbols = pfile
 	let scope = pfile.scope
 	let ast = pfile.getAST()
 	
-	for (let node0 of ast) {
+	for (let node of ast) {
 		let shouldExport = false
 
-		if (node0.type == ASTNodeType.EXPORT) {
-			node0 = node0.node
+		if (node.type == ASTNodeType.EXPORT) {
+			node = node.node
 			shouldExport = true
 		}
 
-		hoist(node0,scope,ctx,fetcher)
+		hoist(pfile,node,scope,ctx,fetcher)
 
 	}
 

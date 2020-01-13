@@ -92,9 +92,15 @@ export function parseBody(nodes:ASTStatement[],scope:Scope,ctx:CompileContext): 
 				}),ctx)*/
 				break
 			}
-			case ASTNodeType.DEFINE:
-				maybe.merge(parseDefine(node,scope,ctx))
+			case ASTNodeType.DEFINE: {
+				let res = parseDefine(node,scope,ctx)
+				maybe.merge(res)
+				if (res.value) {
+					scope.symbols.declareDirect(node.identifier,res.value.decl,ctx)
+					scope.push(res.value.copyInstr)
+				}
 				break
+			}
 				
 			case ASTNodeType.LIST:
 				ctx.addError(new CompileError(astErrorMsg(node,'list not here for now'),false))

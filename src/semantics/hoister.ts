@@ -13,7 +13,7 @@ import { Scope } from "./Scope";
 import { parseBody } from "./parseBody";
 import { parseDefine } from "./statements/parseDefine";
 
-export function hoist(node:Exclude<ASTStaticDeclaration,ASTExportNode>,scope:Scope,ctx:CompileContext,fetcher:Fetcher): Maybe<true> {
+export function hoist(pf:ParsingFile,node:Exclude<ASTStaticDeclaration,ASTExportNode>,scope:Scope,ctx:CompileContext,fetcher:Fetcher): Maybe<true> {
 
 	const maybe = new MaybeWrapper<true>()
 
@@ -22,22 +22,21 @@ export function hoist(node:Exclude<ASTStaticDeclaration,ASTExportNode>,scope:Sco
 	switch (node.type) {
 
 		case ASTNodeType.IMPORT: {
-			/*let st = fetcher(pfile,node0.source)
+			let st = fetcher(pf,node.source)
 			if (st.value) {
-				if (Array.isArray(node0.imports)) {
-					for (let t of node0.imports) {
-						let declw = st.value.getDeclaration(t)
-						if (!declw) {
-							ctx.addError(t.error('source had no such export'))
-							maybe.noWrap()
-							break
+				if (Array.isArray(node.imports)) {
+					for (let t of node.imports) {
+						let declw = st.value.symbols.getDeclaration(t,ctx)
+						if (maybe.merge(declw)) {
+							maybe.none()
+							continue
 						}
-						maybe.merge(scope.symbols.declare({decl:declw.decl,token:t},ctx))
+						maybe.merge(scope.symbols.declareDirect(t,declw.value.decl,ctx))
 					}
 				} else {
-					maybe.merge(scope.symbols.declare({token:node0.imports,decl:st.value},ctx))
+					maybe.merge(scope.symbols.declareDirect(node.imports,st.value,ctx))
 				}
-			} else maybe.noWrap()*/
+			} else maybe.noWrap()
 			break
 		}
 
@@ -46,7 +45,15 @@ export function hoist(node:Exclude<ASTStaticDeclaration,ASTExportNode>,scope:Sco
 
 		case ASTNodeType.DEFINE: {
 			let node0 = node
-			symbols.declareHoister(node.identifier,()=>parseDefine(node0,scope,ctx),ctx)
+			symbols.declareHoister(node.identifier,()=>{
+				const maybe = new MaybeWrapper<Declaration>()
+				let res = parseDefine(node0,scope,ctx)
+				if (res.value) {
+					// use this
+					res.value.copyInstr
+				}
+				return res.pick('decl')
+			},ctx)
 			break
 		}
 

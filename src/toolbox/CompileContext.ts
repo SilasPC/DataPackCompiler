@@ -42,9 +42,11 @@ export class CompileContext {
 		return this.files.get(fullPath)
 	}
 
-	loadFile(path:string) {
+	async loadFile(path:string) {
 		if (this.isFileLoaded(path)) throw new Error('Tried re-loading a file')
-		return ParsingFile.loadFile(path,this)
+		let f = await ParsingFile.loadFile(path,this)
+		this.files.set(path,f)
+		return f
 	}
 
 	loadFromSource(source:string,sourceName:string) {

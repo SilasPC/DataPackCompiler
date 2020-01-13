@@ -3,8 +3,6 @@ import { SymbolTable } from "./SymbolTable";
 import { Instruction, INT_OP, InstrType } from "../codegen/Instructions";
 import { Scoreboard, ESR, ESRType } from "./ESR";
 import { CompileContext } from "../toolbox/CompileContext";
-import { FnDeclaration } from "./Declaration";
-import { Datapack } from "../codegen/Datapack";
 
 export type ScopeType = 'FN' | 'NONE'
 
@@ -13,10 +11,10 @@ export class Scope {
 	private instrBuffer: Instruction[]
 	private readonly stack: Instruction[][]
 
-	public static createRoot(name:string,ctx:CompileContext) {
+	public static createRoot(symbols:SymbolTable,name:string,ctx:CompileContext) {
 		return new Scope(
 			null,
-			SymbolTable.createRoot(),
+			symbols,
 			name,
 			ctx,
 			ctx.scoreboards.getStatic([name,'break']),

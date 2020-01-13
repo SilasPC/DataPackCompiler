@@ -1,9 +1,10 @@
 import { createAbs } from "./math/abs";
 import { CompileContext } from "../toolbox/CompileContext";
-import { Declaration, ModDeclaration, DeclarationWrapper } from "../semantics/Declaration";
+import { Declaration, ModDeclaration, DeclarationWrapper, DeclarationType } from "../semantics/Declaration";
 import { TokenI, TokenType } from "../lexing/Token";
-import { Maybe } from "../toolbox/Maybe";
+import { Maybe, MaybeWrapper } from "../toolbox/Maybe";
 import { createDouble } from "./math/double";
+import { SymbolTable, ReadOnlySymbolTable } from "../semantics/SymbolTable";
 
 type Lib = {[key:string]:Lib|((ctx:CompileContext)=>Declaration)}
 
@@ -14,10 +15,10 @@ const lib: Lib  = {
 	}
 }
 
-export class CoreLibrary extends ModDeclaration {
-
+export class CoreLibrary implements ReadOnlySymbolTable {
+	
 	static create(ctx:CompileContext) {
-		return new CoreLibrary(ctx,lib)
+		return new CoreLibrary(ctx,lib) as ReadOnlySymbolTable
 	}
 
 	private readonly loaded: Map<string,Declaration> = new Map()
@@ -25,28 +26,29 @@ export class CoreLibrary extends ModDeclaration {
 	private constructor(
 		private readonly ctx: CompileContext,
 		private readonly lib: Lib
-	) {super()}
+	) {}
 
-	getDeclaration(name: TokenI): DeclarationWrapper | null {
+	getDeclaration(name: TokenI): Maybe<DeclarationWrapper> {
+		const maybe = new MaybeWrapper<DeclarationWrapper>()
 		let val
 		if (name.type == TokenType.PRIMITIVE)
 				val = name.value.slice(1,-1)
 		else
 				val = name.value
-		if (this.loaded.has(val)) return {
+		if (this.loaded.has(val)) return maybe.wrap({
 			token: name,
 			decl: this.loaded.get(val) as Declaration
-		}
+		})
 		if (val in this.lib) {
 			let sub = this.lib[val]
 			let decl: Declaration
 			if (sub instanceof Function)
 				this.loaded.set(val,decl = sub(this.ctx))
 			else
-				this.loaded.set(val,decl  = new CoreLibrary(this.ctx,sub))
-			return {token:name,decl}
+				this.loaded.set(val,decl = {type:DeclarationType.MODULE,symbols:new CoreLibrary(this.ctx,sub)})
+			return maybe.wrap({token:name,decl})
 		}
-		return null
+		return maybe.none()
 	}
 
 }

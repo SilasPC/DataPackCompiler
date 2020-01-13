@@ -7,7 +7,7 @@ import { FnFile } from "../codegen/FnFile";
 import { TokenI } from "../lexing/Token";
 import { exhaust } from "../toolbox/other";
 import { Maybe } from "../toolbox/Maybe";
-import { SymbolTable } from "./SymbolTable";
+import { SymbolTable, ReadOnlySymbolTable } from "./SymbolTable";
 
 export type Declaration = VarDeclaration | FnDeclaration | ModDeclaration
 
@@ -22,8 +22,9 @@ export enum DeclarationType {
 	MODULE
 }
 
-export class ModDeclaration {
-	public readonly type = DeclarationType.MODULE
+export interface ModDeclaration {
+	type: DeclarationType.MODULE
+	symbols: ReadOnlySymbolTable
 }
 
 export interface VarDeclaration {

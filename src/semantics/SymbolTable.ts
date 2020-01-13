@@ -1,6 +1,6 @@
 
 import { TokenI } from "../lexing/Token"
-import { DeclarationWrapper, Declaration } from "./Declaration"
+import { DeclarationWrapper, Declaration, ModDeclaration, DeclarationType } from "./Declaration"
 import { Maybe, MaybeWrapper } from "../toolbox/Maybe"
 import { CompileContext } from "../toolbox/CompileContext"
 import $ from 'js-itertools'
@@ -17,17 +17,21 @@ type InternalWrapper = {
     hoisted: boolean
 }
 
-export class SymbolTable {
+export interface ReadOnlySymbolTable {
+    getDeclaration(name:TokenI,ctx:CompileContext): Maybe<DeclarationWrapper>
+}
+
+export class SymbolTable implements ReadOnlySymbolTable {
 
     public static createRoot() {
         return new SymbolTable(null)
     }
 
-    private readonly declarations: Map<string,InternalWrapper> = new Map()
+    protected readonly declarations: Map<string,InternalWrapper> = new Map()
 
     private readonly children: SymbolTable[] = []
 
-    private constructor(
+    protected constructor(
         public readonly parent: SymbolTable|null
     ) {}
 
@@ -47,6 +51,16 @@ export class SymbolTable {
     private getInternal(id:string): InternalWrapper | null {
         if (this.declarations.has(id)) return this.declarations.get(id) as InternalWrapper
         if (this.parent) return this.parent.getInternal(id)
+        return null
+    }
+
+    protected getUnsafe(id:string) {
+        let maybe = new MaybeWrapper<DeclarationWrapper>()
+        let iw = this.getInternal(id)
+        if (!iw||iw.failed||iw.active) return null
+        if (iw.decl) return iw.decl
+        let wrapper = this.callHoister(iw)
+        if (wrapper) return wrapper
         return null
     }
 
@@ -76,9 +90,11 @@ export class SymbolTable {
         if (iw.hoisted) throw new Error('declaration already hoisted')
 
         iw.active = true
+        // console.log('active',iw.token.value)
         let decl = iw.hoister(decl=>{
             iw.decl = {decl,token:iw.token}
         })
+        // console.log('deactive',iw.token.value)
         iw.hoisted = true
         iw.active = false
 
@@ -113,7 +129,7 @@ export class SymbolTable {
             hoister: ()=>{throw new Error('no hoister')},
             failed: false,
             active: false,
-            hoisted: false
+            hoisted: true
         }
         this.declarations.set(id.value,iw)
         return maybe.wrap(true)
@@ -147,6 +163,13 @@ export class SymbolTable {
             maybe.noWrap()
         }
         return maybe.wrap(true)
+    }
+
+    asModule(): ModDeclaration {
+        return {
+            type: DeclarationType.MODULE,
+            symbols: this
+        }
     }
 
     /*declareDirect(decl:DeclarationWrapper,ctx:CompileContext): Maybe<true> {

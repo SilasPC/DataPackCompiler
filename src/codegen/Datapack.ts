@@ -109,10 +109,12 @@ export class Datapack {
 
 		let errCount = 0
 
-		const pfiles =
+		const pfiles = await Promise.all(
 			srcFiles
-			.sort() // ensure same load order every run
-			.map(srcFile=>ctx.loadFile(srcFile))
+				.sort() // ensure same load order every run
+				.map(srcFile=>ctx.loadFile(srcFile))
+		)
+		
 		ctx.log2(1,'inf',`Loaded ${srcFiles.length} file(s)`)
 		
 		pfiles.forEach(pf=>lexicalAnalysis(pf,ctx))
@@ -259,7 +261,8 @@ import { Maybe, MaybeWrapper } from '../toolbox/Maybe';
 import { ParsingFile } from '../toolbox/ParsingFile';
 import { GenericToken } from '../lexing/Token';
 import { CoreLibrary } from '../corelib/CoreLibrary';
-import { ModDeclaration } from '../semantics/Declaration';
+import { ModDeclaration, DeclarationType } from '../semantics/Declaration';
+import { SymbolTable } from '../semantics/SymbolTable';
 function RIMRAF(path:string) {
 	return new Promise(($,$r)=>{
 		rimraf(path,{},err=>{
@@ -273,7 +276,8 @@ export type Fetcher = (origin:ParsingFile,token:GenericToken) => Maybe<ModDeclar
 
 function createFetcher(pfiles:ParsingFile[],ctx:CompileContext): Fetcher {
 	const coreLib = CoreLibrary.create(ctx)
-	return function fetcher(origin:ParsingFile,token:GenericToken) {
+	return fetcher
+	function fetcher(origin:ParsingFile,token:GenericToken): Maybe<ModDeclaration> {
 		const maybe = new MaybeWrapper<ModDeclaration>()
 		let src = token.value.slice(1,-1)
 		// relative file import
@@ -281,32 +285,32 @@ function createFetcher(pfiles:ParsingFile[],ctx:CompileContext): Fetcher {
 			let path = resolve(dirname(origin.fullPath),src+'.dpl')
 			let pf = pfiles.find(p=>p.fullPath == path)
 			if (pf instanceof ParsingFile) {
-				if (pf.status != 'parsing') {
+				//if (pf.status != 'parsing') {
 					if (!semanticsParser(pf,ctx,fetcher).value) {
 						ctx.addError(token.error('file has errors'))
 						return maybe.none()
 					}
-					return maybe.wrap(pf)
-				} else {
-					ctx.addError(token.error('circular dependency'))
-					return maybe.none()
-				}
+					return maybe.wrap(pf.asModule())
+				//} else {
+				//	ctx.addError(token.error('circular dependency'))
+				//	return maybe.none()
+				//}
 			} else {
 				ctx.addError(token.error('could not find source file'))
 				maybe.noWrap()
 			}
 		}
 		// core library import
-		let decl = coreLib.getDeclaration(token)
-		if (!decl) {
+		let decl = coreLib.getDeclaration(token,ctx)
+		if (!decl.value) {
 			ctx.addError(token.error('could not find library'))
 			return maybe.none()
 		}
-		if (!(decl.decl instanceof ModDeclaration)) {
-			ctx.addError(token.error('not a library'))
+		if (decl.value.decl.type != DeclarationType.MODULE) {
+			ctx.addError(token.error('not a module'))
 			return maybe.none()
 		}
-		return maybe.wrap(decl.decl)
+		return maybe.wrap(decl.value.decl)
 	}		
 
 }

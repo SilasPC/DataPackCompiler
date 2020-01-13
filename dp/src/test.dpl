@@ -1,8 +1,11 @@
 
-fn x(): void {
+import file from './test'
+
+fn x(): int {
 	a += b
 	// x()
+	file::b += 1
 }
 
 let a = b;
-let b = 1;
+let b = 2;

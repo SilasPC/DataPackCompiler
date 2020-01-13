@@ -126,7 +126,7 @@ export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext,
                             }
                             let fn = que.pop() as ASTExpr
                             if (fn.type != ASTNodeType.IDENTIFIER && fn.type != ASTNodeType.STATIC_ACCESS)
-                                return t.throwDebug('not static fn')
+                                return t.throwDebug('not static fn: '+ASTNodeType[fn.type])
                             let invnode: ASTCallNode = {
                                 type: ASTNodeType.INVOKATION,
                                 function: fn,

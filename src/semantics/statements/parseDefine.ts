@@ -1,4 +1,4 @@
-import { MaybeWrapper } from "../../toolbox/Maybe"
+import { MaybeWrapper, Maybe } from "../../toolbox/Maybe"
 import { Declaration, DeclarationType } from "../Declaration"
 import { exprParser } from "../expressionParser"
 import { ValueType, tokenToType, ElementaryValueType, hasSharedType } from "../Types"
@@ -6,9 +6,10 @@ import { copyESR, getESRType } from "../ESR"
 import { ASTLetNode } from "../../syntax/AST"
 import { Scope } from "../Scope"
 import { CompileContext } from "../../toolbox/CompileContext"
+import { Instruction } from "../../codegen/Instructions"
 
-export function parseDefine(node: ASTLetNode,scope:Scope,ctx:CompileContext) {
-	const maybe = new MaybeWrapper<Declaration>()
+export function parseDefine(node: ASTLetNode,scope:Scope,ctx:CompileContext): Maybe<{decl:Declaration,copyInstr:Instruction}> {
+	const maybe = new MaybeWrapper<{decl:Declaration,copyInstr:Instruction}>()
 
 	let esr0 = exprParser(node.initial,scope,ctx,false)
 
@@ -33,6 +34,6 @@ export function parseDefine(node: ASTLetNode,scope:Scope,ctx:CompileContext) {
 		return maybe.none()
 	}
 
-	return maybe.wrap({type:DeclarationType.VARIABLE,varType:type,esr})
+	return maybe.wrap({decl:{type:DeclarationType.VARIABLE,varType:type,esr},copyInstr:res.copyInstr})
 	
 }

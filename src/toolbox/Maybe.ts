@@ -10,7 +10,7 @@ export class MaybeWrapper<T> {
 	private hasErrored = false
 
 	/** Return true if maybe had no value. this.noWrap() will be called */
-	merge<P>(m:Maybe<P>): m is NoneMaybe {
+	merge<P>(m:Maybe<P>): m is NoneMaybe<P> {
 		let hadVal = typeof m.value != 'undefined'
 		if (!hadVal) this.noWrap()
 		return !hadVal
@@ -30,12 +30,21 @@ export class MaybeWrapper<T> {
 }
 
 interface DefiniteMaybe<T> extends MaybeClass<T> {value:T}
-interface NoneMaybe extends MaybeClass<any> {value:undefined}
+interface NoneMaybe<T> extends MaybeClass<T> {value:undefined}
 
-export type Maybe<T> = DefiniteMaybe<T> | NoneMaybe
+export type Maybe<T> = DefiniteMaybe<T> | NoneMaybe<T>
 
 class MaybeClass<T> {
 	constructor(
 		public readonly value?: T
 	) {}
+	pick<P extends keyof T>(k:P): Maybe<T[P]> {
+		if (this.value)
+			return new MaybeClass<T[P]>(this.value[k]) as Maybe<T[P]>
+		return new MaybeClass<T[P]>(undefined) as Maybe<T[P]>
+	}
+	check(): Maybe<true> {
+		if (this.value) return new MaybeClass<true>(true) as Maybe<true>
+		return new MaybeClass<true>(undefined) as Maybe<true>
+	}
 }
