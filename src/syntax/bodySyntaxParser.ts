@@ -72,7 +72,9 @@ export function lineSyntaxParser(iter:TokenIteratorI,ctx:CompileContext): ASTSta
             }
         }
         case TokenType.COMMAND:
-            return ctx.syntaxSheet.readSyntax(iter.current(),ctx)
+            let res = ctx.syntaxSheet.readSyntax(iter.current(),ctx)
+            if (!res.value) throw new Error('xxx')
+            return res.value
         case TokenType.OPERATOR:
         case TokenType.PRIMITIVE:
         case TokenType.SYMBOL:

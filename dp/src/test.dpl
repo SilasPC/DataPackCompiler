@@ -3,6 +3,7 @@ import file from './test'
 
 fn x(): int {
 	a += b
+	/says hello
 	// x()
 	file::b += 1
 }

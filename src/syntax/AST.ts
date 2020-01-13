@@ -247,7 +247,7 @@ export interface ASTIfNode {
 export interface ASTCMDNode {
     type: ASTNodeType.COMMAND
     token: TokenI
-    consume: {exprs:ASTExpr[],nodes:{node:CMDNode,capture:string}[]}
+    consume: {node:CMDNode,capture:string,expr:ASTExpr|null}[]
 }
 
 /*

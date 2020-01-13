@@ -22,18 +22,20 @@ export function parseBody(nodes:ASTStatement[],scope:Scope,ctx:CompileContext): 
 		switch (node.type) {
 			case ASTNodeType.COMMAND: {
 				let foundErrors = false
-				let interpolations = node.consume.exprs.flatMap(n => {
-					let x = exprParser(n,scope,ctx,evalOnly())
+				let interpolations = node.consume.map(n => {
+					if (!n.expr) return {node:n.node,capture:n.capture,esr:null}
+					let x = exprParser(n.expr,scope,ctx,evalOnly())
 					if (maybe.merge(x)) {
 						foundErrors = true
-						return []
+						return {node:n.node,capture:n.capture,esr:null}
 					}
-					return [x.value]
+					return {node:n.node,capture:n.capture,esr:x.value}
 				})
 				if (foundErrors) continue
 				if (!evalOnly())
 					scope.push({
 						type:InstrType.CMD,
+						cmd: node.token.value.slice(1),
 						interpolations
 					})
 				break

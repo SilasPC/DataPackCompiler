@@ -4,6 +4,7 @@ import { TokenI } from "../lexing/Token";
 import { CompileContext } from "../toolbox/CompileContext";
 import { Scope } from "../semantics/Scope";
 import { ASTCMDNode, ASTNodeType, ASTNode } from "../syntax/AST";
+import { Maybe, MaybeWrapper } from "../toolbox/Maybe";
 
 export class SyntaxSheet {
 
@@ -23,12 +24,15 @@ export class SyntaxSheet {
 		private readonly root: RootCMDNode
 	) {}
 
-	readSyntax(token:TokenI,ctx:CompileContext): ASTCMDNode {
-		return {
+	readSyntax(token:TokenI,ctx:CompileContext): Maybe<ASTCMDNode> {
+		const maybe = new MaybeWrapper<ASTCMDNode>()
+		let res = this.root.syntaxParse(token,ctx)
+		if (!res.value) return maybe.none()
+		return maybe.wrap({
 			type: ASTNodeType.COMMAND,
 			token,
-			consume: this.root.parseSyntax(token,1,ctx)
-		}
+			consume: res.value
+		})
 	}
 
 	/*verifySemantics(token:Token,ctx:CompileContext,scope:Scope) {
