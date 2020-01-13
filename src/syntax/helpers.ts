@@ -3,7 +3,8 @@ import { TokenType, TokenI, KeywordToken } from "../lexing/Token";
 import { ASTExportNode, ASTNodeType, ASTStaticDeclaration } from "./AST";
 import { TokenIteratorI } from "../lexing/TokenIterator";
 
-export function getType(iter:TokenIteratorI): TokenI {
+export function getType(iter:TokenIteratorI): TokenI | null {
+    if (iter.peek().value != ':') return null
     iter.next().expectType(TokenType.MARKER).expectValue(':')
     return iter.next().expectType(TokenType.SYMBOL,TokenType.TYPE)
 }

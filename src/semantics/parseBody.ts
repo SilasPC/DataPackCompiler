@@ -9,9 +9,10 @@ import { hasSharedType, tokenToType, ElementaryValueType } from "./Types"
 import { CompileError } from "../toolbox/CompileErrors"
 import { VarDeclaration, DeclarationType } from "./Declaration"
 import { exhaust } from "../toolbox/other"
+import { parseDefine } from "./statements/parseDefine"
 
-export function parseBody(nodes:ASTStatement[],scope:Scope,ctx:CompileContext): Maybe<null> {
-	let maybe = new MaybeWrapper<null>()
+export function parseBody(nodes:ASTStatement[],scope:Scope,ctx:CompileContext): Maybe<true> {
+	let maybe = new MaybeWrapper<true>()
 	let diedAt: ASTNode | null = null
 
 	const evalOnly = () => ctx.options.optimize ? diedAt != null : false
@@ -91,24 +92,10 @@ export function parseBody(nodes:ASTStatement[],scope:Scope,ctx:CompileContext): 
 				}),ctx)*/
 				break
 			}
-			case ASTNodeType.DEFINE: {
-				let type = tokenToType(node.varType,scope.symbols)
-				if (type.elementary && type.type == ElementaryValueType.VOID)
-					node.varType.throwDebug(`Cannot declare a variable of type 'void'`)
-				if (!type.elementary) node.varType.throwDebug('no non-elemn rn k')
-				let esr0 = exprParser(node.initial,scope,ctx,evalOnly())
-				if (maybe.merge(esr0)) continue
-				let res = copyESR(esr0.value,ctx,scope,node.identifier.value,{tmp:false,mutable:true,const:false})
-				let esr = res.esr
-				if (!evalOnly())
-					scope.push(res.copyInstr)
-
-				if (!hasSharedType(getESRType(esr),type)) node.identifier.throwDebug('type mismatch')
-				let decl: VarDeclaration = {type:DeclarationType.VARIABLE,varType:type,esr}
-				if (!evalOnly())
-					maybe.merge(scope.symbols.declareDirect(node.identifier,decl,ctx))
+			case ASTNodeType.DEFINE:
+				maybe.merge(parseDefine(node,scope,ctx))
 				break
-			}
+				
 			case ASTNodeType.LIST:
 				ctx.addError(new CompileError(astErrorMsg(node,'list not here for now'),false))
 				maybe.noWrap()
@@ -140,5 +127,5 @@ export function parseBody(nodes:ASTStatement[],scope:Scope,ctx:CompileContext): 
 			))
 	}
 
-	return maybe.wrap(null)
+	return maybe.wrap(true)
 }

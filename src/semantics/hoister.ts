@@ -1,7 +1,7 @@
 
-import { ASTNodeType, ASTFnNode, ASTLetNode, ASTStaticDeclaration, astError, ASTExportNode } from "../syntax/AST";
+import { ASTNodeType, ASTFnNode, ASTLetNode, ASTStaticDeclaration, astError, ASTExportNode, ASTStatement } from "../syntax/AST";
 import { Declaration, FnDeclaration, DeclarationType, VarDeclaration, DeclarationWrapper } from "./Declaration";
-import { tokenToType, ElementaryValueType, hasSharedType } from "./Types";
+import { tokenToType, ElementaryValueType, hasSharedType, ValueType } from "./Types";
 import { exhaust } from "../toolbox/other";
 import { ParsingFile } from "../toolbox/ParsingFile";
 import { Fetcher } from "../codegen/Datapack";
@@ -11,6 +11,7 @@ import { exprParser } from "./expressionParser";
 import { copyESR, getESRType, ESR, ESRType, IntESR } from "./ESR";
 import { Scope } from "./Scope";
 import { parseBody } from "./parseBody";
+import { parseDefine } from "./statements/parseDefine";
 
 export function hoist(node:Exclude<ASTStaticDeclaration,ASTExportNode>,scope:Scope,ctx:CompileContext,fetcher:Fetcher): Maybe<true> {
 
@@ -44,32 +45,8 @@ export function hoist(node:Exclude<ASTStaticDeclaration,ASTExportNode>,scope:Sco
 			throw new Error('wait modules oka')
 
 		case ASTNodeType.DEFINE: {
-			symbols.declareHoister(node.identifier,()=>{
-				const maybe = new MaybeWrapper<Declaration>()
-
-				let esr0 = exprParser(node.initial,scope,ctx,false)
-
-				let type = tokenToType(node.varType,symbols)
-				if (type.elementary && type.type == ElementaryValueType.VOID) {
-					ctx.addError(node.varType.error(`Cannot declare a variable of type 'void'`))
-					return maybe.none()
-				}
-				if (!type.elementary) node.varType.throwDebug('no non-elemn rn k')
-
-				if (maybe.merge(esr0)) return maybe.none()
-				let res = copyESR(esr0.value,ctx,scope,node.identifier.value,{tmp:false,mutable:true,const:false})
-				let esr = res.esr
-				// do something with res.copyInstr
-				
-				if (!hasSharedType(getESRType(esr),type)) {
-					ctx.addError(node.identifier.error('type mismatch'))
-					return maybe.none()
-				}
-
-				return maybe.wrap({type:DeclarationType.VARIABLE,varType:type,esr})
-				
-			},ctx)
-
+			let node0 = node
+			symbols.declareHoister(node.identifier,()=>parseDefine(node0,scope,ctx),ctx)
 			break
 		}
 

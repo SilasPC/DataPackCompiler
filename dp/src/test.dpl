@@ -1,8 +1,8 @@
 
 fn x(): void {
 	a += b
-	x()
+	// x()
 }
 
-let a: int = b;
-let b: int = 1;
+let a = b;
+let b = 1;

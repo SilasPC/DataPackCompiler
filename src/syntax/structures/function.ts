@@ -21,6 +21,7 @@ export function parseFunction(iter:TokenIteratorI,ctx:CompileContext): ASTFnNode
         } else iter.skip(-1)
         let symbol = iter.next().expectType(TokenType.SYMBOL)
         let type = getType(iter)
+        if (!type) throw new Error('infer arg')
         parameters.push({symbol,type,ref})
         let comma = iter.peek()
         if (comma.type != TokenType.MARKER || comma.value != ',') break
@@ -28,6 +29,7 @@ export function parseFunction(iter:TokenIteratorI,ctx:CompileContext): ASTFnNode
     }
     iter.next().expectType(TokenType.MARKER).expectValue(')')
     let returnType = getType(iter)
+    if (!returnType) throw new Error('no fn infer')
     iter.next().expectType(TokenType.MARKER).expectValue('{')
     let body = bodySyntaxParser(iter,ctx)
     return {
