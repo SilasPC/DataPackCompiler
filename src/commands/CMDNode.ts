@@ -20,8 +20,7 @@ export class CMDNode {
 	) {}
 
 	/** i is the current index. */
-	protected parseSyntax(token:TokenI,i:number,ctx:CompileContext): Maybe<ParsedSyntax> {
-		const maybe = new MaybeWrapper<ParsedSyntax>()
+	protected parseSyntax(token:TokenI,i:number,ctx:CompileContext): ParsedSyntax | null {
 		let l = this.tryConsume(token,i,ctx)
 		let cmd = token.value
 		if (l == -1) throw new Error('should not happen')
@@ -32,13 +31,15 @@ export class CMDNode {
 				this.children.length > 0
 			) {
 				ctx.addError(token.error('match failed (expected more)'))
-				return maybe.none()
+				return null
 			}
-			return maybe.wrap([{node:this,capture:cmd.substr(i,l-1),expr:null}])
+			return [{node:this,capture:cmd.substr(i,l-1),expr:null}]
 		}
 		let sub = this.findNext(token,j,ctx)
-		if (!sub) return maybe.none()
-		return sub.parseSyntax(token,j,ctx)
+		if (!sub) return null
+		let res = sub.parseSyntax(token,j,ctx)
+		if (!res) return null
+		return [{node:this,capture:cmd.substr(i,l-1),expr:null},...res]
 	}
 
 	/** Return child. j is next index */
@@ -73,8 +74,8 @@ export class SemanticalCMDNode extends CMDNode {
 
 	protected parseSyntax(token:TokenI,i:number,ctx:CompileContext) {
 		let ret = super.parseSyntax(token,i,ctx)
-		if (!ret.value) return ret
-		ret.value[ret.value.length-1].expr = this.lastAST
+		if (!ret) return null
+		ret[ret.length-1].expr = this.lastAST
 		return ret
 	}
 

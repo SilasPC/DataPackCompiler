@@ -3,9 +3,12 @@ import file from './test'
 
 fn x(): int {
 	a += b
-	/says hello
+	/say hello
+	/say hello
 	// x()
-	file::b += 1
+	file::b += 1;
+	/say helloo
+	return file::a
 }
 
 let a = b;

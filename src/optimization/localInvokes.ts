@@ -3,7 +3,7 @@ import { Instruction, InstrType, INT_OP } from "../codegen/Instructions";
 import { findLocalIntLifeSpans, replaceInt } from "./helpers";
 import { FnFile } from "../codegen/FnFile";
 
-/** Removes local variables that act as aliases */
+/** Removes local invokes */
 export function localInvokes(fn:FnFile) {
 	
 	let instrs = fn.get()

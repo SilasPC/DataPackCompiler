@@ -27,11 +27,11 @@ export class SyntaxSheet {
 	readSyntax(token:TokenI,ctx:CompileContext): Maybe<ASTCMDNode> {
 		const maybe = new MaybeWrapper<ASTCMDNode>()
 		let res = this.root.syntaxParse(token,ctx)
-		if (!res.value) return maybe.none()
+		if (!res) return maybe.none()
 		return maybe.wrap({
 			type: ASTNodeType.COMMAND,
 			token,
-			consume: res.value
+			consume: res
 		})
 	}
 

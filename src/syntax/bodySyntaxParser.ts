@@ -11,8 +11,9 @@ import { CompileContext } from "../toolbox/CompileContext";
 export function bodyOrLineSyntaxParser(iter:TokenIteratorI,ctx:CompileContext): ASTStatement[] {
     if (iter.next().type == TokenType.MARKER && iter.current().value == '{')
         return bodySyntaxParser(iter,ctx)
-    else
-        return [lineSyntaxParser(iter,ctx)]
+    let res = lineSyntaxParser(iter,ctx)
+    if (res) return [res]
+    return []
 }
 
 export function bodySyntaxParser(iter:TokenIteratorI,ctx:CompileContext): ASTStatement[] {
@@ -20,12 +21,13 @@ export function bodySyntaxParser(iter:TokenIteratorI,ctx:CompileContext): ASTSta
     loop:
     for (let token of iter) {
         if (token.type == TokenType.MARKER && token.value == '}') return body
-        body.push(lineSyntaxParser(iter,ctx))
+        let res = lineSyntaxParser(iter,ctx)
+        if (res) body.push(res)
     }
     throw new Error('body ran out, end of file')
 }
 
-export function lineSyntaxParser(iter:TokenIteratorI,ctx:CompileContext): ASTStatement {
+export function lineSyntaxParser(iter:TokenIteratorI,ctx:CompileContext): null | ASTStatement {
     const token = iter.current()
     switch (token.type) {
         case TokenType.KEYWORD: {
@@ -73,8 +75,9 @@ export function lineSyntaxParser(iter:TokenIteratorI,ctx:CompileContext): ASTSta
         }
         case TokenType.COMMAND:
             let res = ctx.syntaxSheet.readSyntax(iter.current(),ctx)
-            if (!res.value) throw new Error('xxx')
-            return res.value
+            if (res.value) return res.value
+            console.log(token.value)
+            return null
         case TokenType.OPERATOR:
         case TokenType.PRIMITIVE:
         case TokenType.SYMBOL:
