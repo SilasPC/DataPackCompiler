@@ -6,6 +6,7 @@ out
 trash
 dp/data
 dp/pack.mcmeta
+.vscode/**/*
 
 ### Node ###
 # Logs
