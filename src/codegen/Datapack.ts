@@ -187,18 +187,15 @@ export class Datapack {
 		await Promise.all(
 			[...this.fnMap.entries()].map(([fn,code])=>fs.writeFile(fns+'/'+fn+'.mcfunction',code.join('\n')))
 		)
-		await fs.writeFile(fns+'/tick.mcfunction',''/*this.tickFile.join('\n')*/)
-		await fs.writeFile(fns+'/load.mcfunction',''/*this.loadFile.join('\n')*/)
-		await fs.writeFile(fns+'/init.mcfunction',''/*this.loadFile.join('\n')*/)
 		ns = emitDir+'/data/minecraft'
 		await fs.mkdir(ns)
 		await fs.mkdir(ns+'/tags')
 		await fs.mkdir(ns+'/tags/functions')
 		await fs.writeFile(ns+'/tags/functions/tick.json',JSON.stringify({
-			values: ['tmp/tick']
+			values: []
 		}))
 		await fs.writeFile(ns+'/tags/functions/load.json',JSON.stringify({
-			values: ['tmp/load']
+			values: ['tmp:'+this.ctx.loadFn.name]
 		}))
 	}
 

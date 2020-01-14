@@ -98,8 +98,7 @@ export function parseBody(nodes:ASTStatement[],scope:Scope,ctx:CompileContext): 
 				let res = parseDefine(node,scope,ctx)
 				maybe.merge(res)
 				if (res.value) {
-					scope.symbols.declareDirect(node.identifier,res.value.decl,ctx)
-					scope.push(res.value.copyInstr)
+					scope.symbols.declareDirect(node.identifier,res.value,ctx)
 				}
 				break
 			}

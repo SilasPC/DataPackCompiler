@@ -13,3 +13,6 @@ fn x(): int {
 
 let a = b;
 let b = 2;
+let yr = y()
+
+fn y(): int {return 1}

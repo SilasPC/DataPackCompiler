@@ -48,11 +48,7 @@ export function hoist(pf:ParsingFile,node:Exclude<ASTStaticDeclaration,ASTExport
 			symbols.declareHoister(node.identifier,()=>{
 				const maybe = new MaybeWrapper<Declaration>()
 				let res = parseDefine(node0,scope,ctx)
-				if (res.value) {
-					// use this
-					res.value.copyInstr
-				}
-				return res.pick('decl')
+				return res
 			},ctx)
 			break
 		}

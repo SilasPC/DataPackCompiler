@@ -8,8 +8,8 @@ import { Scope } from "../Scope"
 import { CompileContext } from "../../toolbox/CompileContext"
 import { Instruction } from "../../codegen/Instructions"
 
-export function parseDefine(node: ASTLetNode,scope:Scope,ctx:CompileContext): Maybe<{decl:Declaration,copyInstr:Instruction}> {
-	const maybe = new MaybeWrapper<{decl:Declaration,copyInstr:Instruction}>()
+export function parseDefine(node: ASTLetNode,scope:Scope,ctx:CompileContext): Maybe<Declaration> {
+	const maybe = new MaybeWrapper<Declaration>()
 
 	let esr0 = exprParser(node.initial,scope,ctx,false)
 
@@ -26,7 +26,7 @@ export function parseDefine(node: ASTLetNode,scope:Scope,ctx:CompileContext): Ma
 	if (maybe.merge(esr0)) return maybe.none()
 	let res = copyESR(esr0.value,ctx,scope,node.identifier.value,{tmp:false,mutable:true,const:false})
 	let esr = res.esr
-	// do something with res.copyInstr
+	scope.push(res.copyInstr)
 
 	if (!type) type = getESRType(esr0.value)
 	if (!hasSharedType(getESRType(esr),type)) {
@@ -34,6 +34,6 @@ export function parseDefine(node: ASTLetNode,scope:Scope,ctx:CompileContext): Ma
 		return maybe.none()
 	}
 
-	return maybe.wrap({decl:{type:DeclarationType.VARIABLE,varType:type,esr},copyInstr:res.copyInstr})
+	return maybe.wrap({type:DeclarationType.VARIABLE,varType:type,esr})
 	
 }

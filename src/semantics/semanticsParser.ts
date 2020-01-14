@@ -45,6 +45,8 @@ export function semanticsParser(pfile:ParsingFile,ctx:CompileContext,fetcher:Fet
 	pfile.status = 'parsed'
 
 	maybe.merge(symbols.flushHoisters())
+	ctx.initFn.add(...pfile.scope.mergeBuffers())
+
 	return maybe.wrap(true)
 
 }
