@@ -1,5 +1,4 @@
 # CURRENT
-- Phantom declare
 - Control flow
 	- Merge scopes *broken* vars into a single var per fn
 - Code generation
@@ -8,12 +7,11 @@
 	- Return type annotation
 	- Version control
 	- Extend | destroy from older versions
-- Differentiate between datapack loading and initialization
-- ASTNode subtypes like ASTExpression
 - Actually add the check when invoking controlflow functions
 - Word boundaries around say keywords in lexer
 
 # FUTURE
+- Infer fn returns
 - Compile errors can ask for hints
 - Optimize away unused locals
 - Make use of compiler options
@@ -28,6 +26,8 @@
 # IDEAS
 - Oregenerators
 - Classes
+- Ressources like textures and sounds
+- Recipies etc.
 
 # NOTES - Future errors
 - Determining lifetimes in instructions that includes commands that
