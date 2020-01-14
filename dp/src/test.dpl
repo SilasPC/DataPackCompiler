@@ -2,13 +2,11 @@
 import file from './test'
 
 fn x(): int {
-	const xxx = 1
-	xxx = 2
 	a += b
 	/say hello
 	/say hello
 	// x()
-	file::b += 1;
+	file::b + 1;
 	/say helloo
 	return file::a
 }
