@@ -32,6 +32,7 @@ export function fileSyntaxParser(pfile: ParsingFile, ctx: CompileContext): void 
                         pfile.addASTNode(wrapExport(parseFunction(iter,ctx),doExport))
                         doExport = null
                         break
+                    case 'const':
                     case 'let':
                         pfile.addASTNode(wrapExport(parseDeclaration(iter,ctx),doExport))
                         doExport = null

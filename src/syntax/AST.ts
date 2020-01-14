@@ -185,6 +185,7 @@ export interface ASTLetNode {
     type: ASTNodeType.DEFINE
     identifier: GenericToken
     keyword: KeywordToken
+    const: boolean
     typeToken: TokenI | null
     initial: ASTExpr
 }

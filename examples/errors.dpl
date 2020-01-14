@@ -15,3 +15,11 @@ let a_var = an_undefined_variable
 // The following will not because of hoisting
 let a_new_var = the_next_var
 let the_next_var = 10
+
+// Mutating immutables:
+fn test(val:int): void {
+	const val2 = 123
+	// Both these error, left hand side in assignment is immutable:
+	val = val2
+	val2 = val
+}

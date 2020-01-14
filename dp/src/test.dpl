@@ -2,6 +2,8 @@
 import file from './test'
 
 fn x(): int {
+	const xxx = 1
+	xxx = 2
 	a += b
 	/say hello
 	/say hello
@@ -12,7 +14,7 @@ fn x(): int {
 }
 
 let a = b;
-let b = 2;
+const b = 2;
 let yr = y()
 
 fn y(): int {return 1}

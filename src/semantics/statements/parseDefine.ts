@@ -24,7 +24,7 @@ export function parseDefine(node: ASTLetNode,scope:Scope,ctx:CompileContext): Ma
 	}
 
 	if (maybe.merge(esr0)) return maybe.none()
-	let res = copyESR(esr0.value,ctx,scope,node.identifier.value,{tmp:false,mutable:true,const:false})
+	let res = copyESR(esr0.value,ctx,scope,node.identifier.value,{tmp:false,mutable:!node.const,const:false})
 	let esr = res.esr
 	scope.push(res.copyInstr)
 

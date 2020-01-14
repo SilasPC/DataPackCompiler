@@ -24,7 +24,7 @@ export class CompileError extends Error {
 export function createErrorMessage(fl:SourceLine,ll:SourceLine,fi:number,li:number,err:string) {
 	
 	let msg: string[] = []
-	let nrLen = ll.nr.toString().length
+	let nrLen = (ll.nr+1).toString().length
 	let ws = ' '.repeat(nrLen+2)
 	
 	msg.push(`At ("${fl.file.displayName}":${fl.nr}:${fi-fl.startIndex}):`)

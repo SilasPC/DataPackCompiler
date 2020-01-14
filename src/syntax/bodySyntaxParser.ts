@@ -32,6 +32,7 @@ export function lineSyntaxParser(iter:TokenIteratorI,ctx:CompileContext): null |
     switch (token.type) {
         case TokenType.KEYWORD: {
             switch (token.value) {
+                case 'const':
                 case 'let': return parseDeclaration(iter,ctx)
                 case 'if':  return parseConditional(iter,ctx)
                 case 'return': {
@@ -57,7 +58,6 @@ export function lineSyntaxParser(iter:TokenIteratorI,ctx:CompileContext): null |
                 case 'for':
                 case 'event':
                 case 'while':
-                case 'const':
                     return token.throwDebug('keyword not implemented')
                 case 'var':
                 case 'export':
