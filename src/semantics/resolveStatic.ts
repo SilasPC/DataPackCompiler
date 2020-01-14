@@ -5,7 +5,7 @@ import { Declaration, DeclarationType, ModDeclaration, DeclarationWrapper } from
 import { MaybeWrapper, Maybe } from "../toolbox/Maybe";
 import { TokenType, GenericToken, TokenI } from "../lexing/Token";
 import { CompileError } from "../toolbox/CompileErrors";
-import { SymbolTable } from "./SymbolTable";
+import { SymbolTable, ReadOnlySymbolTable } from "./SymbolTable";
 
 /*export function assertResolveStatic(node:ASTExpr,scope:Scope,ctx:CompileContext): Maybe<DeclarationWrapper> {
 	const maybe = new MaybeWrapper<DeclarationWrapper>()
@@ -23,7 +23,8 @@ export function resolveStatic(node:ASTStaticAccessNode|ASTIdentifierNode,scope:S
 	const maybe = new MaybeWrapper<DeclarationWrapper>()
 
 	if (node.type == ASTNodeType.IDENTIFIER) {
-		return scope.symbols.getDeclaration(node.identifier,ctx)
+		let xxx = scope.symbols.getDeclaration(node.identifier,ctx)
+		return xxx
 	}
 
 	let op = node
@@ -39,24 +40,21 @@ export function resolveStatic(node:ASTStaticAccessNode|ASTIdentifierNode,scope:S
 		op = op.accessee
 	}
 
-	let decl: ModDeclaration|SymbolTable = scope.symbols
+	let sym: ReadOnlySymbolTable = scope.symbols
 	for (let i = 0; i < accesses.length; i++) {
 		let acc = accesses[i]
-		let declw: DeclarationWrapper|null = decl.getDeclaration(acc as TokenI)
-		if (!declw) {
-			ctx.addError(acc.error('not defined'))
-			return maybe.none()
-		}
-		if (declw.decl.type == DeclarationType.MODULE) {
-			if (i == accesses.length - 1) return maybe.wrap(declw)
-			decl = declw.decl
+		let declw = sym.getDeclaration(acc,ctx)
+		if (maybe.merge(declw)) return maybe.none()
+		if (declw.value.decl.type == DeclarationType.MODULE) {
+			if (i == accesses.length - 1) return maybe.wrap(declw.value)
+			sym = declw.value.decl.symbols
 			continue
 		}
 		if (i != accesses.length - 1) {
 			ctx.addError(accesses[i+1].error('static access on non-module'))
 			return maybe.none()
 		}
-		return maybe.wrap(declw)
+		return maybe.wrap(declw.value)
 	}
 
 	throw new Error('cannot happen')

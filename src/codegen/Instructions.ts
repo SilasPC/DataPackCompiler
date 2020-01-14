@@ -2,6 +2,8 @@
 import { IntESR, ESR } from '../semantics/ESR'
 import { FnDeclaration } from '../semantics/Declaration'
 import { FnFile } from './FnFile'
+import { CMDNode } from '../commands/CMDNode'
+import { ASTExpr } from '../syntax/AST'
 
 export type Instruction = INT_OP | CMDInstr | INVOKE | LOCAL_INVOKE
 
@@ -31,5 +33,6 @@ export interface LOCAL_INVOKE {
 
 export interface CMDInstr {
 	type: InstrType.CMD
-	interpolations: ESR[]
+	cmd: string
+	interpolations: {node:CMDNode,capture:string,esr:ESR|null}[]
 }

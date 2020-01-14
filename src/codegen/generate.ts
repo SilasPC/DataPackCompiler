@@ -34,7 +34,7 @@ export function generate(fn:FnFile) {
 				output.push(`function tmp:${instr.fn.name}`)
 				break
 			case InstrType.CMD:
-				output.push('#cmd')
+				output.push(instr.cmd)
 				// TODO
 				break
 			default:

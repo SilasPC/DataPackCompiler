@@ -5,6 +5,7 @@ import { getType } from "../helpers"
 import { TokenType, KeywordToken, GenericToken } from "../../lexing/Token"
 import { TokenIteratorI } from "../../lexing/TokenIterator"
 import { CompileContext } from "../../toolbox/CompileContext"
+import { tokenToType } from "../../semantics/Types"
 
 export function parseDeclaration(iter:TokenIteratorI,ctx:CompileContext): ASTLetNode {
     // allow destructured assignment?   let a,b,c = 1,2,3
@@ -15,12 +16,12 @@ export function parseDeclaration(iter:TokenIteratorI,ctx:CompileContext): ASTLet
     let type = getType(iter)
     iter.next().expectType(TokenType.OPERATOR).expectValue('=')
     let initial = expressionSyntaxParser(iter,ctx,true).ast
-    // iter.next().expectSemiColon() // needed?
     return {
         type: ASTNodeType.DEFINE,
         identifier: symbol,
-        varType: type,
+        typeToken: type,
         keyword: letToken,
+        const: letToken.value == 'const',
         initial
     }
 }

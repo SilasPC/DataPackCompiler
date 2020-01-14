@@ -11,8 +11,9 @@ import { CompileContext } from "../toolbox/CompileContext";
 export function bodyOrLineSyntaxParser(iter:TokenIteratorI,ctx:CompileContext): ASTStatement[] {
     if (iter.next().type == TokenType.MARKER && iter.current().value == '{')
         return bodySyntaxParser(iter,ctx)
-    else
-        return [lineSyntaxParser(iter,ctx)]
+    let res = lineSyntaxParser(iter,ctx)
+    if (res) return [res]
+    return []
 }
 
 export function bodySyntaxParser(iter:TokenIteratorI,ctx:CompileContext): ASTStatement[] {
@@ -20,16 +21,18 @@ export function bodySyntaxParser(iter:TokenIteratorI,ctx:CompileContext): ASTSta
     loop:
     for (let token of iter) {
         if (token.type == TokenType.MARKER && token.value == '}') return body
-        body.push(lineSyntaxParser(iter,ctx))
+        let res = lineSyntaxParser(iter,ctx)
+        if (res) body.push(res)
     }
     throw new Error('body ran out, end of file')
 }
 
-export function lineSyntaxParser(iter:TokenIteratorI,ctx:CompileContext): ASTStatement {
+export function lineSyntaxParser(iter:TokenIteratorI,ctx:CompileContext): null | ASTStatement {
     const token = iter.current()
     switch (token.type) {
         case TokenType.KEYWORD: {
             switch (token.value) {
+                case 'const':
                 case 'let': return parseDeclaration(iter,ctx)
                 case 'if':  return parseConditional(iter,ctx)
                 case 'return': {
@@ -55,7 +58,6 @@ export function lineSyntaxParser(iter:TokenIteratorI,ctx:CompileContext): ASTSta
                 case 'for':
                 case 'event':
                 case 'while':
-                case 'const':
                     return token.throwDebug('keyword not implemented')
                 case 'var':
                 case 'export':
@@ -72,7 +74,10 @@ export function lineSyntaxParser(iter:TokenIteratorI,ctx:CompileContext): ASTSta
             }
         }
         case TokenType.COMMAND:
-            return ctx.syntaxSheet.readSyntax(iter.current(),ctx)
+            let res = ctx.syntaxSheet.readSyntax(iter.current(),ctx)
+            if (res.value) return res.value
+            console.log(token.value)
+            return null
         case TokenType.OPERATOR:
         case TokenType.PRIMITIVE:
         case TokenType.SYMBOL:

@@ -233,7 +233,7 @@ function operator(node:ASTOpNode,scope:Scope,ctx:CompileContext,evalOnly:boolean
 			if (!o0.value || !o1.value)
 				return maybe.none()
 			if (!o0.value.mutable) {
-				ctx.addError(node.operator.error('left hand side immutable'))
+				ctx.addError(new CompileError(astErrorMsg(node.operands[0],'left hand side immutable'),false))
 				return maybe.none()
 			}
 			if (o0.value.type != ESRType.INT) {
@@ -262,7 +262,7 @@ function operator(node:ASTOpNode,scope:Scope,ctx:CompileContext,evalOnly:boolean
 			if (!o0.value || !o1.value)
 				return maybe.none()
 			if (!o0.value.mutable) {
-				ctx.addError(node.operator.error('left hand side immutable'))
+				ctx.addError(new CompileError(astErrorMsg(node.operands[0],'left hand side immutable'),false))
 				return maybe.none()
 			}
 			if (o0.value.type != ESRType.INT) {

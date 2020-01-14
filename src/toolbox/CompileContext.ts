@@ -24,12 +24,18 @@ export class CompileContext {
 	private readonly files: Map<string,ParsingFile> = new Map()
 	private fnFiles: Map<string,FnFile> = new Map()
 
+	public readonly initFn: FnFile
+	public readonly loadFn: FnFile
+
 	public readonly scoreboards: ScoreboardManager = new ScoreboardManager(this.options)
 
 	constructor(
 		public readonly options: CompilerOptions,
 		public readonly syntaxSheet: SyntaxSheet
-	) {}
+	) {
+		this.initFn = this.createFnFile(['core','init'])
+		this.loadFn = this.createFnFile(['core','load'])
+	}
 	
 	isFileLoaded(path:string) {
 		let fullPath = resolve(path)
@@ -42,9 +48,11 @@ export class CompileContext {
 		return this.files.get(fullPath)
 	}
 
-	loadFile(path:string) {
+	async loadFile(path:string) {
 		if (this.isFileLoaded(path)) throw new Error('Tried re-loading a file')
-		return ParsingFile.loadFile(path,this)
+		let f = await ParsingFile.loadFile(path,this)
+		this.files.set(path,f)
+		return f
 	}
 
 	loadFromSource(source:string,sourceName:string) {

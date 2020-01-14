@@ -1,4 +1,5 @@
 # CURRENT
+- Phantom declare
 - Control flow
 	- Merge scopes *broken* vars into a single var per fn
 - Code generation
@@ -13,6 +14,7 @@
 - Word boundaries around say keywords in lexer
 
 # FUTURE
+- Compile errors can ask for hints
 - Optimize away unused locals
 - Make use of compiler options
 - Command interpolation

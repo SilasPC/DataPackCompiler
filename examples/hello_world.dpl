@@ -14,6 +14,6 @@
     *************/
 
 // Defining a simple function that broadcasts 'Hello world!'
-fn helloWorld(): void {
+fn hello_world(): void {
 	/tellraw @a Hello world!
 }

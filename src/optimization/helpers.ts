@@ -10,8 +10,8 @@ export function replaceInt(target:IntESR,replacee:IntESR,instrs:Instruction[]): 
 				if (instr.into == target) instr.into = replacee
 				break
 			case InstrType.CMD:
-				for (let [i,esr] of instr.interpolations.entries())
-					if (esr == target) instr.interpolations[i] = replacee
+				for (let [i,v] of instr.interpolations.entries())
+					if (v.esr == target) v.esr = replacee
 				break
 			case InstrType.LOCAL_INVOKE:
 				replaceInt(target,replacee,instr.fn.get())
@@ -65,7 +65,7 @@ function isMutated(esr:IntESR,instrs:Instruction[]) {
 				if (isMutated(esr,instr.fn.get())) return true
 				break
 			case InstrType.CMD:
-				if (instr.interpolations.some(iesr => iesr == esr)) return true
+				if (instr.interpolations.some(int => int.esr == esr)) return true
 				console.log('warning: cmds needs an mutated/not mutated esr interface')
 			case InstrType.INVOKE:
 				break

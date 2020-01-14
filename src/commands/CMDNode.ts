@@ -7,8 +7,9 @@ import { exprParser } from "../semantics/expressionParser"
 import { ASTNode, ASTExpr } from "../syntax/AST"
 import { SheetSpecials } from "./sheetParser"
 import { exhaust } from "../toolbox/other"
+import { Maybe, MaybeWrapper } from "../toolbox/Maybe"
 
-type Sem = {ctx:CompileContext,scope:Scope}
+export type ParsedSyntax = {node:CMDNode,expr:ASTExpr|null,capture:string}[]
 
 export class CMDNode {
 
@@ -19,36 +20,46 @@ export class CMDNode {
 	) {}
 
 	/** i is the current index. */
-	parseSyntax(token:TokenI,i:number,ctx:CompileContext): {exprs:ASTExpr[],nodes:{node:CMDNode,capture:string}[]} {
+	protected parseSyntax(token:TokenI,i:number,ctx:CompileContext): ParsedSyntax | null {
 		let l = this.tryConsume(token,i,ctx)
 		let cmd = token.value
-		if (l == -1) token.throwDebug('consume fail')
+		if (l == -1) throw new Error('should not happen')
 		let j = i + l
 		if (cmd.length <= j) {
 			if (
 				!this.restOptional &&
 				this.children.length > 0
-			) return token.throwDebug('match failed (expected more)')
-			return {exprs:[],nodes:[{node:this,capture:cmd.substr(i,l-1)}]}
+			) {
+				ctx.addError(token.error('match failed (expected more)'))
+				return null
+			}
+			return [{node:this,capture:cmd.substr(i,l-1),expr:null}]
 		}
 		let sub = this.findNext(token,j,ctx)
-		return sub.parseSyntax(token,j,ctx)
+		if (!sub) return null
+		let res = sub.parseSyntax(token,j,ctx)
+		if (!res) return null
+		return [{node:this,capture:cmd.substr(i,l-1),expr:null},...res]
 	}
 
 	/** Return child. j is next index */
-	findNext(token:TokenI,j:number,ctx:CompileContext): CMDNode {
+	protected findNext(token:TokenI,j:number,ctx:CompileContext): CMDNode | null {
 		let cmd = token.value
 		let [s,...d] = this.children.filter(c=>c.tryConsume(token,j,ctx) != -1)
 		// if (d.length) [s,...d] = this.children.filter(c=>c.tryConsume(token,j+1,ctx)) // try strict equal
-		if (d.length)
-			return token.throwDebug('match failed (too many subs)')
-		if (!s)
-			return token.throwDebug('match failed (no subs)')
+		if (d.length) {
+			ctx.addError(token.error('match failed (matched too many)'))
+			return null
+		}
+		if (!s) {
+			ctx.addError(token.error('match failed (no matches)'))
+			return null
+		}
 		return s
 	}
 
 	/** Find consumed length. -1 is failed. Includes whitespace. */
-	tryConsume(token:TokenI,i:number,ctx:CompileContext): number {
+	protected tryConsume(token:TokenI,i:number,ctx:CompileContext): number {
 		let cmd = token.value
 		if (cmd.length <= i) return -1
 		let x = cmd.slice(i).split(' ')[0]
@@ -61,13 +72,14 @@ export class SemanticalCMDNode extends CMDNode {
 
 	private lastAST: ASTExpr | null = null
 
-	parseSyntax(token:TokenI,i:number,ctx:CompileContext) {
+	protected parseSyntax(token:TokenI,i:number,ctx:CompileContext) {
 		let ret = super.parseSyntax(token,i,ctx)
-		if (this.lastAST) ret.exprs.unshift(this.lastAST)
+		if (!ret) return null
+		ret[ret.length-1].expr = this.lastAST
 		return ret
 	}
 
-	tryConsume(token:TokenI,i:number,ctx:CompileContext): number {
+	protected tryConsume(token:TokenI,i:number,ctx:CompileContext): number {
 		if (token.value.startsWith('${',i)) {
 			let lexer = inlineLiveLexer(token,i+2)
 			let {ast} = expressionSyntaxParser(
@@ -105,7 +117,11 @@ export class SemanticalCMDNode extends CMDNode {
 
 export class RootCMDNode extends CMDNode {
 
-	tryConsume() {
+	syntaxParse(token:TokenI,ctx:CompileContext) {
+		return this.parseSyntax(token,1,ctx)
+	}
+	
+	protected tryConsume() {
 		return 0
 	}
 

@@ -5,6 +5,7 @@ import cols from 'colors/safe'
 import { createErrorMessage, CompileError } from "../toolbox/CompileErrors";
 import { SourceLine } from "../lexing/SourceLine";
 import { CMDNode } from "../commands/CMDNode";
+import { ValueType } from "../semantics/Types";
 
 export function astError(node:ASTNode|ASTNode[],err:string): CompileError {
     return new CompileError(astErrorMsg(node,err),false)
@@ -57,7 +58,7 @@ function getRec(node:ASTNode,arr:TokenI[]): TokenI[] {
             for (let sub of node.secondaryBranch) getRec(sub,arr)
             break
         case ASTNodeType.DEFINE:
-            arr.push(node.keyword,node.identifier,node.varType)
+            arr.push(node.keyword,node.identifier)
             getRec(node.initial,arr)
             break
         case ASTNodeType.FUNCTION:
@@ -171,7 +172,7 @@ export interface ASTModuleNode {
 export interface ASTExportNode {
     type: ASTNodeType.EXPORT
     keyword: KeywordToken
-    node: ASTStaticDeclaration
+    node: Exclude<ASTStaticDeclaration,ASTExportNode>
 }
 
 export interface ASTReturnNode {
@@ -184,7 +185,8 @@ export interface ASTLetNode {
     type: ASTNodeType.DEFINE
     identifier: GenericToken
     keyword: KeywordToken
-    varType: TokenI
+    const: boolean
+    typeToken: TokenI | null
     initial: ASTExpr
 }
 
@@ -246,7 +248,7 @@ export interface ASTIfNode {
 export interface ASTCMDNode {
     type: ASTNodeType.COMMAND
     token: TokenI
-    consume: {exprs:ASTExpr[],nodes:{node:CMDNode,capture:string}[]}
+    consume: {node:CMDNode,capture:string,expr:ASTExpr|null}[]
 }
 
 /*

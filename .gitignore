@@ -8,6 +8,9 @@ dp/data
 dp/pack.mcmeta
 .vscode/**/*
 
+# vscode
+.vscode/**/*
+
 ### Node ###
 # Logs
 logs
