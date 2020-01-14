@@ -1,0 +1,17 @@
+
+// Here we have an invalid circular dependency:
+let a = a + 2
+
+// The following also gives a circular dependency error:
+let x = x()
+
+fn valueOfX(): int {
+	return x
+}
+
+// The following will give a reference error
+let a_var = an_undefined_variable
+
+// The following will not because of hoisting
+let a_new_var = the_next_var
+let the_next_var = 10
