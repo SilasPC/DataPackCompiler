@@ -36,14 +36,14 @@ With some domain specific features and limitations of course.
 Eventually the CLI will ship as an install script.
 
 #### Initializing source folder
-Use _dpc init [src path]_
+Use `_dpc init [src path]`
 
-_[src path]_ defaults to current directory.
+`[src path]` defaults to current directory.
 
 This generates a pack.json at specified path,
 which is a configuration file for the pack and compiler.
 
 #### Compiling
-Use _dpc compile [src path]_ or simply _dpc [src_path]_
+Use `dpc compile [src path]` or simply `dpc [src_path]`
 
-A number of flags can be used to overwrite compiler settings in pack.json. See _dpc --help_
+A number of flags can be used to overwrite compiler settings in pack.json. See `dpc --help`

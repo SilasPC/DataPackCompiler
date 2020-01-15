@@ -15,10 +15,10 @@ const lib: Lib  = {
 	}
 }
 
-export class CoreLibrary implements ReadOnlySymbolTable {
+export class StdLibrary implements ReadOnlySymbolTable {
 	
 	static create(ctx:CompileContext) {
-		return new CoreLibrary(ctx,lib) as ReadOnlySymbolTable
+		return new StdLibrary(ctx,lib) as ReadOnlySymbolTable
 	}
 
 	private readonly loaded: Map<string,Declaration> = new Map()
@@ -45,7 +45,7 @@ export class CoreLibrary implements ReadOnlySymbolTable {
 			if (sub instanceof Function)
 				this.loaded.set(val,decl = sub(this.ctx))
 			else
-				this.loaded.set(val,decl = {type:DeclarationType.MODULE,symbols:new CoreLibrary(this.ctx,sub)})
+				this.loaded.set(val,decl = {type:DeclarationType.MODULE,symbols:new StdLibrary(this.ctx,sub)})
 			return maybe.wrap({token:name,decl})
 		}
 		return maybe.none()

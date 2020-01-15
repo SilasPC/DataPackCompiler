@@ -257,7 +257,7 @@ import rimraf from 'rimraf'
 import { Maybe, MaybeWrapper } from '../toolbox/Maybe';
 import { ParsingFile } from '../toolbox/ParsingFile';
 import { GenericToken } from '../lexing/Token';
-import { CoreLibrary } from '../corelib/CoreLibrary';
+import { StdLibrary } from '../stdlib/StdLibrary';
 import { ModDeclaration, DeclarationType } from '../semantics/Declaration';
 import { SymbolTable } from '../semantics/SymbolTable';
 function RIMRAF(path:string) {
@@ -272,7 +272,7 @@ function RIMRAF(path:string) {
 export type Fetcher = (origin:ParsingFile,token:GenericToken) => Maybe<ModDeclaration>
 
 function createFetcher(pfiles:ParsingFile[],ctx:CompileContext): Fetcher {
-	const coreLib = CoreLibrary.create(ctx)
+	const stdLib = StdLibrary.create(ctx)
 	return fetcher
 	function fetcher(origin:ParsingFile,token:GenericToken): Maybe<ModDeclaration> {
 		const maybe = new MaybeWrapper<ModDeclaration>()
@@ -297,8 +297,8 @@ function createFetcher(pfiles:ParsingFile[],ctx:CompileContext): Fetcher {
 				maybe.noWrap()
 			}
 		}
-		// core library import
-		let decl = coreLib.getDeclaration(token,ctx)
+		// std library import
+		let decl = stdLib.getDeclaration(token,ctx)
 		if (!decl.value) {
 			ctx.addError(token.error('could not find library'))
 			return maybe.none()

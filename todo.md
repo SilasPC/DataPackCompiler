@@ -28,7 +28,32 @@
 - Classes
 - Ressources like textures and sounds
 - Recipies etc.
+- JavaScript macros
+- Generate documentation
+- Generate resource packs
 
 # NOTES - Future errors
 - Determining lifetimes in instructions that includes commands that
   may modify the variables in question
+
+# STD Lib:
+- Math
+	- sqrt
+	- sqr
+	- trig funcs
+	- abs
+	- pRNG
+	- noise
+	- pow
+- Entity
+	- ?
+- Block
+	- Get ID
+	- ?
+- Item
+	- ?
+- Biome
+	- Get biome
+- Util
+	- Array access macro? (arr[expr])
+	
