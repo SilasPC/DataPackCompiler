@@ -165,6 +165,9 @@ function getRec(node:ASTNode,arr:TokenI[]): TokenI[] {
             arr.push(node.access)
             getRec(node.accessee,arr)
             break
+        case ASTNodeType.SELECTOR:
+            arr.push(node.token)
+            break
         default:
             return exhaust(node)
     }
@@ -190,11 +193,12 @@ export enum ASTNodeType {
     MODULE,
     REFERENCE,
     IMPORT,
-    STATIC_ACCESS
+    STATIC_ACCESS,
+    SELECTOR
 }
 
 export type ASTStatic = ASTStaticAccessNode | ASTIdentifierNode
-export type ASTExpr = ASTStaticAccessNode | ASTRefNode | ASTNumNode | ASTBoolNode | ASTStringNode | ASTIdentifierNode | ASTOpNode | ASTListNode | ASTCallNode
+export type ASTExpr = ASTStaticAccessNode | ASTSelectorNode | ASTRefNode | ASTNumNode | ASTBoolNode | ASTStringNode | ASTIdentifierNode | ASTOpNode | ASTListNode | ASTCallNode
 export type ASTStatement = ASTExpr | ASTReturnNode | ASTLetNode | ASTIfNode | ASTCMDNode
 export type ASTStaticDeclaration = ASTLetNode | ASTModuleNode | ASTFnNode | ASTExportNode | ASTImportNode
 export type ASTNode = ASTExpr | ASTStatement | ASTStaticDeclaration
@@ -306,6 +310,11 @@ export interface ASTCMDNode {
     type: ASTNodeType.COMMAND
     token: TokenI
     consume: {node:CMDNode,capture:string,expr:ASTExpr|null}[]
+}
+
+export interface ASTSelectorNode {
+    type: ASTNodeType.SELECTOR
+    token: GenericToken
 }
 
 /*

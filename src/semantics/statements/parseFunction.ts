@@ -31,6 +31,8 @@ export function parseFunction(node:ASTFnNode,scope:Scope,ctx:CompileContext,this
 		case ElementaryValueType.BOOL:
 			esr = {type:ESRType.BOOL, mutable: false, const: false, tmp: false, scoreboard: ctx.scoreboards.getStatic('return',branch)}
 			break
+		case ElementaryValueType.SELECTOR:
+			throw new Error('selector type not implemented')
 		default:
 			return exhaust(type.type)
 	}
@@ -80,6 +82,8 @@ export function parseFunction(node:ASTFnNode,scope:Scope,ctx:CompileContext,this
 				ctx.addError(param.type.error('no bool yet thx'))
 				parameters.push(maybe2.none())
 				continue
+			case ElementaryValueType.SELECTOR:
+				throw new Error('selector type not implemented')
 			default:
 				return exhaust(type.type)
 		}

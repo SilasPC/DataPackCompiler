@@ -9,7 +9,8 @@ import { exhaust } from "../toolbox/other";
 import { CompileContext } from "../toolbox/CompileContext";
 
 export function bodyOrLineSyntaxParser(iter:TokenIteratorI,ctx:CompileContext): ASTStatement[] {
-    if (iter.next().type == TokenType.MARKER && iter.current().value == '{')
+    let next = iter.next()
+    if (next && next.type == TokenType.MARKER && iter.current().value == '{')
         return bodySyntaxParser(iter,ctx)
     let res = lineSyntaxParser(iter,ctx)
     if (res) return [res]
@@ -41,7 +42,11 @@ export function lineSyntaxParser(iter:TokenIteratorI,ctx:CompileContext): null |
                     // using the shunting-yard algorithm
                     // That is a bit ambitious, but it sounds quite neat :D
                     // That also makes all this redundant anyways
-                    if (iter.peek().type == TokenType.MARKER && iter.peek().value == ';')
+                    let peek = iter.peek()
+                    if (
+                        !peek ||
+                        (peek.type == TokenType.MARKER && peek.value == ';')
+                    )
                         return {
                             type: ASTNodeType.RETURN,
                             keyword: token,
@@ -81,6 +86,7 @@ export function lineSyntaxParser(iter:TokenIteratorI,ctx:CompileContext): null |
         case TokenType.OPERATOR:
         case TokenType.PRIMITIVE:
         case TokenType.SYMBOL:
+        case TokenType.SELECTOR:
             return expressionSyntaxParser(iter.skip(-1),ctx,true).ast
         case TokenType.MARKER:
             switch (token.value) {

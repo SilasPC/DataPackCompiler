@@ -10,6 +10,9 @@ export interface TokenIteratorI {
     skip(n:number): this
     isDone(): boolean
 
+    whitespaceBefore(): number
+    whitespaceAfter(): number
+
     currentFollowsNewline(): boolean
     newLineFollows(): boolean
 
@@ -32,21 +35,43 @@ export class TokenIterator implements TokenIteratorI {
     skip(n:number) {this.index+=n;return this}
     isDone() {return this.index >= this.tokens.length}
 
+    whitespaceBefore() {
+        let prev = this.prev()
+        if (!prev) return 0
+        let cur = this.current()
+        return (
+            cur.line.startIndex + cur.index +
+            - prev.line.startIndex - prev.index - prev.value.length
+        )
+    }
+
+    whitespaceAfter() {
+        let next = this.peek()
+        if (!next) return 0
+        let cur = this.current()
+        return (
+            next.line.startIndex + next.index +
+            - cur.line.startIndex - cur.index - cur.value.length
+        )
+    }
+
     currentFollowsNewline() {
-        if (!this.prev()) return false
-        return this.prev().line.nr < this.current().line.nr
+        let prev = this.prev()
+        if (!prev) return false
+        return prev.line.nr < this.current().line.nr
     }
 
     newLineFollows() {
-        if (!this.peek()) return false
-        return this.peek().line.nr > this.current().line.nr
+        let next = this.peek()
+        if (!next) return false
+        return next.line.nr > this.current().line.nr
     }
 
     [Symbol.iterator]() {
         let self = this
         return {
             next() {
-                let value = self.next()
+                let value = self.next() as TokenI
                 return {
                     done: self.index > self.tokens.length,
                     value
@@ -98,6 +123,26 @@ export class LiveIterator implements TokenIteratorI {
     newLineFollows() {
         if (!this.next()) return false
         return this.next().line.nr > this.current().line.nr
+    }
+    
+    whitespaceBefore() {
+        let prev = this.prev()
+        if (!prev) return 0
+        let cur = this.current()
+        return (
+            cur.line.startIndex + cur.index +
+            - prev.line.startIndex - prev.index - prev.value.length
+        )
+    }
+
+    whitespaceAfter() {
+        let next = this.peek()
+        if (!next) return 0
+        let cur = this.current()
+        return (
+            next.line.startIndex + next.index +
+            - cur.line.startIndex - cur.index - cur.value.length
+        )
     }
 
     [Symbol.iterator]() {

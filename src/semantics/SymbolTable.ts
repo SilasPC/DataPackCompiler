@@ -4,7 +4,7 @@ import { DeclarationWrapper, Declaration, ModDeclaration, DeclarationType, VarDe
 import { Maybe, MaybeWrapper } from "../toolbox/Maybe"
 import { CompileContext } from "../toolbox/CompileContext"
 import $ from 'js-itertools'
-import { keywords, types } from "../lexing/values"
+import { keywords, types, reservedSymbols } from "../lexing/values"
 
 export type Hoister = (/*earlyReplace:(decl:Declaration)=>void*/) => Maybe<Declaration>
 
@@ -134,11 +134,8 @@ export class SymbolTable implements ReadOnlySymbolTable {
 
     declareDirect(id:TokenI,decl:Declaration,ctx:CompileContext): Maybe<true> {
         const maybe = new MaybeWrapper<true>()
-        if (
-            keywords.includes(id.value) ||
-            types.includes(id.value)
-        ) {
-            ctx.addError(id.error('cannot declare reserved/keyword'))
+        if (reservedSymbols.includes(id.value)) {
+            ctx.addError(id.error('reserved identifier'))
             return maybe.none()
         }
         if (this.getInternal(id.value)) {
@@ -160,11 +157,8 @@ export class SymbolTable implements ReadOnlySymbolTable {
 
     declareHoister(id:TokenI,hoister:Hoister,ctx:CompileContext): Maybe<true> {
         const maybe = new MaybeWrapper<true>()
-        if (
-            keywords.includes(id.value) ||
-            types.includes(id.value)
-        ) {
-            ctx.addError(id.error('cannot declare reserved/keyword'))
+        if (reservedSymbols.includes(id.value)) {
+            ctx.addError(id.error('reserved identifier'))
             return maybe.none()
         }
         let iw: InternalWrapper = {

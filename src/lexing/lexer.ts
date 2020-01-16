@@ -12,6 +12,7 @@ const comments = "//|/\\*|\\*/"
 const primitives = "\\d+(?:\\.\\d+)?|true|false|'[^']*'"
 const symbol = "[a-zA-Z][a-zA-Z0-9]*"
 const cmd = '/\\w.*?(?=\r?\n)'
+const selector = '@\\w|@(?=\\[)'
 
 function getRgx() {
     return RegExp(
@@ -23,12 +24,13 @@ function getRgx() {
         '(?<pri>'+  primitives           +')|'+
         '(?<sym>'+  symbol	             +')|'+
         '(?<mrk>'+  markers 	         +')|'+
+        '(?<sel>'+  selector             +')|'+
         '(?<nwl>\n)|(?<bad>\\S)',
         'g'
     )
 }
 
-type RgxGroup = 'cmd'|'cmt'|'ops'|'kwd'|'typ'|'pri'|'sym'|'mrk'|'nwl'|'bad'
+type RgxGroup = 'cmd'|'cmt'|'ops'|'kwd'|'typ'|'pri'|'sym'|'mrk'|'nwl'|'bad'|'sel'
 
 function groupToType(g:Exclude<RgxGroup,'cmt'|'nwl'|'bad'>): TokenType {
     switch (g) {
@@ -39,6 +41,7 @@ function groupToType(g:Exclude<RgxGroup,'cmt'|'nwl'|'bad'>): TokenType {
         case 'pri': return TokenType.PRIMITIVE
         case 'sym': return TokenType.SYMBOL
         case 'mrk': return TokenType.MARKER
+        case 'sel': return TokenType.SELECTOR
         default:
             return exhaust(g)
     }

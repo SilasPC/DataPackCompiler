@@ -6,6 +6,7 @@ import { CompilerOptions } from "../toolbox/config";
 import { exhaust } from "../toolbox/other";
 import { CompileContext } from "../toolbox/CompileContext";
 import { access } from "fs";
+import { parseSelector } from "./structures/selector";
 
 enum OpType {
     INFIX,
@@ -164,6 +165,15 @@ export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext,
                         return finish()
                 }
                 break
+            case TokenType.SELECTOR: {
+                if (lastWasOperand)
+                    if (!asi||!tokens.currentFollowsNewline()) t.throwDebug('unexpected operand')
+                    else {tokens.skip(-1);return finish()}
+                que.push(parseSelector(tokens,ctx))
+                postfix.push(t.value)
+                lastWasOperand = true
+                break
+            }
             case TokenType.SYMBOL:
                 if (lastWasOperand)
                     if (!asi||!tokens.currentFollowsNewline()) t.throwDebug('unexpected operand')
@@ -213,7 +223,7 @@ export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext,
         }
     }
 
-    throw new Error('no end here thanks')
+    return finish()
 
     function finish(): ExprReturn {
         for (let op of ops.reverse()) {

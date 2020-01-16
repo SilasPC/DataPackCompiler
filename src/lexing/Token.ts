@@ -10,13 +10,14 @@ export enum TokenType {
     SYMBOL,
     MARKER,
     COMMAND,
-    TYPE
+    TYPE,
+    SELECTOR
 }
 
 export type TokenI = GenericToken | KeywordToken | OpToken | TypeToken | MarkerToken
 
 export interface GenericToken extends Token {
-    readonly type: TokenType.COMMAND | TokenType.PRIMITIVE | TokenType.SYMBOL
+    readonly type: TokenType.COMMAND | TokenType.PRIMITIVE | TokenType.SYMBOL | TokenType.SELECTOR
     readonly value: string
 }
 

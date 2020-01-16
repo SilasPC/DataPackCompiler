@@ -77,6 +77,7 @@ export function parseBody(nodes:ASTStatement[],scope:Scope,ctx:CompileContext): 
 
 				break
 			}
+			case ASTNodeType.SELECTOR:
 			case ASTNodeType.NUMBER:
 			case ASTNodeType.STRING:
 			case ASTNodeType.BOOLEAN:

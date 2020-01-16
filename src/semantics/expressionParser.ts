@@ -20,6 +20,9 @@ export function exprParser(node: ASTExpr, scope: Scope, ctx: CompileContext, eva
 
 	switch (node.type) {
 
+		case ASTNodeType.SELECTOR:
+			throw new Error('not implemented')
+
 		case ASTNodeType.STATIC_ACCESS:
 		case ASTNodeType.IDENTIFIER: {
 			let possibleDecl = resolveStatic(node,scope,ctx)
@@ -191,6 +194,8 @@ function invokation(node:ASTCallNode,scope:Scope,ctx:CompileContext,evalOnly:boo
 			}
 			case ElementaryValueType.BOOL:
 				throw new Error('no bool ret rn')
+			case ElementaryValueType.SELECTOR:
+				throw new Error('selector return not implemented')
 			default:
 				return exhaust(returnType.type)
 		}

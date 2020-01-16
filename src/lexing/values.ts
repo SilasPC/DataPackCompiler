@@ -3,15 +3,13 @@
 // The first is inserted directly as a regex
 // Second value is the string sub-type that should be associated
 
-export const keywords = ['ref','namespace','fn','let','var','break','for','event','while','return','if','else','class','tick','import','const','from','export']
+export const keywords: ReadonlyArray<string> = ['ref','namespace','fn','let','var','break','for','event','while','return','if','else','class','tick','import','const','from','export']
 export type Keyword = 'ref' | 'namespace' | 'fn' | 'let' | 'var' | 'break' | 'for' | 'event' | 'while' | 'return' | 'if' | 'else' | 'class' | 'tick' | 'import' | 'const' | 'from' | 'export'
 
-// todo
-const reserved = 'this'
-type Reserved = 'this'
+export const types: ReadonlyArray<string> = ['selector','int','void','bool"']
+export type Type = 'selector' | 'int' | 'void' | 'bool'
 
-export const types = ['int','void','bool"']
-export type Type = 'int' | 'void' | 'bool'
+export const reservedSymbols = ['this',...keywords,...types]
 
 export const operators = '\\+=|-=|\\*=|/=|%=|\\+\\+|\\+|--|-|\\*|/|%|>|<|==|!=|>=|<=|=|!|&&|\\|\\|'
 export type Operator = '!=' | '+=' | '-=' | '*=' | '/=' | '%=' | '++' | '+' | '--' | '-' | '*' | '/' | '%' | '>' | '<' | '==' | '>=' | '<=' | '=' | '!' | '&&' | '||'

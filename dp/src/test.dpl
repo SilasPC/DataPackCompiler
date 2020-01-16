@@ -1,9 +1,9 @@
 
 import file from './test'
 
-/*fn getAllPlayers() {
+fn getAllPlayers(): selector {
 	return @a[]
-}*/
+}
 
 fn x(): int {
 	a += b

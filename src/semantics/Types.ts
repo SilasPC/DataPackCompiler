@@ -15,7 +15,8 @@ export interface NonElementaryValue {
 export enum ElementaryValueType {
 	INT,
 	BOOL,
-	VOID
+	VOID,
+	SELECTOR
 }
 
 export function tokenToType(token:TokenI,symbols:SymbolTable): ValueType {
