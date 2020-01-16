@@ -2,17 +2,17 @@
 export type CompilerOptions = Required<WeakCompilerOptions>
 export interface WeakCompilerOptions {
 	obscureNames?: boolean
-	obscureSeed?: string
+	obscureSeed?: string // unused
 	sourceMap?: boolean
-	emitComments?: boolean
+	emitComments?: boolean // unused
 	optimize?: boolean
 	noUnused?: boolean
 	ignoreWarnings?: boolean
 	verbosity?: number
 	colorLog?: boolean
 	noInference?: boolean
-	noImplicitCast?: boolean
-	ignoreUnreachable?: boolean
+	noImplicitCast?: boolean // unused
+	ignoreUnreachable?: boolean // unused
 	targetVersion?: string
 }
 

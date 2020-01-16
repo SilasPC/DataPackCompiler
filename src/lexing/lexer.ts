@@ -19,10 +19,10 @@ function getRgx() {
         '(?<cmt>'+  comments             +')|'+
         '(?<ops>'+  operators            +')|'+
         '(?<kwd>'+  keywords.join('|')   +`)(?![a-zA-Z0-9])|`+
-        '(?<typ>'+  types.join('|')      +')|'+
+        '(?<typ>'+  types.join('|')      +')(?![a-zA-Z0-9])|'+
         '(?<pri>'+  primitives           +')|'+
         '(?<sym>'+  symbol	             +')|'+
-        '(?<mrk>'+    markers	         +')|'+
+        '(?<mrk>'+  markers 	         +')|'+
         '(?<nwl>\n)|(?<bad>\\S)',
         'g'
     )

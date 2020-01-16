@@ -1,27 +1,22 @@
 # CURRENT
-- Control flow
-	- Merge scopes *broken* vars into a single var per fn
-- Code generation
 - Syntax sheet
   - Special parameters and substitution methods
 	- Return type annotation
 	- Version control
 	- Extend | destroy from older versions
 - Actually add the check when invoking controlflow functions
-- Word boundaries around say keywords in lexer
 
 # FUTURE
 - Infer fn returns
 - Compile errors can ask for hints
 - Optimize away unused locals
-- Make use of compiler options
+- Use: noInference, noUnused
 - Command interpolation
-- Type inference
 - Functional approach like (-123).abs()
 - Selectors
 - Event bindings
 - Macros
-- Core functions
+- Std functions
 
 # Look at
 - Recipies
