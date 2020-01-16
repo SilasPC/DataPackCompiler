@@ -22,6 +22,45 @@ export function astErrorMsg(node:ASTNode|ASTNode[],err:string) {
 
 }
 
+export function astSourceMap(node:ASTNode) {
+    let [fl,ll,fi,li] = info(node)
+    
+    let cmts: string[] = []
+	let nrLen = ll.nr.toString().length
+	let ws = ' '.repeat(nrLen+2)
+
+	let l: SourceLine | null = fl
+	let lines: (string|SourceLine)[] = []
+	while ((ll.next ? l != ll.next : true) && l != null) {
+			lines.push(l)
+			l = l.next
+	}
+
+	if (lines.length > 3) {
+			let prevLine = lines[0] as SourceLine
+			let placeholder = ':'.repeat((prevLine.nr).toString().length).padStart(nrLen,' ')
+			lines = lines.slice(0,1).concat(` ${placeholder} |`,lines.slice(-1))
+	}
+
+	for (let line of lines) {
+
+			if (typeof line == 'string') {
+					cmts.push(line)
+					continue
+			}
+
+			let wss = line.line.length - line.line.trimLeft().length
+
+			let c0 = Math.max(fi-line.startIndex,wss)
+			let c1 = Math.min(li-line.startIndex,line.line.trimRight().length)
+
+			cmts.push(` ${line.nr.toString().padStart(nrLen,' ')} | ${' '.repeat(c0)}${line.line.slice(c0,c1)}`)
+
+    }
+    
+	return cmts
+}
+
 function info(node:ASTNode|ASTNode[]): [SourceLine,SourceLine,number,number] {
     let arr: TokenI[] = []
     if (Array.isArray(node))
@@ -54,8 +93,14 @@ function getRec(node:ASTNode,arr:TokenI[]): TokenI[] {
             arr.push(node.keyword)
             if (node.keywordElse) arr.push(node.keywordElse)
             getRec(node.expression,arr)
-            for (let sub of node.primaryBranch) getRec(sub,arr)
-            for (let sub of node.secondaryBranch) getRec(sub,arr)
+            if (node.primaryBranch.length) {
+                getRec(node.primaryBranch[0],arr)
+                getRec(node.primaryBranch.slice(-1)[0],arr)
+            }
+            if (node.secondaryBranch.length) {
+                getRec(node.secondaryBranch[0],arr)
+                getRec(node.secondaryBranch.slice(-1)[0],arr)
+            }
             break
         case ASTNodeType.DEFINE:
             arr.push(node.keyword,node.identifier)
@@ -64,7 +109,10 @@ function getRec(node:ASTNode,arr:TokenI[]): TokenI[] {
         case ASTNodeType.FUNCTION:
             arr.push(node.identifier,node.keyword,node.returnType)
             arr.push(...node.parameters.flatMap(p=>[p.symbol,p.type]))
-            for (let sub of node.body) getRec(sub,arr)
+            if (node.body.length) {
+                getRec(node.body[0],arr)
+                getRec(node.body.slice(-1)[0],arr)
+            }
             break
         case ASTNodeType.IDENTIFIER:
             arr.push(node.identifier)
@@ -73,14 +121,20 @@ function getRec(node:ASTNode,arr:TokenI[]): TokenI[] {
             getRec(node.parameters,arr)
             break
         case ASTNodeType.LIST:
-            for (let sub of node.list) getRec(sub,arr)
+            if (node.list.length) {
+                getRec(node.list[0],arr)
+                getRec(node.list.slice(-1)[0],arr)
+            }
             break
         case ASTNodeType.NUMBER:
             arr.push(node.value)
             break
         case ASTNodeType.OPERATION:
             arr.push(node.operator)
-            for (let sub of node.operands) getRec(sub,arr)
+            if (node.operands.length) {
+                getRec(node.operands[0],arr)
+                getRec(node.operands.slice(-1)[0],arr)
+            }
             break
         case ASTNodeType.STRING:
             arr.push(node.value)
@@ -95,7 +149,10 @@ function getRec(node:ASTNode,arr:TokenI[]): TokenI[] {
             break
         case ASTNodeType.MODULE:
             arr.push(node.keyword,node.identifier)
-            for (let sub of node.body) getRec(sub,arr)
+            if (node.body.length) {
+                getRec(node.body[0],arr)
+                getRec(node.body.slice(-1)[0],arr)
+            }
             break
         case ASTNodeType.REFERENCE:
             arr.push(node.keyword)

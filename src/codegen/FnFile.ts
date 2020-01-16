@@ -1,20 +1,16 @@
 
 import { Instruction } from "./Instructions"
+import { InstrWrapper } from "./InstrWrapper"
 
-export class FnFile {
+export class FnFile extends InstrWrapper {
 	
 	private dead = false
 
 	constructor(
-		public readonly name: string,
-		private readonly code: Instruction[] = []
-	) {}
+		public readonly name: string
+	) {super()}
 
 	isDead() {return this.dead}
 	declareDead() {this.dead = true}
-
-	get() {return this.code}
-
-	add(...instrs:Instruction[]) {this.code.push(...instrs)}
 
 }

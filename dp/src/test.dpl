@@ -1,6 +1,10 @@
 
 import file from './test'
 
+/*fn getAllPlayers() {
+	return @a[]
+}*/
+
 fn x(): int {
 	a += b
 	/say hello
@@ -8,7 +12,8 @@ fn x(): int {
 	// x()
 	file::b + 1;
 	/say helloo
-	return file::a
+	return file::a *
+		3
 }
 
 let a = b;

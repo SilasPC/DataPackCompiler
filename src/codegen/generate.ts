@@ -11,7 +11,7 @@ export function generate(fn:FnFile) {
 	
 	let output: string[] = []
 
-	for (let instr of fn.get()) {
+	for (let instr of fn.interateInto(output)) {
 
 		switch (instr.type) {
 
@@ -52,7 +52,7 @@ export function generateTest(fn: FnDeclaration, ctx: CompileContext) {
 
 	let output: string[] = []
 
-	for (let instr of fn.fn.get()) {
+	for (let instr of fn.fn.interateInto(output)) {
 
 		switch (instr.type) {
 

@@ -3,13 +3,14 @@ import { SymbolTable } from "./SymbolTable";
 import { Instruction, INT_OP, InstrType } from "../codegen/Instructions";
 import { Scoreboard, ESR, ESRType } from "./ESR";
 import { CompileContext } from "../toolbox/CompileContext";
+import { InstrWrapper } from "../codegen/InstrWrapper";
 
 export type ScopeType = 'FN' | 'NONE'
 
 export class Scope {
 
-	private instrBuffer: Instruction[]
-	private readonly stack: Instruction[][]
+	private instrBuffer: InstrWrapper
+	private readonly stack: InstrWrapper[]
 
 	public static createRoot(symbols:SymbolTable,name:string,ctx:CompileContext) {
 		return new Scope(
@@ -32,7 +33,7 @@ export class Scope {
 		private returnVar: ESR | null,
 		public readonly type: ScopeType
 	) {
-		this.stack = [this.instrBuffer = []]
+		this.stack = [this.instrBuffer = new InstrWrapper()]
 	}
 
 	/**
@@ -79,33 +80,38 @@ export class Scope {
 
 	private newFlowBuffer() {
 		// we don't new a new instr buffer if the last one hasn't been used
-		if (this.instrBuffer.length)
-			this.stack.push(this.instrBuffer = [])
+		if (this.instrBuffer.getLength())
+			this.stack.push(this.instrBuffer = new InstrWrapper())
 	}
 
-	public mergeBuffers(): Instruction[] {
-		let out: Instruction[] = []
+	public mergeBuffers(): InstrWrapper {
 		// temporary merge function
 		// we need to do some flow processing here
 		// there is for now no 'if' check
 		let fns = Array(this.stack.length-1)
 			.fill(0)
 			.map(()=>this.ctx.createFnFile([...this.getScopeNames(),'controlflow']))
-		return this.stack.slice(0,-1).reduceRight(
-			(body,con,i) => {
-				let fn = fns[i]
-				fn.add(...body)
-				return con.concat({
+		fns.forEach((fn,i)=>{
+			fn.insertEnd(this.stack[i+1])
+			if (fns[i+1]) fn.add({
 					type: InstrType.LOCAL_INVOKE,
-					fn
+					fn: fns[i+1]
 				})
-			},
-			this.instrBuffer
-		)
+		})
+		let ret = this.stack[0].clone()
+		if (fns.length) ret.add({
+			type: InstrType.LOCAL_INVOKE,
+			fn: fns[0]
+		})
+		return ret
 	}
 
 	public push(...instrs:Instruction[]) {
-		this.instrBuffer.push(...instrs)
+		this.instrBuffer.add(...instrs)
+	}
+
+	public addComments(...cmts:string[]) {
+		this.instrBuffer.addComments(...cmts)
 	}
 
 	public branch(newName:string,type:ScopeType,returnVar:ESR|null) {

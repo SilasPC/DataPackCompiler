@@ -6,17 +6,15 @@ import { FnFile } from "../codegen/FnFile";
 /** Removes local invokes */
 export function localInvokes(fn:FnFile) {
 	
-	let instrs = fn.get()
-
 	let success = false
 
-	for (let i = instrs.length - 1; i >= 0; i--) {
-		let instr = instrs[i]
-		if (instr.type != InstrType.LOCAL_INVOKE) continue
+	fn.forEachReverse((instr,i)=>{
+		if (instr.type != InstrType.LOCAL_INVOKE) return
 		instr.fn.declareDead()
-		instrs.splice(i,1,...instr.fn.get())
+		fn.remove(i,1)
+		fn.insert(i,instr.fn)
 		success = true
-	}
+	})
 
 	return success
 

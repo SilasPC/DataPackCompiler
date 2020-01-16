@@ -23,6 +23,13 @@
 - Macros
 - Core functions
 
+# Look at
+- Recipies
+- Predicates
+- Loot tables
+- Advancements
+- Tags
+
 # IDEAS
 - Oregenerators
 - Classes
@@ -32,7 +39,7 @@
 - Generate documentation
 - Generate resource packs
 
-# NOTES - Future errors
+# Future errors
 - Determining lifetimes in instructions that includes commands that
   may modify the variables in question
 

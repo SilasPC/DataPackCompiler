@@ -4,7 +4,6 @@ import { FnFile } from "../codegen/FnFile";
 import { InstrType } from "../codegen/Instructions";
 import { antialias } from "./antiAlias";
 import { localInvokes } from "./localInvokes";
-// import { antiAlias } from "./AntiAlias";
 
 export type Optimizer = (fn:FnFile,ctx:CompileContext) => boolean
 
@@ -33,7 +32,7 @@ function recurseOptimize(fn:FnFile,ctx:CompileContext) {
 		}
 		if (allFailed) {
 			let newPasses = 0
-			for (let instr of fn.get()) {
+			for (let instr of fn.getInstrs()) {
 				if (instr.type != InstrType.LOCAL_INVOKE) continue
 				newPasses += recurseOptimize(instr.fn,ctx)
 			}

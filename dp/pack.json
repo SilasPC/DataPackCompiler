@@ -7,7 +7,7 @@
     "noInference": true,
     "noImplicitCast": true,
     "ignoreUnreachable": true,
-    "sourceMap": false,
+    "sourceMap": true,
     "emitComments": false,
     "optimize": true,
     "ignoreWarnings": false,

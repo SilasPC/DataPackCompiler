@@ -1,4 +1,4 @@
-import { ASTStatement, ASTNode, ASTNodeType, astErrorMsg, astWarning } from "../syntax/AST"
+import { ASTStatement, ASTNode, ASTNodeType, astErrorMsg, astWarning, astSourceMap } from "../syntax/AST"
 import { Scope } from "./Scope"
 import { CompileContext } from "../toolbox/CompileContext"
 import { Maybe, MaybeWrapper } from "../toolbox/Maybe"
@@ -18,6 +18,9 @@ export function parseBody(nodes:ASTStatement[],scope:Scope,ctx:CompileContext): 
 	const evalOnly = () => ctx.options.optimize ? diedAt != null : false
 
 	for (let node of nodes) {
+
+		if (!evalOnly() && ctx.options.sourceMap)
+			scope.addComments(...astSourceMap(node))
 
 		switch (node.type) {
 			case ASTNodeType.COMMAND: {

@@ -1,6 +1,7 @@
 import { Instruction, InstrType, INT_OP } from "../codegen/Instructions"
 import { IntESR } from "../semantics/ESR"
 import { exhaust } from "../toolbox/other"
+import { InstrWrapper } from "../codegen/InstrWrapper"
 
 export function replaceInt(target:IntESR,replacee:IntESR,instrs:Instruction[]): void {
 	for (let instr of instrs) {
@@ -14,7 +15,7 @@ export function replaceInt(target:IntESR,replacee:IntESR,instrs:Instruction[]): 
 					if (v.esr == target) v.esr = replacee
 				break
 			case InstrType.LOCAL_INVOKE:
-				replaceInt(target,replacee,instr.fn.get())
+				replaceInt(target,replacee,instrs)
 				break
 			case InstrType.INVOKE:
 				break
@@ -24,10 +25,10 @@ export function replaceInt(target:IntESR,replacee:IntESR,instrs:Instruction[]): 
 	}
 }
 
-export function findLocalIntLifeSpans(instrs:Instruction[]) {
+export function findLocalIntLifeSpans(instrs:InstrWrapper) {
 	
 	// Find all IntESR mutations on temporary variables
-	let tmps = instrs.flatMap(
+	let tmps = instrs.getInstrs().flatMap(
 		(I,i) => {
 			let esr = extractIntESRs(I)
 			if (esr) return [[...esr,i]] as [IntESR,IntESR,number][]
@@ -39,14 +40,14 @@ export function findLocalIntLifeSpans(instrs:Instruction[]) {
 	let lifespans = tmps.map(
 		([into,from,i]) => {
 			let indices = tmps.filter(([esr2,_,j]) => into == esr2 && j > i).map(x=>x[2])
-			let j = Math.min(...indices,instrs.length-1)
+			let j = Math.min(...indices,instrs.getLength()-1)
 			return [into,from,i,j] as [IntESR,IntESR,number,number]
 		}
 	)
 
 	// Filter out ones that get mutated during lifespan
 	let aliases = lifespans.filter(
-		([into,from,i,j]) => !isMutated(into,instrs.slice(i+1,j))
+		([into,from,i,j]) => !isMutated(into,instrs.getInstrs().slice(i+1,j))
 	)
 
 	// console.log(tmps,lifespans)
@@ -55,14 +56,14 @@ export function findLocalIntLifeSpans(instrs:Instruction[]) {
 
 }
 
-function isMutated(esr:IntESR,instrs:Instruction[]) {
+function isMutated(esr:IntESR,instrs:ReadonlyArray<Instruction>) {
 	for (let instr of instrs) {
 		switch (instr.type) {
 			case InstrType.INT_OP:
 				if (instr.into == esr) return true
 				break
 			case InstrType.LOCAL_INVOKE:
-				if (isMutated(esr,instr.fn.get())) return true
+				if (isMutated(esr,instrs)) return true
 				break
 			case InstrType.CMD:
 				if (instr.interpolations.some(int => int.esr == esr)) return true

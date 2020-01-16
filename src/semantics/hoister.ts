@@ -45,11 +45,7 @@ export function hoist(pf:ParsingFile,node:Exclude<ASTStaticDeclaration,ASTExport
 
 		case ASTNodeType.DEFINE: {
 			let node0 = node
-			symbols.declareHoister(node.identifier,()=>{
-				const maybe = new MaybeWrapper<Declaration>()
-				let res = parseDefine(node0,scope,ctx)
-				return res
-			},ctx)
+			symbols.declareHoister(node.identifier,()=>parseDefine(node0,scope,ctx),ctx)
 			break
 		}
 
@@ -130,7 +126,7 @@ export function hoist(pf:ParsingFile,node:Exclude<ASTStaticDeclaration,ASTExport
 				if (maybe.merge(parseBody(node.body,branch,ctx)))
 					return maybe.none()
 
-				fn.add(...branch.mergeBuffers())
+				fn.insertEnd(branch.mergeBuffers())
 
 				return maybe.wrap(fndecl)
 

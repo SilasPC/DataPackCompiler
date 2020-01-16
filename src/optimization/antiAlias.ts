@@ -7,15 +7,15 @@ import { FnFile } from "../codegen/FnFile";
 export function antialias(fn:FnFile) {
 	
 	// one at a time to prevent overlaps
-	let alias = findLocalIntLifeSpans(fn.get())[0]
+	let alias = findLocalIntLifeSpans(fn)[0]
 
 	if (!alias) return false
 
 	let [into,from,i,j] = alias
 	// replace all uses
-	replaceInt(into,from,fn.get().slice(i,j))
+	replaceInt(into,from,fn.getInstrs().slice(i,j))
 	// remove assignation
-	fn.get().splice(i,1)
+	fn.remove(i,1)
 
 	return true
 
