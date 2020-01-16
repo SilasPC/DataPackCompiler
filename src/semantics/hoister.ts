@@ -12,6 +12,7 @@ import { copyESR, getESRType, ESR, ESRType, IntESR } from "./ESR";
 import { Scope } from "./Scope";
 import { parseBody } from "./parseBody";
 import { parseDefine } from "./statements/parseDefine";
+import { parseFunction } from "./statements/parseFunction";
 
 export function hoist(pf:ParsingFile,node:Exclude<ASTStaticDeclaration,ASTExportNode>,scope:Scope,ctx:CompileContext,fetcher:Fetcher): Maybe<true> {
 
@@ -43,98 +44,13 @@ export function hoist(pf:ParsingFile,node:Exclude<ASTStaticDeclaration,ASTExport
 		case ASTNodeType.MODULE:
 			throw new Error('wait modules oka')
 
-		case ASTNodeType.DEFINE: {
-			let node0 = node
-			symbols.declareHoister(node.identifier,()=>parseDefine(node0,scope,ctx),ctx)
+		case ASTNodeType.DEFINE:
+			symbols.declareHoister(node.identifier,()=>parseDefine(node,scope,ctx),ctx)
 			break
-		}
 
-		case ASTNodeType.FUNCTION: {
-			symbols.declareHoister(node.identifier,(earlyReplace)=>{
-				const maybe = new MaybeWrapper<Declaration>()
-
-				let parameters: Maybe<{param:ESR,ref:boolean}>[] = []
-				let branch = scope.branch(node.identifier.value,'FN',null)
-				let fn = ctx.createFnFile(branch.getScopeNames())
-				let type = tokenToType(node.returnType,symbols)
-				if (!type.elementary) {
-					ctx.addError(node.returnType.error('nop thx'))
-					return maybe.none()
-				}
-
-				let esr: ESR
-				switch (type.type) {
-					case ElementaryValueType.VOID:
-						esr = {type:ESRType.VOID, mutable: false, const: false, tmp: false}
-						break
-					case ElementaryValueType.INT:
-						esr = {type:ESRType.INT, mutable: false, const: false, tmp: false, scoreboard: ctx.scoreboards.getStatic('return',branch)}
-						break
-					case ElementaryValueType.BOOL:
-						esr = {type:ESRType.BOOL, mutable: false, const: false, tmp: false, scoreboard: ctx.scoreboards.getStatic('return',branch)}
-						break
-					default:
-						return exhaust(type.type)
-				}
-				branch.setReturnVar(esr)
-				let fndecl: FnDeclaration = {
-					type: DeclarationType.FUNCTION,
-					returns: esr,
-					fn,
-					parameters
-				}
-				earlyReplace(fndecl)
-				for (let param of node.parameters) {
-					let maybe2 = new MaybeWrapper<{ref:boolean,param:ESR}>()
-					let type = tokenToType(param.type,symbols)
-					if (!type.elementary) {
-						ctx.addError(param.type.error('elementary only thx'))
-						parameters.push(maybe2.none())
-						continue
-					}
-					let esr
-					switch (type.type) {
-						case ElementaryValueType.VOID:
-							ctx.addError(param.type.error('not valid'))
-							parameters.push(maybe2.none())
-							continue
-						case ElementaryValueType.INT:
-							let iesr: IntESR = {
-								type: ESRType.INT,
-								scoreboard: ctx.scoreboards.getStatic(param.symbol.value,branch),
-								mutable: param.ref, // this controls if function parameters are mutable
-								const: false,
-								tmp: false
-							}
-							esr = iesr
-							break
-						case ElementaryValueType.BOOL:
-							ctx.addError(param.type.error('no bool yet thx'))
-							parameters.push(maybe2.none())
-							continue
-						default:
-							return exhaust(type.type)
-					}
-					let decl: VarDeclaration = {
-						type: DeclarationType.VARIABLE,
-						varType: type,
-						esr
-					}
-					parameters.push(maybe2.wrap({param:esr,ref:param.ref}))
-					maybe.merge(branch.symbols.declareDirect(param.symbol,decl,ctx))
-				}
-				if (maybe.merge(parseBody(node.body,branch,ctx)))
-					return maybe.none()
-
-				fn.insertEnd(branch.mergeBuffers())
-
-				return maybe.wrap(fndecl)
-
-			},ctx)
-			
-			
+		case ASTNodeType.FUNCTION:
+			symbols.declareHoister(node.identifier,()=>parseFunction(node,scope,ctx,null),ctx)
 			break
-		}
 
 		default:
 			return exhaust(node)

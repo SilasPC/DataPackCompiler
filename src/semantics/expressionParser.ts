@@ -103,7 +103,6 @@ export function exprParser(node: ASTExpr, scope: Scope, ctx: CompileContext, eva
 }
 
 function invokation(node:ASTCallNode,scope:Scope,ctx:CompileContext,evalOnly:boolean,maybe:MaybeWrapper<ESR>) {
-	const symbols = scope.symbols
 	if (node.function.type != ASTNodeType.IDENTIFIER && node.function.type != ASTNodeType.STATIC_ACCESS) throw new Error('only direct calls for now')
 	let params = node.parameters.list.map(p=>{
 		let maybe = new MaybeWrapper<{esr:ESR,ref:boolean}>()
@@ -128,6 +127,7 @@ function invokation(node:ASTCallNode,scope:Scope,ctx:CompileContext,evalOnly:boo
 		ctx.addError(astError(node.function,'not a fn'))
 		return maybe.none()
 	}
+	if (decl.thisBinding != null) return declw.value.token.throwDebug('methods not implemented')
 	if (params.length != decl.parameters.length) {
 		ctx.addError(astError(node.function,'param length unmatched'))
 		return maybe.none()

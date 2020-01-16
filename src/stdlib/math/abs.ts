@@ -1,7 +1,7 @@
 import { CompileContext } from "../../toolbox/CompileContext";
 import { lexer } from "../../lexing/lexer";
 import { ParsingFile } from "../../toolbox/ParsingFile";
-import { compileCoreFunction } from "../compileFunction";
+import { compileStdlibFunction } from "../compileFunction";
 
 const fn = `
 export fn abs(num:int): int {
@@ -12,5 +12,5 @@ export fn abs(num:int): int {
 `
 
 export function createAbs(ctx:CompileContext) {
-	return compileCoreFunction(fn,'abs',ctx)
+	return compileStdlibFunction(fn,'abs',ctx,null)
 }

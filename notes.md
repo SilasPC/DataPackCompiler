@@ -1,4 +1,11 @@
 
+# Optimizer
+
+A global set to a tmp:
+	- Global only referenced in lifespan before now
+	- Both only referenced in remaining lifespan
+	- => Replace tmp with global 
+
 # Control flow
 
 Whenever say an if body exits, we might need to check control flow

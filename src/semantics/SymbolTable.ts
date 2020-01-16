@@ -1,11 +1,12 @@
 
 import { TokenI } from "../lexing/Token"
-import { DeclarationWrapper, Declaration, ModDeclaration, DeclarationType } from "./Declaration"
+import { DeclarationWrapper, Declaration, ModDeclaration, DeclarationType, VarDeclaration } from "./Declaration"
 import { Maybe, MaybeWrapper } from "../toolbox/Maybe"
 import { CompileContext } from "../toolbox/CompileContext"
 import $ from 'js-itertools'
+import { keywords, types } from "../lexing/values"
 
-export type Hoister = (earlyReplace:(decl:Declaration)=>void) => Maybe<Declaration>
+export type Hoister = (/*earlyReplace:(decl:Declaration)=>void*/) => Maybe<Declaration>
 
 type InternalWrapper = {
     decl: DeclarationWrapper | null
@@ -91,9 +92,9 @@ export class SymbolTable implements ReadOnlySymbolTable {
 
         iw.active = true
         // console.log('active',iw.token.value)
-        let decl = iw.hoister(decl=>{
+        let decl = iw.hoister(/*decl=>{
             iw.decl = {decl,token:iw.token}
-        })
+        }*/)
         // console.log('deactive',iw.token.value)
         iw.hoisted = true
         iw.active = false
@@ -116,8 +117,30 @@ export class SymbolTable implements ReadOnlySymbolTable {
 
     }
 
+    declareThis(bindToken:TokenI,decl:VarDeclaration) {
+        if (this.declarations.has('this'))
+            throw new Error(`redeclare 'this' in local symbol table`)
+        let iw: InternalWrapper = {
+            decl: {token:bindToken,decl},
+            token: bindToken,
+            hoister() {throw new Error('no hoister')},
+            refCounter: 0,
+            failed: false,
+            active: false,
+            hoisted: true
+        }
+        this.declarations.set('this',iw)
+    }
+
     declareDirect(id:TokenI,decl:Declaration,ctx:CompileContext): Maybe<true> {
         const maybe = new MaybeWrapper<true>()
+        if (
+            keywords.includes(id.value) ||
+            types.includes(id.value)
+        ) {
+            ctx.addError(id.error('cannot declare reserved/keyword'))
+            return maybe.none()
+        }
         if (this.getInternal(id.value)) {
             ctx.addError(id.error('duplicate declaration'))
             return maybe.none()
@@ -137,6 +160,13 @@ export class SymbolTable implements ReadOnlySymbolTable {
 
     declareHoister(id:TokenI,hoister:Hoister,ctx:CompileContext): Maybe<true> {
         const maybe = new MaybeWrapper<true>()
+        if (
+            keywords.includes(id.value) ||
+            types.includes(id.value)
+        ) {
+            ctx.addError(id.error('cannot declare reserved/keyword'))
+            return maybe.none()
+        }
         let iw: InternalWrapper = {
             decl: null,
             token: id,
@@ -171,23 +201,5 @@ export class SymbolTable implements ReadOnlySymbolTable {
             symbols: this
         }
     }
-
-    /*declareDirect(decl:DeclarationWrapper,ctx:CompileContext): Maybe<true> {
-        const maybe = new MaybeWrapper<true>()
-        // check for reserved names here
-        if (
-            keywords.includes(decl.token.value) ||
-            types.includes(decl.token.value)
-        ) {
-            ctx.addError(decl.token.error('cannot declare reserved/keyword'))
-            return maybe.none()
-        }
-        if (this.getDeclaration(decl.token,ctx)) {
-            ctx.addError(decl.token.error('redefinition'))
-            return maybe.none()
-        }
-        this.declarations.set(decl.token.value,{decl,refCounter:0})
-        return maybe.wrap(true)
-    }*/
 
 }
