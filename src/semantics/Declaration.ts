@@ -6,8 +6,9 @@ import { ESR } from "./ESR";
 import { FnFile } from "../codegen/FnFile";
 import { TokenI } from "../lexing/Token";
 import { exhaust } from "../toolbox/other";
-import { Maybe } from "../toolbox/Maybe";
+import { Maybe, MaybeWrapper } from "../toolbox/Maybe";
 import { SymbolTable, ReadOnlySymbolTable } from "./SymbolTable";
+import { CompileContext } from "../toolbox/CompileContext";
 
 export type Declaration = VarDeclaration | FnDeclaration | ModDeclaration | RecipeDeclaration
 

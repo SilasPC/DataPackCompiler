@@ -2,7 +2,7 @@ import { ASTNode, ASTNodeType, ASTOpNode, ASTExpr, astErrorMsg, ASTCallNode, ast
 import { SymbolTable } from "./SymbolTable"
 import { Instruction, INT_OP, InstrType, INVOKE } from "../codegen/Instructions"
 import { ESR, ESRType, IntESR, getESRType, assignESR, copyESR } from "./ESR"
-import { DeclarationType, Declaration } from "./Declaration"
+import { DeclarationType, Declaration, DeclarationWrapper } from "./Declaration"
 import { ElementaryValueType, hasSharedType } from "./Types"
 import { exhaust } from "../toolbox/other"
 import { CompileContext } from "../toolbox/CompileContext"
@@ -10,7 +10,8 @@ import { Scope } from "./Scope"
 import { Maybe } from "../toolbox/Maybe"
 import { MaybeWrapper } from "../toolbox/Maybe"
 import { CompileError } from "../toolbox/CompileErrors"
-import { resolveStatic } from "./resolveStatic"
+import { resolveAccess } from "./resolveAccess"
+import { TokenType } from "../lexing/Token"
 
 export function exprParser(node: ASTExpr, scope: Scope, ctx: CompileContext, evalOnly:boolean): Maybe<ESR> {
 
@@ -23,47 +24,12 @@ export function exprParser(node: ASTExpr, scope: Scope, ctx: CompileContext, eva
 		case ASTNodeType.SELECTOR:
 			throw new Error('not implemented')
 
-		case ASTNodeType.STATIC_ACCESS:
+		case ASTNodeType.ACCESS:
 		case ASTNodeType.IDENTIFIER: {
-			let possibleDecl = resolveStatic(node,scope,ctx)
-			if (!possibleDecl.value) return maybe.none()
-			let {token,decl} = possibleDecl.value
-			switch (decl.type) {
-				case DeclarationType.VARIABLE: {
-					let esr = decl.esr
-					// does this break things?
-					return maybe.wrap(esr)
-					/*if (decl.varType.elementary) {
-						switch (decl.varType.type) {
-							case ElementaryValueType.INT:
-								if (esr.type != ESRType.INT) return token.throwDebug('ESR type assertion failed')
-								let res: IntESR = {type:ESRType.INT,mutable:false,const:false,tmp:true,scoreboard:esr.scoreboard}
-								return maybe.wrap(res)
-							case ElementaryValueType.BOOL:
-								ctx.addError(token.error('no bools rn'))
-								return maybe.none()
-							case ElementaryValueType.VOID:
-								throw new Error('this can\'t happen')
-							default:
-								return exhaust(decl.varType.type)
-						}
-					} else {
-						ctx.addError(token.error('non-elementary ref not implemented'))
-						return maybe.none()
-					}*/
-				}
-				case DeclarationType.FUNCTION:
-						ctx.addError(token.error('cannot use function as variable'))
-						return maybe.none()
-				case DeclarationType.MODULE:
-					ctx.addError(token.error('cannot use module as variable'))
-					return maybe.none()
-				case DeclarationType.RECIPE:
-					ctx.addError(token.error('cannot use recipe as variable'))
-					return maybe.none()
-				default:
-					return exhaust(decl)
-			}
+			let res = resolveAccess(node,scope,ctx)
+			if (!res.value) return maybe.none()
+			if (res.value.isESR) return maybe.wrap(res.value.esr)
+			return coerseDeclWrapperToESR(res.value.wrapper,ctx)
 		}
 		
 		case ASTNodeType.BOOLEAN: {
@@ -109,31 +75,41 @@ export function exprParser(node: ASTExpr, scope: Scope, ctx: CompileContext, eva
 }
 
 function invokation(node:ASTCallNode,scope:Scope,ctx:CompileContext,evalOnly:boolean,maybe:MaybeWrapper<ESR>) {
-	if (node.function.type != ASTNodeType.IDENTIFIER && node.function.type != ASTNodeType.STATIC_ACCESS) throw new Error('only direct calls for now')
+	if (node.function.type != ASTNodeType.IDENTIFIER && node.function.type != ASTNodeType.ACCESS) throw new Error('only direct calls for now')
 	let params = node.parameters.list.map(p=>{
 		let maybe = new MaybeWrapper<{esr:ESR,ref:boolean}>()
 		if (p.type == ASTNodeType.REFERENCE) {
-			let declw = resolveStatic(p.ref,scope,ctx) // scope.symbols.getDeclaration(p.expr.identifier,ctx)
-			if (!declw.value) return maybe.none()
-			if (declw.value.decl.type != DeclarationType.VARIABLE) {
+			let res = resolveAccess(p.ref,scope,ctx) // scope.symbols.getDeclaration(p.expr.identifier,ctx)
+			if (!res.value) return maybe.none()
+			if (res.value.isESR) {
+				ctx.addError(astError(node.function,'cannot reference an expression'))
+				return maybe.none()
+			}
+			let declw = res.value.wrapper
+			if (declw.decl.type != DeclarationType.VARIABLE) {
 				ctx.addError(astError(p.ref,'can only reference variables'))
 				return maybe.none()
 			}
-			return maybe.wrap({ref:true,esr:declw.value.decl.esr})
+			return maybe.wrap({ref:true,esr:declw.decl.esr})
 		}
 		let esr = exprParser(p,scope,ctx,evalOnly)
 		if (!esr.value) return maybe.none()
 		return maybe.wrap({esr:esr.value,ref:false})
 	})
-	let declw = resolveStatic(node.function,scope,ctx) //symbols.getDeclaration(node.function.identifier.value)
-	if (!declw.value) return maybe.none()
-	let decl = declw.value.decl
+	let res = resolveAccess(node.function,scope,ctx) //symbols.getDeclaration(node.function.identifier.value)
+	if (!res.value) return maybe.none()
+	if (res.value.isESR) {
+		ctx.addError(astError(node.function,'expected a callable expression'))
+		return maybe.none()
+	}
+	let declw = res.value.wrapper
+	let decl = declw.decl
 	if (decl.type != DeclarationType.FUNCTION) {
 		console.log(decl)
 		ctx.addError(astError(node.function,'not a fn'))
 		return maybe.none()
 	}
-	if (decl.thisBinding != null) return declw.value.token.throwDebug('methods not implemented')
+	if (decl.thisBinding != null) return declw.token.throwDebug('methods not implemented')
 	if (params.length != decl.parameters.length) {
 		ctx.addError(astError(node.function,'param length unmatched'))
 		return maybe.none()
@@ -207,7 +183,7 @@ function invokation(node:ASTCallNode,scope:Scope,ctx:CompileContext,evalOnly:boo
 	}
 }
 
-function operator(node:ASTOpNode,scope:Scope,ctx:CompileContext,evalOnly:boolean): Maybe<IntESR> {
+function operator(node:ASTOpNode,scope:Scope,ctx:CompileContext,evalOnly:boolean): Maybe<ESR> {
 	const maybe = new MaybeWrapper<IntESR>()
 	switch (node.operator.value) {
 		case '+':
@@ -287,14 +263,33 @@ function operator(node:ASTOpNode,scope:Scope,ctx:CompileContext,evalOnly:boolean
 				scope.push(op1,copy.copyInstr)
 			return maybe.wrap(copy.esr)
 		}
-
+		
+		case '++':
+		case '--': {
+			console.assert(node.operands.length == 1, 'one operand')
+			let o = exprParser(node.operands[0],scope,ctx,evalOnly)
+			if (!o.value)
+				return maybe.none()
+			if (!o.value.mutable) {
+				ctx.addError(new CompileError(astErrorMsg(node.operands[0],'left hand side immutable'),false))
+				return maybe.none()
+			}
+			if (o.value.type != ESRType.INT) {
+				ctx.addError(node.operator.error('only int op for now'))
+				return maybe.none()
+			}
+			let copy = copyESR(o.value,ctx,scope,'tmp',{tmp:true,const:false,mutable:false})
+			let esr: IntESR = {type:ESRType.INT,mutable:false,const:true,tmp:false,scoreboard:ctx.scoreboards.getConstant(1)}
+			let op: INT_OP = {type:InstrType.INT_OP,into:o.value,from:esr,op:node.operator.value[0]+'='}
+			if (!evalOnly)
+				scope.push(op,copy.copyInstr)
+			return maybe.wrap(copy.esr)
+		}
+		
 		case '&&':
 		case '||':
 
 		case '!':
-		
-		case '++':
-		case '--':
 		
 		case '>':
 		case '<':
@@ -302,9 +297,28 @@ function operator(node:ASTOpNode,scope:Scope,ctx:CompileContext,evalOnly:boolean
 		case '<=':
 		case '==':
 		case '!=':
-
-		default:
 			ctx.addError(new CompileError('i rly h8 boilerplate',false))
 			return maybe.none()
+
+		default:
+			return exhaust(node.operator.value)
+	}
+}
+
+function coerseDeclWrapperToESR(decl:DeclarationWrapper,ctx:CompileContext): Maybe<ESR> {
+	const maybe = new MaybeWrapper<ESR>()
+	switch (decl.decl.type) {
+		case DeclarationType.VARIABLE: return maybe.wrap(decl.decl.esr)
+		case DeclarationType.FUNCTION:
+				ctx.addError(decl.token.error('cannot use function as value'))
+				return maybe.none()
+		case DeclarationType.MODULE:
+			ctx.addError(decl.token.error('cannot use module as value'))
+			return maybe.none()
+		case DeclarationType.RECIPE:
+			ctx.addError(decl.token.error('cannot use recipe as value'))
+			return maybe.none()
+		default:
+			return exhaust(decl.decl)
 	}
 }

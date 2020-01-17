@@ -11,11 +11,13 @@ import file from './test'
 
 fn x(): int {
 	a += b
+	a.abs
+	file::a.abs
 	/execute as @a positioned <coords> align x facing entity @s feet run say hello!
 	/say hello
 	/say hello
 	// x()
-	file::b + 1;
+	file::yr++;
 	/say helloo
 	return file::a *
 		3

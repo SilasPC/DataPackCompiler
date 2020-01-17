@@ -1,11 +1,8 @@
 
 import { TokenI, TokenType } from "../lexing/Token";
-import { ASTNode, ASTNodeType, ASTIdentifierNode, ASTOpNode, ASTCallNode, ASTListNode, ASTExpr, ASTRefNode, ASTStaticAccessNode } from "./AST";
-import { TokenIterator, TokenIteratorI } from "../lexing/TokenIterator";
-import { CompilerOptions } from "../toolbox/config";
-import { exhaust } from "../toolbox/other";
+import { ASTNode, ASTNodeType, ASTIdentifierNode, ASTOpNode, ASTCallNode, ASTListNode, ASTExpr, ASTRefNode, ASTAccessNode, ASTDynamicAccessNode, ASTStaticAccessNode } from "./AST";
+import { TokenIteratorI } from "../lexing/TokenIterator";
 import { CompileContext } from "../toolbox/CompileContext";
-import { access } from "fs";
 import { parseSelector } from "./structures/selector";
 
 enum OpType {
@@ -57,11 +54,12 @@ export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext,
                     case '(':
                         let isFn = lastWasOperand
                         if (isFn) {
+                            pushOperator(opInfo(t,!lastWasOperand),false)
                             let next = tokens.peek()
                             if (next.type == TokenType.MARKER && next.value == ')') {
                                 if (!que.length) t.throwDebug('no fn on queue?')
                                 let fn = que.pop() as ASTExpr
-                                if (fn.type != ASTNodeType.IDENTIFIER && fn.type != ASTNodeType.STATIC_ACCESS)
+                                if (fn.type != ASTNodeType.IDENTIFIER && fn.type != ASTNodeType.ACCESS)
                                     return t.throwDebug('not static fn')
                                 let invnode: ASTCallNode = {
                                     type: ASTNodeType.INVOKATION,
@@ -126,7 +124,7 @@ export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext,
                                 postfix.push(',1')
                             }
                             let fn = que.pop() as ASTExpr
-                            if (fn.type != ASTNodeType.IDENTIFIER && fn.type != ASTNodeType.STATIC_ACCESS)
+                            if (fn.type != ASTNodeType.IDENTIFIER && fn.type != ASTNodeType.ACCESS)
                                 return t.throwDebug('not static fn: '+ASTNodeType[fn.type])
                             let invnode: ASTCallNode = {
                                 type: ASTNodeType.INVOKATION,
@@ -244,7 +242,7 @@ export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext,
         while (ops.length) {
             let l = ops[ops.length-1]
             if (!l.popable) break
-            if (l.type == OpType.INFIX && op.type != OpType.INFIX) break
+            if (l.type == OpType.INFIX && op.type == OpType.PREFIX) break
             let d = op.precedency - l.precedency
             if (d > 0) break
             else if (d == 0) {
@@ -272,7 +270,7 @@ export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext,
             case TokenType.KEYWORD: {
                 if (op.token.value != 'ref') op.token.throwDebug('non-ref keyword')
                 let ref = que.pop() as ASTExpr
-                if (ref.type != ASTNodeType.IDENTIFIER && ref.type != ASTNodeType.STATIC_ACCESS)
+                if (ref.type != ASTNodeType.IDENTIFIER && ref.type != ASTNodeType.ACCESS)
                     return op.token.throwDebug('not static ref')
                 let node: ASTRefNode = {
                     type: ASTNodeType.REFERENCE,
@@ -306,11 +304,12 @@ export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext,
                         break
                     case '::': {
                         let [o0,o1] = que.splice(-2,2)
-                        if (o1.type != ASTNodeType.IDENTIFIER) return op.token.throwDebug('unexpected')
-                        if (o0.type != ASTNodeType.IDENTIFIER && o0.type != ASTNodeType.STATIC_ACCESS)
+                        if (o1.type != ASTNodeType.IDENTIFIER) return op.token.throwDebug('unexpected '+ASTNodeType[o1.type])
+                        if (o0.type != ASTNodeType.IDENTIFIER && (o0.type != ASTNodeType.ACCESS || o0.static == false))
                             return op.token.throwDebug('unexpected')
                         let node: ASTStaticAccessNode = {
-                            type: ASTNodeType.STATIC_ACCESS,
+                            type: ASTNodeType.ACCESS,
+                            static: true,
                             access: o1.identifier,
                             accessee: o0
                         }
@@ -318,15 +317,19 @@ export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext,
                         postfix.push(op.token.value)
                         break
                     }
-                    case '.':
-                        let node: ASTOpNode = {
-                            type: ASTNodeType.OPERATION,
-                            operator: op.token,
-                            operands: que.splice(-2,2)
+                    case '.': {
+                        let [o0,o1] = que.splice(-2,2)
+                        if (o1.type != ASTNodeType.IDENTIFIER) return op.token.throwDebug('unexpected '+ASTNodeType[o1.type])
+                        let node: ASTDynamicAccessNode = {
+                            type: ASTNodeType.ACCESS,
+                            static: false,
+                            access: o1.identifier,
+                            accessee: o0
                         }
                         que.push(node)
                         postfix.push(op.token.value)
                         break
+                    }
                     default:
                         throw new Error('could not use marker value '+op.op)
                 }
@@ -363,6 +366,9 @@ function p(t:TokenI,prefix:boolean): [number,boolean,OpType] {
             return [21,true,OpType.INFIX]
         case '.':
             return [20,true,OpType.INFIX]
+
+        case '(':
+            return [20,true,OpType.POSTFIX]
 
         case '++':
         case '--':

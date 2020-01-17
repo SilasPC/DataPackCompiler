@@ -81,7 +81,7 @@ export function parseBody(nodes:ASTStatement[],scope:Scope,ctx:CompileContext): 
 			case ASTNodeType.NUMBER:
 			case ASTNodeType.STRING:
 			case ASTNodeType.BOOLEAN:
-			case ASTNodeType.STATIC_ACCESS:
+			case ASTNodeType.ACCESS:
 			case ASTNodeType.IDENTIFIER:
 				ctx.addError(astWarning(node,'unused expression'))
 				exprParser(node,scope,ctx,evalOnly())

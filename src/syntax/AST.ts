@@ -118,6 +118,7 @@ function getRec(node:ASTNode,arr:TokenI[]): TokenI[] {
             arr.push(node.identifier)
             break
         case ASTNodeType.INVOKATION:
+            getRec(node.function,arr)
             getRec(node.parameters,arr)
             break
         case ASTNodeType.LIST:
@@ -161,7 +162,7 @@ function getRec(node:ASTNode,arr:TokenI[]): TokenI[] {
         case ASTNodeType.IMPORT:
             arr.push(node.keyword,node.source)
             break
-        case ASTNodeType.STATIC_ACCESS:
+        case ASTNodeType.ACCESS:
             arr.push(node.access)
             getRec(node.accessee,arr)
             break
@@ -195,13 +196,13 @@ export enum ASTNodeType {
     MODULE,
     REFERENCE,
     IMPORT,
-    STATIC_ACCESS,
+    ACCESS,
     SELECTOR,
     RECIPE
 }
 
-export type ASTStatic = ASTStaticAccessNode | ASTIdentifierNode
-export type ASTExpr = ASTStaticAccessNode | ASTSelectorNode | ASTRefNode | ASTNumNode | ASTBoolNode | ASTStringNode | ASTIdentifierNode | ASTOpNode | ASTListNode | ASTCallNode
+export type ASTAccess = ASTAccessNode | ASTIdentifierNode
+export type ASTExpr = ASTAccess | ASTSelectorNode | ASTRefNode | ASTNumNode | ASTBoolNode | ASTStringNode | ASTIdentifierNode | ASTOpNode | ASTListNode | ASTCallNode
 export type ASTStatement = ASTExpr | ASTReturnNode | ASTLetNode | ASTIfNode | ASTCMDNode
 export type ASTStaticDeclaration = ASTRecipeNode | ASTLetNode | ASTModuleNode | ASTFnNode | ASTExportNode | ASTImportNode
 export type ASTNode = ASTExpr | ASTStatement | ASTStaticDeclaration
@@ -210,10 +211,20 @@ export interface ASTRecipeNode {
     type: ASTNodeType.RECIPE
 }
 
+export type ASTAccessNode = ASTStaticAccessNode | ASTDynamicAccessNode
+
 export interface ASTStaticAccessNode {
-    type: ASTNodeType.STATIC_ACCESS
+    type: ASTNodeType.ACCESS
+    static: true
     access: GenericToken
-    accessee: ASTStatic
+    accessee: ASTStaticAccessNode | ASTIdentifierNode
+}
+
+export interface ASTDynamicAccessNode {
+    type: ASTNodeType.ACCESS
+    static: false
+    access: GenericToken
+    accessee: ASTExpr
 }
 
 export interface ASTImportNode {
@@ -227,7 +238,7 @@ export interface ASTImportNode {
 export interface ASTRefNode {
     type: ASTNodeType.REFERENCE
     keyword: TokenI
-    ref: ASTStatic
+    ref: ASTAccess
 }
 
 export interface ASTModuleNode {
@@ -280,7 +291,7 @@ export interface ASTIdentifierNode {
 
 export interface ASTOpNode {
     type: ASTNodeType.OPERATION
-    operator: OpToken|MarkerToken
+    operator: OpToken
     operands: ASTExpr[]
 }
 
@@ -291,7 +302,7 @@ export interface ASTListNode {
 
 export interface ASTCallNode {
     type: ASTNodeType.INVOKATION
-    function: ASTStatic,
+    function: ASTAccess,
     parameters: ASTListNode
 }
 

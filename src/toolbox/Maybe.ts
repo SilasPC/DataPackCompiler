@@ -47,4 +47,8 @@ class MaybeClass<T> {
 		if (this.value) return new MaybeClass<true>(true) as Maybe<true>
 		return new MaybeClass<true>(undefined) as Maybe<true>
 	}
+	map<P>(f:(t:T)=>P): Maybe<P> {
+		if (this.value) return new MaybeClass<P>(f(this.value)) as DefiniteMaybe<P>
+		return new MaybeClass<P>() as NoneMaybe<P>
+	}
 }
