@@ -58,6 +58,9 @@ export function exprParser(node: ASTExpr, scope: Scope, ctx: CompileContext, eva
 				case DeclarationType.MODULE:
 					ctx.addError(token.error('cannot use module as variable'))
 					return maybe.none()
+				case DeclarationType.RECIPE:
+					ctx.addError(token.error('cannot use recipe as variable'))
+					return maybe.none()
 				default:
 					return exhaust(decl)
 			}

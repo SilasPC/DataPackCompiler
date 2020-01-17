@@ -9,7 +9,7 @@ import { exhaust } from "../toolbox/other";
 import { Maybe } from "../toolbox/Maybe";
 import { SymbolTable, ReadOnlySymbolTable } from "./SymbolTable";
 
-export type Declaration = VarDeclaration | FnDeclaration | ModDeclaration
+export type Declaration = VarDeclaration | FnDeclaration | ModDeclaration | RecipeDeclaration
 
 export interface DeclarationWrapper {
 	token: TokenI
@@ -19,7 +19,12 @@ export interface DeclarationWrapper {
 export enum DeclarationType {
 	VARIABLE,
 	FUNCTION,
-	MODULE
+	MODULE,
+	RECIPE
+}
+
+export interface RecipeDeclaration {
+	type: DeclarationType.RECIPE
 }
 
 export interface ModDeclaration {

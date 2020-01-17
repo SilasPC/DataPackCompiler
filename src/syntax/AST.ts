@@ -168,6 +168,8 @@ function getRec(node:ASTNode,arr:TokenI[]): TokenI[] {
         case ASTNodeType.SELECTOR:
             arr.push(node.token)
             break
+        case ASTNodeType.RECIPE:
+            break
         default:
             return exhaust(node)
     }
@@ -194,14 +196,19 @@ export enum ASTNodeType {
     REFERENCE,
     IMPORT,
     STATIC_ACCESS,
-    SELECTOR
+    SELECTOR,
+    RECIPE
 }
 
 export type ASTStatic = ASTStaticAccessNode | ASTIdentifierNode
 export type ASTExpr = ASTStaticAccessNode | ASTSelectorNode | ASTRefNode | ASTNumNode | ASTBoolNode | ASTStringNode | ASTIdentifierNode | ASTOpNode | ASTListNode | ASTCallNode
 export type ASTStatement = ASTExpr | ASTReturnNode | ASTLetNode | ASTIfNode | ASTCMDNode
-export type ASTStaticDeclaration = ASTLetNode | ASTModuleNode | ASTFnNode | ASTExportNode | ASTImportNode
+export type ASTStaticDeclaration = ASTRecipeNode | ASTLetNode | ASTModuleNode | ASTFnNode | ASTExportNode | ASTImportNode
 export type ASTNode = ASTExpr | ASTStatement | ASTStaticDeclaration
+
+export interface ASTRecipeNode {
+    type: ASTNodeType.RECIPE
+}
 
 export interface ASTStaticAccessNode {
     type: ASTNodeType.STATIC_ACCESS

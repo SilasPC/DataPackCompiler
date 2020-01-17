@@ -1,11 +1,8 @@
 
-// recipe files?
+recipe someRecipe {}
 
-alias d minecraft:dirt
+recipe.enableFor(@a)
 
-shaped a_namespace:compressed_dirt (
-	(d d d)
-	(d d d)
-	(d d d)
-) -> 5 * minecraft:diamond_block
+recipe.disableFor(@r)
 
+on recipe.didCraft {}

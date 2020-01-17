@@ -52,6 +52,10 @@ export function hoist(pf:ParsingFile,node:Exclude<ASTStaticDeclaration,ASTExport
 			symbols.declareHoister(node.identifier,()=>parseFunction(node,scope,ctx,null),ctx)
 			break
 
+		case ASTNodeType.RECIPE:
+			console.log('hoist recipe')
+			break
+
 		default:
 			return exhaust(node)
 
