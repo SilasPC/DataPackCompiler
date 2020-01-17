@@ -16,7 +16,9 @@ export function fromString(string:string): RootCMDNode {
 export async function fromSheet(sheet:string): Promise<RootCMDNode> {
 	let root = new RootCMDNode('',false,[])
 	let def: Def = new Map([['',[root]]])
-	root.children.push(...parseTree(buildTree(await readSheet('./sheets/'+sheet+'.txt')),[def]))
+	let tree = buildTree(await readSheet('./sheets/'+sheet+'.txt'))
+	console.log(sheet,JSON.stringify(tree,null,2))
+	root.children.push(...parseTree(tree,[def]))
 	return root
 }
 
@@ -96,33 +98,34 @@ function parseTree(tree:Tree,defs:Def[]): CMDNode[] {
 	let findDef = (str:string) => defs.flatMap(def=>def.has(str)?[def.get(str)]:[]).pop()
 
 	let ret: CMDNode[] = []
-	for (let [key,[vals,children]] of tree) {
-		if (key.startsWith(':')) {
-			key = key.slice(1)
-			if (!key.length) throw new Error('expected definition name')
-			if (findDef(key)) throw new Error('redefining :'+key)
-			if (vals.length) throw new Error('definition must only have children')
+	for (let [keys,[keySubs,children]] of tree) {
+		if (keys.startsWith(':')) {
+			keys = keys.slice(1)
+			if (!keys.length) throw new Error('expected definition name')
+			if (findDef(keys)) throw new Error('redefining :'+keys)
+			if (keySubs.length) throw new Error('definition must only have children')
 			let defChildren: CMDNode[] = []
-			localDefs.set(key,defChildren)
+			localDefs.set(keys,defChildren)
 			defChildren.push(...parseTree(children,defs))
 			continue
 		}
-		let nextOpt = vals[0]?vals[0].startsWith('['):false
-		let start = key.split('|').map(k=>new CMDNode(k,nextOpt,[]))
+		let nextOpt = keySubs[0]?keySubs[0].startsWith('['):false
+		let start = keys.split('|').map(k=>new CMDNode(k,nextOpt,[]))
 		ret.push(...start)
 		let last = start
-		for (let [i,val] of vals.entries()) {
-			let nextOpt = vals[i] ? vals[i].startsWith('[') : false
-			if (val.startsWith('[')) {
-				val = val.slice(1)
-				if (val.endsWith(']')) val.slice(0,-1)
+		for (let [i,keySub] of keySubs.entries()) {
+			let nextOpt = keySubs[i+1] ? keySubs[i+1].startsWith('[') : false
+			if (keySub.startsWith('[')) {
+				keySub = keySub.slice(1)
+				if (keySub.endsWith(']'))
+					keySub = keySub.slice(0,-1)
 			}
-			if (!val.length) {
-				if (vals.length - 1 > i) throw new Error('children optional "[" must be last on line')
+			if (!keySub.length) {
+				if (keySubs.length - 1 > i) throw new Error('children optional "[" must be last on line')
 				break
 			}
 			let newLast: CMDNode[] = []
-			let subs = val.split('|')
+			let subs = keySub.split('|')
 			for (let [si,sub] of subs.entries()) {
 				let ps = parseSpecial(sub,children,findDef)
 				if (ps.spec) {
@@ -135,7 +138,7 @@ function parseTree(tree:Tree,defs:Def[]): CMDNode[] {
 					for (let n of last) n.children.push(subnode)
 				} else if (ps.nodes) {
 					for (let n of last) n.children = ps.nodes
-					if (subs.length - 1 > si) throw new Error('invokation must be last: '+vals.join(' '))
+					if (subs.length - 1 > si) throw new Error('invokation must be last: '+keySubs.join(' '))
 					newLast = ps.nodes
 				} else throw new Error('should not happen')
 			}

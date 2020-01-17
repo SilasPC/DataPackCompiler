@@ -65,6 +65,15 @@ export class Token {
         )
     }
 
+    errorAt(i:number,msg:string) {
+        let fi = this.line.startIndex + this.index + i
+        let li = fi + this.value.length
+        return new CompileError(
+            createErrorMessage(this.line,this.line,fi,li,msg),
+            false
+        )
+    }
+
     warning(msg:string): CompileError {
         let fi = this.line.startIndex + this.index
         let li = fi + this.value.length

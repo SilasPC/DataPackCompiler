@@ -1,0 +1,11 @@
+
+// recipe files?
+
+alias d minecraft:dirt
+
+shaped a_namespace:compressed_dirt (
+	(d d d)
+	(d d d)
+	(d d d)
+) -> 5 * minecraft:diamond_block
+

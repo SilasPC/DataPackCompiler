@@ -24,6 +24,7 @@
 - Loot tables
 - Advancements
 - Tags
+- Sub tick timing
 
 # IDEAS
 - Oregenerators
@@ -58,4 +59,15 @@
 	- Get biome
 - Util
 	- Array access macro? (arr[expr])
-	
+
+# CLI features
+- Emit API documentation
+- Import structures (dpl import structure [save/structure])
+- Import from existing datapack in saves (dpl import datapack [save/dp])?
+- Move directly so save folder (dpl )
+- Packaging (dpl package | dpl install [save])
+- Pack repository (dpl require)
+
+# Resource packs
+- sounds.json [https://minecraft.gamepedia.com/Sounds.json]
+- texture animations via .mcmeta

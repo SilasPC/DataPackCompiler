@@ -1,12 +1,17 @@
 
 import file from './test'
 
-fn getAllPlayers(): selector {
+// on std::events::player_join {}
+
+// on std::events::every!(3) {;;;}
+
+/*fn getAllPlayers(): selector {
 	return @a[]
-}
+}*/
 
 fn x(): int {
 	a += b
+	/execute as @a positioned <coords> align x facing entity @s feet run say hello!
 	/say hello
 	/say hello
 	// x()
