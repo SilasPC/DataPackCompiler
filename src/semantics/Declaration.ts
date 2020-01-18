@@ -1,6 +1,6 @@
 
 import { ASTFnNode, ASTLetNode, ASTNode } from "../syntax/AST";
-import { ValueType } from "./Types";
+import { ValueType } from "./types/Types";
 import { Instruction } from "../codegen/Instructions";
 import { ESR } from "./ESR";
 import { FnFile } from "../codegen/FnFile";

@@ -5,7 +5,7 @@ import cols from 'colors/safe'
 import { createErrorMessage, CompileError } from "../toolbox/CompileErrors";
 import { SourceLine } from "../lexing/SourceLine";
 import { CMDNode } from "../commands/CMDNode";
-import { ValueType } from "../semantics/Types";
+import { ValueType } from "../semantics/types/Types";
 
 export function astError(node:ASTNode|ASTNode[],err:string): CompileError {
     return new CompileError(astErrorMsg(node,err),false)

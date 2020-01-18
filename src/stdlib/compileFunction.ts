@@ -7,7 +7,7 @@ import { MaybeWrapper } from "../toolbox/Maybe";
 import { ParsingFile } from "../toolbox/ParsingFile";
 import { parseFunction } from "../semantics/statements/parseFunction";
 import { ASTNodeType } from "../syntax/AST";
-import { ValueType } from "../semantics/Types";
+import { ValueType } from "../semantics/types/Types";
 
 export function compileStdlibFunction(
 	fn:string,

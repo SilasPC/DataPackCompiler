@@ -1,16 +1,11 @@
 
 import { ASTNodeType, ASTFnNode, ASTLetNode, ASTStaticDeclaration, astError, ASTExportNode, ASTStatement } from "../syntax/AST";
-import { Declaration, FnDeclaration, DeclarationType, VarDeclaration, DeclarationWrapper } from "./Declaration";
-import { tokenToType, ElementaryValueType, hasSharedType, ValueType } from "./Types";
 import { exhaust } from "../toolbox/other";
 import { ParsingFile } from "../toolbox/ParsingFile";
 import { Fetcher } from "../codegen/Datapack";
 import { CompileContext } from "../toolbox/CompileContext";
 import { Maybe, MaybeWrapper } from "../toolbox/Maybe";
-import { exprParser } from "./expressionParser";
-import { copyESR, getESRType, ESR, ESRType, IntESR } from "./ESR";
 import { Scope } from "./Scope";
-import { parseBody } from "./parseBody";
 import { parseDefine } from "./statements/parseDefine";
 import { parseFunction } from "./statements/parseFunction";
 

@@ -5,7 +5,7 @@ import { Maybe, MaybeWrapper } from "../toolbox/Maybe"
 import { exprParser } from "./expressionParser"
 import { InstrType } from "../codegen/Instructions"
 import { ESR, ESRType, getESRType, assignESR, copyESR } from "./ESR"
-import { hasSharedType, tokenToType, ElementaryValueType } from "./Types"
+import { isSubType, tokenToType, Type } from "./types/Types"
 import { CompileError } from "../toolbox/CompileErrors"
 import { VarDeclaration, DeclarationType } from "./Declaration"
 import { exhaust } from "../toolbox/other"
@@ -61,7 +61,7 @@ export function parseBody(nodes:ASTStatement[],scope:Scope,ctx:CompileContext): 
 					esr = x.value
 				}
 				
-				if (!hasSharedType(getESRType(esr),getESRType(fnret))) {
+				if (!isSubType(getESRType(esr),getESRType(fnret))) {
 					ctx.addError(new CompileError(astErrorMsg(node,'return must match fn return type'),false))
 					maybe.noWrap()
 					continue

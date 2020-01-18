@@ -4,7 +4,7 @@ import { CompileContext } from "../../toolbox/CompileContext"
 import { MaybeWrapper, Maybe } from "../../toolbox/Maybe"
 import { Declaration, FnDeclaration, DeclarationType, VarDeclaration } from "../Declaration"
 import { ESR, ESRType, IntESR, getESRType } from "../ESR"
-import { tokenToType, ElementaryValueType } from "../Types"
+import { tokenToType, Type } from "../types/Types"
 import { exhaust } from "../../toolbox/other"
 import { parseBody } from "../parseBody"
 
@@ -15,26 +15,24 @@ export function parseFunction(node:ASTFnNode,scope:Scope,ctx:CompileContext,this
 	let branch = scope.branch(node.identifier.value,'FN',null)
 	let fn = ctx.createFnFile(branch.getScopeNames())
 	let type = tokenToType(node.returnType,scope.symbols)
-	if (!type.elementary) {
-		ctx.addError(node.returnType.error('nop thx'))
-		return maybe.none()
-	}
 
 	let esr: ESR
 	switch (type.type) {
-		case ElementaryValueType.VOID:
+		case Type.VOID:
 			esr = {type:ESRType.VOID, mutable: false, const: false, tmp: false}
 			break
-		case ElementaryValueType.INT:
+		case Type.INT:
 			esr = {type:ESRType.INT, mutable: false, const: false, tmp: false, scoreboard: ctx.scoreboards.getStatic('return',branch)}
 			break
-		case ElementaryValueType.BOOL:
+		case Type.BOOL:
 			esr = {type:ESRType.BOOL, mutable: false, const: false, tmp: false, scoreboard: ctx.scoreboards.getStatic('return',branch)}
 			break
-		case ElementaryValueType.SELECTOR:
+		case Type.SELECTOR:
 			throw new Error('selector type not implemented')
+		case Type.STRUCT:
+			throw new Error('struct not ready')
 		default:
-			return exhaust(type.type)
+			return exhaust(type)
 	}
 	branch.setReturnVar(esr)
 
@@ -57,18 +55,13 @@ export function parseFunction(node:ASTFnNode,scope:Scope,ctx:CompileContext,this
 	for (let param of node.parameters) {
 		const maybe2 = new MaybeWrapper<{ref:boolean,param:ESR}>()
 		let type = tokenToType(param.type,scope.symbols)
-		if (!type.elementary) {
-			ctx.addError(param.type.error('elementary only thx'))
-			parameters.push(maybe2.none())
-			continue
-		}
 		let esr
 		switch (type.type) {
-			case ElementaryValueType.VOID:
+			case Type.VOID:
 				ctx.addError(param.type.error('not valid'))
 				parameters.push(maybe2.none())
 				continue
-			case ElementaryValueType.INT:
+			case Type.INT:
 				let iesr: IntESR = {
 					type: ESRType.INT,
 					scoreboard: ctx.scoreboards.getStatic(param.symbol.value,branch),
@@ -78,14 +71,16 @@ export function parseFunction(node:ASTFnNode,scope:Scope,ctx:CompileContext,this
 				}
 				esr = iesr
 				break
-			case ElementaryValueType.BOOL:
+			case Type.BOOL:
 				ctx.addError(param.type.error('no bool yet thx'))
 				parameters.push(maybe2.none())
 				continue
-			case ElementaryValueType.SELECTOR:
+			case Type.SELECTOR:
 				throw new Error('selector type not implemented')
+			case Type.STRUCT:
+				throw new Error('struct not ready')
 			default:
-				return exhaust(type.type)
+				return exhaust(type)
 		}
 		let decl: VarDeclaration = {
 			type: DeclarationType.VARIABLE,

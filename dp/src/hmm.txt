@@ -6,3 +6,34 @@ recipe.enableFor(@a)
 recipe.disableFor(@r)
 
 on recipe.didCraft {}
+
+fn main() {
+    let a = A(@a).test()
+}
+
+struct MahMan {
+    pub x: int
+    hello() {}
+}
+
+struct A {
+
+    pub a: int
+    
+    constructor(sel:selector) {
+        this.a = sel.count()
+    }
+
+    pub test() {
+        std::log!(this)
+    }
+
+}
+
+struct B implements A {
+
+    pub test2() {
+        this.test()
+    }
+
+}

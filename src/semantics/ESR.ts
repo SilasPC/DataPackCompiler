@@ -1,4 +1,4 @@
-import { ValueType, ElementaryValueType, hasSharedType } from "./Types";
+import { ValueType, Type, isSubType } from "./types/Types";
 import { exhaust } from "../toolbox/other";
 import { Instruction, INT_OP, InstrType } from "../codegen/Instructions";
 import { CompileContext } from "../toolbox/CompileContext";
@@ -39,9 +39,9 @@ export interface BoolESR extends ESRBase {
 
 export function getESRType(esr:ESR): ValueType {
 	switch (esr.type) {
-		case ESRType.VOID: return {elementary:true,type:ElementaryValueType.VOID}
-		case ESRType.INT: return {elementary:true,type:ElementaryValueType.INT}
-		case ESRType.BOOL: return {elementary:true,type:ElementaryValueType.BOOL}
+		case ESRType.VOID: return {type:Type.VOID}
+		case ESRType.INT: return {type:Type.INT}
+		case ESRType.BOOL: return {type:Type.BOOL}
 		default:
 			return exhaust(esr)
 	}
@@ -49,7 +49,7 @@ export function getESRType(esr:ESR): ValueType {
 
 /** Assigns one esr var to another */
 export function assignESR(from:ESR,to:ESR): Instruction[] {
-	if (!hasSharedType(getESRType(from),getESRType(to))) throw new Error('cannot assign esrs, not same type')
+	if (!isSubType(getESRType(from),getESRType(to))) throw new Error('cannot assign esrs, not same type')
 	switch (from.type) {
 		case ESRType.VOID:
 			throw new Error('cannot assign void esr')

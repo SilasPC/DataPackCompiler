@@ -1,7 +1,7 @@
 import { MaybeWrapper, Maybe } from "../../toolbox/Maybe"
 import { Declaration, DeclarationType } from "../Declaration"
 import { exprParser } from "../expressionParser"
-import { ValueType, tokenToType, ElementaryValueType, hasSharedType } from "../Types"
+import { ValueType, tokenToType, Type, isSubType } from "../types/Types"
 import { copyESR, getESRType } from "../ESR"
 import { ASTLetNode, astSourceMap } from "../../syntax/AST"
 import { Scope } from "../Scope"
@@ -16,11 +16,10 @@ export function parseDefine(node: ASTLetNode,scope:Scope,ctx:CompileContext): Ma
 	let type: ValueType | null = null
 	if (node.typeToken) {
 		type = tokenToType(node.typeToken,scope.symbols)
-		if (type.elementary && type.type == ElementaryValueType.VOID) {
+		if (type.type == Type.VOID) {
 			ctx.addError(node.typeToken.error(`Cannot declare a variable of type 'void'`))
 			return maybe.none()
 		}
-		if (!type.elementary) node.typeToken.throwDebug('no non-elemn rn k')
 	}
 
 	if (maybe.merge(esr0)) return maybe.none()
@@ -29,7 +28,7 @@ export function parseDefine(node: ASTLetNode,scope:Scope,ctx:CompileContext): Ma
 	scope.push(res.copyInstr)
 
 	if (!type) type = getESRType(esr0.value)
-	if (!hasSharedType(getESRType(esr),type)) {
+	if (!isSubType(getESRType(esr),type)) {
 		ctx.addError(node.identifier.error('type mismatch'))
 		return maybe.none()
 	}

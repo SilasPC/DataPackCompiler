@@ -7,6 +7,7 @@
 - Actually add the check when invoking controlflow functions
 
 # FUTURE
+- Dependencies
 - Infer fn returns
 - Compile errors can ask for hints
 - Optimize away unused locals

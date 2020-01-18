@@ -3,7 +3,7 @@ import { SymbolTable } from "./SymbolTable"
 import { Instruction, INT_OP, InstrType, INVOKE } from "../codegen/Instructions"
 import { ESR, ESRType, IntESR, getESRType, assignESR, copyESR } from "./ESR"
 import { DeclarationType, Declaration, DeclarationWrapper } from "./Declaration"
-import { ElementaryValueType, hasSharedType } from "./Types"
+import { Type, isSubType } from "./types/Types"
 import { exhaust } from "../toolbox/other"
 import { CompileContext } from "../toolbox/CompileContext"
 import { Scope } from "./Scope"
@@ -122,7 +122,7 @@ function invokation(node:ASTCallNode,scope:Scope,ctx:CompileContext,evalOnly:boo
 		if (!declParam.value) continue
 		let esr = declParam.value.param
 		let canNoDo = false
-		if (!hasSharedType(getESRType(param.value.esr),getESRType(esr))) {
+		if (!isSubType(getESRType(param.value.esr),getESRType(esr))) {
 			ctx.addError(new CompileError(astErrorMsg(node.parameters.list[i],'param type mismatch'),false))
 			canNoDo = true
 		}
@@ -156,30 +156,28 @@ function invokation(node:ASTCallNode,scope:Scope,ctx:CompileContext,evalOnly:boo
 	}
 	let returnType = getESRType(decl.returns)
 	let invokeInstr: INVOKE = {type:InstrType.INVOKE,fn:decl.fn}
-	if (returnType.elementary) {
-		switch (returnType.type) {
-			case ElementaryValueType.INT: {
-				let into: IntESR = {type:ESRType.INT,mutable:false,const:false,tmp:true,scoreboard:ctx.scoreboards.getStatic('tmp',scope)}
-				if (decl.returns.type != ESRType.INT) throw new Error('ESR error')
-				let copyRet: INT_OP = {type:InstrType.INT_OP,into,from:decl.returns,op:'='}
-				if (!evalOnly)
-					scope.push(invokeInstr,copyRet,...copyBackInstrs)
-				return maybe.wrap(into)
-			}
-			case ElementaryValueType.VOID: {
-				if (!evalOnly)
-					scope.push(invokeInstr,...copyBackInstrs)
-				return maybe.wrap({type:ESRType.VOID,mutable:false,const:false,tmp:false})
-			}
-			case ElementaryValueType.BOOL:
-				throw new Error('no bool ret rn')
-			case ElementaryValueType.SELECTOR:
-				throw new Error('selector return not implemented')
-			default:
-				return exhaust(returnType.type)
+	switch (returnType.type) {
+		case Type.INT: {
+			let into: IntESR = {type:ESRType.INT,mutable:false,const:false,tmp:true,scoreboard:ctx.scoreboards.getStatic('tmp',scope)}
+			if (decl.returns.type != ESRType.INT) throw new Error('ESR error')
+			let copyRet: INT_OP = {type:InstrType.INT_OP,into,from:decl.returns,op:'='}
+			if (!evalOnly)
+				scope.push(invokeInstr,copyRet,...copyBackInstrs)
+			return maybe.wrap(into)
 		}
-	} else {
-		throw new Error('non elementary return value not supported yet')
+		case Type.VOID: {
+			if (!evalOnly)
+				scope.push(invokeInstr,...copyBackInstrs)
+			return maybe.wrap({type:ESRType.VOID,mutable:false,const:false,tmp:false})
+		}
+		case Type.BOOL:
+			throw new Error('no bool ret rn')
+		case Type.SELECTOR:
+			throw new Error('selector return not implemented')
+		case Type.STRUCT:
+			throw new Error('struct return not yet')
+		default:
+			return exhaust(returnType)
 	}
 }
 
