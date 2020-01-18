@@ -7,6 +7,7 @@ import { parseDeclaration } from "./structures/declaration";
 import { CompileContext } from "../toolbox/CompileContext";
 import { parseModule } from "./structures/namespace";
 import { parseImport } from "./structures/import";
+import { parseStruct } from "./structures/struct";
 
 export function fileSyntaxParser(pfile: ParsingFile, ctx: CompileContext): void {
     const iter = pfile.getTokenIterator()
@@ -36,6 +37,9 @@ export function fileSyntaxParser(pfile: ParsingFile, ctx: CompileContext): void 
                     case 'let':
                         pfile.addASTNode(wrapExport(parseDeclaration(iter,ctx),doExport))
                         doExport = null
+                        break
+                    case 'struct':
+                        pfile.addASTNode(wrapExport(parseStruct(iter,ctx),doExport))
                         break
                     default:
                         return token.throwUnexpectedKeyWord()

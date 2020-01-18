@@ -8,6 +8,7 @@ import { Maybe, MaybeWrapper } from "../toolbox/Maybe";
 import { Scope } from "./Scope";
 import { parseDefine } from "./statements/parseDefine";
 import { parseFunction } from "./statements/parseFunction";
+import { parseStruct } from "./statements/parseStruct";
 
 export function hoist(pf:ParsingFile,node:Exclude<ASTStaticDeclaration,ASTExportNode>,scope:Scope,ctx:CompileContext,fetcher:Fetcher): Maybe<true> {
 
@@ -51,6 +52,10 @@ export function hoist(pf:ParsingFile,node:Exclude<ASTStaticDeclaration,ASTExport
 			console.log('hoist recipe')
 			break
 
+		case ASTNodeType.STRUCT:
+			symbols.declareHoister(node.identifier,()=>parseStruct(node,scope,ctx),ctx)
+			break
+			
 		default:
 			return exhaust(node)
 

@@ -72,13 +72,14 @@ export enum ASTNodeType {
     IMPORT,
     ACCESS,
     SELECTOR,
-    RECIPE
+    RECIPE,
+    STRUCT
 }
 
 export type ASTAccess = ASTAccessNode | ASTIdentifierNode
 export type ASTExpr = ASTAccess | ASTSelectorNode | ASTPrimitiveNode | ASTIdentifierNode | ASTOpNode | ASTListNode | ASTCallNode
 export type ASTStatement = ASTExpr | ASTReturnNode | ASTLetNode | ASTIfNode | ASTCMDNode
-export type ASTStaticDeclaration = ASTRecipeNode | ASTLetNode | ASTModuleNode | ASTFnNode | ASTExportNode | ASTImportNode
+export type ASTStaticDeclaration = ASTRecipeNode | ASTLetNode | ASTModuleNode | ASTFnNode | ASTExportNode | ASTImportNode | ASTStructNode
 export type ASTNode = ASTExpr | ASTStatement | ASTStaticDeclaration
 
 export type ASTAccessNode = ASTStaticAccessNode | ASTDynamicAccessNode
@@ -240,6 +241,17 @@ export class ASTFnNode extends ASTNodeBase {
         return '(' + this.parameters.map(p=>`${p.ref?'ref ':''}${p.type.value}`).join(', ') + ') -> ' + this.returnType.value
     }
 
+}
+
+export class ASTStructNode extends ASTNodeBase {
+    public readonly type = ASTNodeType.STRUCT
+    constructor(
+        pf: ParsingFile,
+        indexStart: number,
+        indexEnd: number,
+        public readonly identifier: GenericToken,
+        public readonly parents: GenericToken[]
+    ){super(pf,indexStart,indexEnd)}
 }
 
 export class ASTIfNode extends ASTNodeBase {

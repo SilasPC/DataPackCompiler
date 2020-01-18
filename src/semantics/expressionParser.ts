@@ -3,7 +3,7 @@ import { Instruction, INT_OP, InstrType, INVOKE } from "../codegen/Instructions"
 import { ESR, ESRType, IntESR, getESRType, assignESR, copyESR } from "./ESR"
 import { DeclarationType, Declaration, DeclarationWrapper } from "./Declaration"
 import { Type, isSubType } from "./types/Types"
-import { exhaust } from "../toolbox/other"
+import { exhaust, Errorable } from "../toolbox/other"
 import { CompileContext } from "../toolbox/CompileContext"
 import { Scope } from "./Scope"
 import { Maybe } from "../toolbox/Maybe"
@@ -25,7 +25,7 @@ export function exprParser(node: ASTExpr, scope: Scope, ctx: CompileContext, eva
 			let res = resolveAccess(node,scope,ctx)
 			if (!res.value) return maybe.none()
 			if (res.value.isESR) return maybe.wrap(res.value.esr)
-			return coerseDeclWrapperToESR(res.value.wrapper,ctx)
+			return coerseDeclWrapperToESR(res.value.wrapper,node,ctx)
 		}
 		
 		case ASTNodeType.PRIMITIVE: {
@@ -92,8 +92,11 @@ function invokation(node:ASTCallNode,scope:Scope,ctx:CompileContext,evalOnly:boo
 	}
 	let declw = res.value.wrapper
 	let decl = declw.decl
+	if (decl.type == DeclarationType.STRUCT) {
+		ctx.addError(node.func.error('con_struct_ion not available yet'))
+		return maybe.none()
+	}
 	if (decl.type != DeclarationType.FUNCTION) {
-		console.log(decl)
 		ctx.addError(node.func.error('not a fn'))
 		return maybe.none()
 	}
@@ -291,18 +294,21 @@ function operator(node:ASTOpNode,scope:Scope,ctx:CompileContext,evalOnly:boolean
 	}
 }
 
-function coerseDeclWrapperToESR(decl:DeclarationWrapper,ctx:CompileContext): Maybe<ESR> {
+function coerseDeclWrapperToESR(decl:DeclarationWrapper,errOn:Errorable,ctx:CompileContext): Maybe<ESR> {
 	const maybe = new MaybeWrapper<ESR>()
 	switch (decl.decl.type) {
 		case DeclarationType.VARIABLE: return maybe.wrap(decl.decl.esr)
 		case DeclarationType.FUNCTION:
-				ctx.addError(decl.token.error('cannot use function as value'))
+				ctx.addError(errOn.error('cannot use function as value'))
 				return maybe.none()
 		case DeclarationType.MODULE:
-			ctx.addError(decl.token.error('cannot use module as value'))
+			ctx.addError(errOn.error('cannot use module as value'))
 			return maybe.none()
 		case DeclarationType.RECIPE:
-			ctx.addError(decl.token.error('cannot use recipe as value'))
+			ctx.addError(errOn.error('cannot use recipe as value'))
+			return maybe.none()
+		case DeclarationType.STRUCT:
+			ctx.addError(errOn.error('cannot use struct definition as value'))
 			return maybe.none()
 		default:
 			return exhaust(decl.decl)

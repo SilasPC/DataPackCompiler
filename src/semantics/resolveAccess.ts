@@ -61,8 +61,8 @@ export function resolveAccess(node:ASTAccess,scope:Scope,ctx:CompileContext): Ma
 	const maybe = new MaybeWrapper<ReturnType>()
 
 	if (node.type == ASTNodeType.IDENTIFIER)
-		return scope.symbols.getDeclaration(node.identifier,ctx)
-			.map(wrapper=>({isESR:false,wrapper}))
+		return maybe.map(scope.symbols.getDeclaration(node.identifier,ctx),
+			wrapper=>({isESR:false,wrapper}))
 
 	let dynAccesses: GenericToken[] = []
 	let accessOn: DeclarationWrapper

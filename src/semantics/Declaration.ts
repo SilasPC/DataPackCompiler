@@ -1,16 +1,13 @@
 
-import { ASTFnNode, ASTLetNode, ASTNode } from "../syntax/AST";
 import { ValueType } from "./types/Types";
-import { Instruction } from "../codegen/Instructions";
 import { ESR } from "./ESR";
 import { FnFile } from "../codegen/FnFile";
 import { TokenI } from "../lexing/Token";
-import { exhaust } from "../toolbox/other";
-import { Maybe, MaybeWrapper } from "../toolbox/Maybe";
-import { SymbolTable, ReadOnlySymbolTable } from "./SymbolTable";
-import { CompileContext } from "../toolbox/CompileContext";
+import { Maybe } from "../toolbox/Maybe";
+import { ReadOnlySymbolTable } from "./SymbolTable";
+import { Struct } from "./types/Struct";
 
-export type Declaration = VarDeclaration | FnDeclaration | ModDeclaration | RecipeDeclaration
+export type Declaration = VarDeclaration | FnDeclaration | ModDeclaration | RecipeDeclaration | StructDeclaration
 
 export interface DeclarationWrapper {
 	token: TokenI
@@ -21,7 +18,13 @@ export enum DeclarationType {
 	VARIABLE,
 	FUNCTION,
 	MODULE,
-	RECIPE
+	RECIPE,
+	STRUCT
+}
+
+export interface StructDeclaration {
+	type: DeclarationType.STRUCT
+	struct: Struct
 }
 
 export interface RecipeDeclaration {

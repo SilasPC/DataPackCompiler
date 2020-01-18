@@ -13,7 +13,12 @@ fn testRef(ref lol:int): void {
 	lol++
 }
 
+struct A
+
+struct B implements A
+
 fn x(): int {
+	B()
 	testRef(ref a)
 	a += b
 	//a.abs

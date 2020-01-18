@@ -69,6 +69,8 @@ export function lineSyntaxParser(iter:TokenIteratorI,ctx:CompileContext): null |
                 case 'namespace':
                 case 'ref':
                 case 'recipe':
+                case 'struct':
+                case 'implements':
                     return token.throwDebug('keyword invalid here')
                 default:
                     return exhaust(token.value)

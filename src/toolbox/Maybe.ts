@@ -26,6 +26,11 @@ export class MaybeWrapper<T> {
 		if (this.hasErrored) return new MaybeClass<T>() as Maybe<T>
 		return new MaybeClass<T>(v) as Maybe<T>
 	}
+	
+	map<S,P>(m:Maybe<S>,f:(t:S)=>P): Maybe<P> {
+		if (m.value && !this.hasErrored) return new MaybeClass<P>(f(m.value)) as DefiniteMaybe<P>
+		return new MaybeClass<P>() as NoneMaybe<P>
+	}
 
 }
 
@@ -46,9 +51,5 @@ class MaybeClass<T> {
 	check(): Maybe<true> {
 		if (this.value) return new MaybeClass<true>(true) as Maybe<true>
 		return new MaybeClass<true>(undefined) as Maybe<true>
-	}
-	map<P>(f:(t:T)=>P): Maybe<P> {
-		if (this.value) return new MaybeClass<P>(f(this.value)) as DefiniteMaybe<P>
-		return new MaybeClass<P>() as NoneMaybe<P>
 	}
 }
