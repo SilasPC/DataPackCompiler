@@ -90,7 +90,7 @@ export class Scope {
 		// there is for now no 'if' check
 		let fns = Array(this.stack.length-1)
 			.fill(0)
-			.map(()=>this.ctx.createFnFile([...this.getScopeNames(),'controlflow']))
+			.map(()=>this.ctx.createFnFile([...this.getScopeNames(),'controlflow'],['some controlflow']))
 		fns.forEach((fn,i)=>{
 			fn.insertEnd(this.stack[i+1])
 			if (fns[i+1]) fn.add({

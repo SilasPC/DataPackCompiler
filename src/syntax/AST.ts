@@ -235,6 +235,11 @@ export class ASTFnNode extends ASTNodeBase {
         public readonly returnType: TokenI,
         public readonly body: ASTStatement[]
     ){super(pf,indexStart,indexEnd)}
+
+    getSignatureString() {
+        return '(' + this.parameters.map(p=>`${p.ref?'ref ':''}${p.type.value}`).join(', ') + ') -> ' + this.returnType.value
+    }
+
 }
 
 export class ASTIfNode extends ASTNodeBase {

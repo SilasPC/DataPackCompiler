@@ -9,7 +9,7 @@ import { FnFile } from "./FnFile";
 
 export function generate(fn:FnFile) {
 	
-	let output: string[] = []
+	let output: string[] = fn.getHeader()
 
 	for (let instr of fn.interateInto(output)) {
 

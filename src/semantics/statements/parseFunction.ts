@@ -13,7 +13,10 @@ export function parseFunction(node:ASTFnNode,scope:Scope,ctx:CompileContext,this
 
 	let parameters: Maybe<{param:ESR,ref:boolean}>[] = []
 	let branch = scope.branch(node.identifier.value,'FN',null)
-	let fn = ctx.createFnFile(branch.getScopeNames())
+	let fn = ctx.createFnFile(branch.getScopeNames(),[
+		'Function definition for ' + branch.getScopeNames().join('::'),
+		`Signature: ${node.getSignatureString()}`
+	])
 	let type = tokenToType(node.returnType,scope.symbols)
 
 	let esr: ESR

@@ -33,8 +33,8 @@ export class CompileContext {
 		public readonly options: CompilerOptions,
 		public readonly syntaxSheet: SyntaxSheet
 	) {
-		this.initFn = this.createFnFile(['core','init'])
-		this.loadFn = this.createFnFile(['core','load'])
+		this.initFn = this.createFnFile(['std','init'],['Standard initialization'])
+		this.loadFn = this.createFnFile(['std','load'],['Standard load'])
 	}
 	
 	isFileLoaded(path:string) {
@@ -59,11 +59,11 @@ export class CompileContext {
 		return ParsingFile.fromSource(source,sourceName,this)
 	}
 	
-	createFnFile(names:string[]) {
+	createFnFile(names:string[],headerComments:string[]) {
 		let name = this.options.obscureNames ?
 			getObscureName(this.fnFiles) :
 			getQualifiedName(names,this.fnFiles,Infinity)
-		let fn = new FnFile(name)
+		let fn = new FnFile(name,headerComments)
 		this.fnFiles.set(name,fn)
 		return fn
 	}
