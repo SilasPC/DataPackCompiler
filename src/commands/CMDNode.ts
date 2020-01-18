@@ -81,7 +81,7 @@ export class SemanticalCMDNode extends CMDNode {
 
 	protected tryConsume(token:TokenI,i:number,ctx:CompileContext): number | string {
 		if (token.value.startsWith('${',i)) {
-			let lexer = inlineLiveLexer(token,i+2)
+			let lexer = inlineLiveLexer(token.line.file,token,i+2)
 			let {ast} = expressionSyntaxParser(
 				lexer,ctx,true
 			)
@@ -89,9 +89,9 @@ export class SemanticalCMDNode extends CMDNode {
 				.next()
 				.expectType(TokenType.MARKER)
 				.expectValue('}')
-				.index
+				.indexLine
 			this.lastAST = ast
-			return j - token.index + 1
+			return j - token.indexLine + 1
 		}
 		let spec = this.cmpStr as SheetSpecials
 		switch (spec) {

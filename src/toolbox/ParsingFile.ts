@@ -8,6 +8,7 @@ import { DeclarationWrapper, Declaration, ModDeclaration } from "../semantics/De
 import { Scope } from "../semantics/Scope";
 import { CompileContext } from "./CompileContext";
 import { SymbolTable } from "../semantics/SymbolTable";
+import { SourceLine } from "../lexing/SourceLine";
 
 export class ParsingFile extends SymbolTable {
 
@@ -32,6 +33,7 @@ export class ParsingFile extends SymbolTable {
         return new ParsingFile(sourceName,'','',source,pf=>Scope.createRoot(pf,sourceName,ctx))
     }
 
+    private readonly lines: SourceLine[] = []
     private readonly tokens: TokenI[] = []
     private readonly ast: ASTStaticDeclaration[] = []
     private readonly exports: Map<string,Declaration> = new Map()
@@ -50,11 +52,19 @@ export class ParsingFile extends SymbolTable {
         this.scope = scopeGen(this)
     }
 
+    addLine(l:SourceLine) {this.lines.push(l)}
+    
+    getLineFromIndex(i:number) {
+        let l = this.lines.find(l=>l.indexEnd >= i && l.startIndex <= i)
+        if (!l) throw new Error(`could not find line from index (${i} in ${this.displayName}), last was ${this.lines.pop()}`)
+        return l
+    }
+
     addToken(t:TokenI) {this.tokens.push(t)}
     getTokenIterator() {return new TokenIterator(this,this.tokens)}
 
     addASTNode(n:ASTStaticDeclaration) {this.ast.push(n)}
-    getAST() {return this.ast}
+    getAST(): ReadonlyArray<ASTStaticDeclaration> {return this.ast}
 
     throwUnexpectedEOF() {
         return (<TokenI>this.tokens.pop()).line.fatal('Unexpected EOF',0,0)

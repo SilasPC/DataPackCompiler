@@ -16,12 +16,5 @@ export function parseDeclaration(iter:TokenIteratorI,ctx:CompileContext): ASTLet
     let type = getType(iter)
     iter.next().expectType(TokenType.OPERATOR).expectValue('=')
     let initial = expressionSyntaxParser(iter,ctx,true).ast
-    return {
-        type: ASTNodeType.DEFINE,
-        identifier: symbol,
-        typeToken: type,
-        keyword: letToken,
-        const: letToken.value == 'const',
-        initial
-    }
+    return new ASTLetNode(iter.file,letToken.indexStart,initial.indexEnd,letToken.value=='const',symbol,type,initial)
 }

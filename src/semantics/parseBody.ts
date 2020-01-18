@@ -1,4 +1,4 @@
-import { ASTStatement, ASTNode, ASTNodeType, astErrorMsg, astWarning, astSourceMap } from "../syntax/AST"
+import { ASTStatement, ASTNode, ASTNodeType, astArrErr } from "../syntax/AST"
 import { Scope } from "./Scope"
 import { CompileContext } from "../toolbox/CompileContext"
 import { Maybe, MaybeWrapper } from "../toolbox/Maybe"
@@ -20,7 +20,7 @@ export function parseBody(nodes:ASTStatement[],scope:Scope,ctx:CompileContext): 
 	for (let node of nodes) {
 
 		if (!evalOnly() && ctx.options.sourceMap)
-			scope.addComments(...astSourceMap(node))
+			scope.addComments(...node.sourceMap())
 
 		switch (node.type) {
 			case ASTNodeType.COMMAND: {
@@ -62,7 +62,7 @@ export function parseBody(nodes:ASTStatement[],scope:Scope,ctx:CompileContext): 
 				}
 				
 				if (!isSubType(getESRType(esr),getESRType(fnret))) {
-					ctx.addError(new CompileError(astErrorMsg(node,'return must match fn return type'),false))
+					ctx.addError(node.error('return must match fn return type'))
 					maybe.noWrap()
 					continue
 				}
@@ -78,12 +78,10 @@ export function parseBody(nodes:ASTStatement[],scope:Scope,ctx:CompileContext): 
 				break
 			}
 			case ASTNodeType.SELECTOR:
-			case ASTNodeType.NUMBER:
-			case ASTNodeType.STRING:
-			case ASTNodeType.BOOLEAN:
+			case ASTNodeType.PRIMITIVE:
 			case ASTNodeType.ACCESS:
 			case ASTNodeType.IDENTIFIER:
-				ctx.addError(astWarning(node,'unused expression'))
+				ctx.addError(node.warning('unused expression'))
 				exprParser(node,scope,ctx,evalOnly())
 				break
 			case ASTNodeType.CONDITIONAL: {
@@ -108,12 +106,7 @@ export function parseBody(nodes:ASTStatement[],scope:Scope,ctx:CompileContext): 
 			}
 				
 			case ASTNodeType.LIST:
-				ctx.addError(new CompileError(astErrorMsg(node,'list not here for now'),false))
-				maybe.noWrap()
-				break
-
-			case ASTNodeType.REFERENCE:
-				ctx.addError(node.keyword.error('unexpected keyword'))
+				ctx.addError(node.error('list not here for now'))
 				maybe.noWrap()
 				break
 
@@ -123,19 +116,13 @@ export function parseBody(nodes:ASTStatement[],scope:Scope,ctx:CompileContext): 
 	}
 
 	for (let [,decl] of scope.symbols.getUnreferenced()) {
-		ctx.addError(decl.token.warning('Unused local'))
+		ctx.addError(decl.token.warning('unused local'))
 	}
 
 	if (diedAt) {
 		let dead = nodes.slice(nodes.indexOf(diedAt)+1)
 		if (dead.length > 0)
-			ctx.addError(new CompileError(
-				astErrorMsg(
-					dead,
-					'Dead code detected'
-				),
-				true
-			))
+			ctx.addError(astArrErr(dead,'dead code detected',true))
 	}
 
 	return maybe.wrap(true)

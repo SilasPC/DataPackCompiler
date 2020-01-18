@@ -1,5 +1,5 @@
 import { ParsingFile } from "../toolbox/ParsingFile"
-import { ASTNode, ASTNodeType, ASTOpNode, astErrorMsg, ASTStatement, astWarning } from "../syntax/AST"
+import { ASTNodeType } from "../syntax/AST"
 import { CompileContext } from "../toolbox/CompileContext"
 import { Maybe, MaybeWrapper } from "../toolbox/Maybe"
 import { Fetcher } from "../codegen/Datapack"

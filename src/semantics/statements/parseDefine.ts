@@ -3,10 +3,9 @@ import { Declaration, DeclarationType } from "../Declaration"
 import { exprParser } from "../expressionParser"
 import { ValueType, tokenToType, Type, isSubType } from "../types/Types"
 import { copyESR, getESRType } from "../ESR"
-import { ASTLetNode, astSourceMap } from "../../syntax/AST"
+import { ASTLetNode } from "../../syntax/AST"
 import { Scope } from "../Scope"
 import { CompileContext } from "../../toolbox/CompileContext"
-import { Instruction } from "../../codegen/Instructions"
 
 export function parseDefine(node: ASTLetNode,scope:Scope,ctx:CompileContext): Maybe<Declaration> {
 	const maybe = new MaybeWrapper<Declaration>()
@@ -23,7 +22,7 @@ export function parseDefine(node: ASTLetNode,scope:Scope,ctx:CompileContext): Ma
 	}
 
 	if (maybe.merge(esr0)) return maybe.none()
-	let res = copyESR(esr0.value,ctx,scope,node.identifier.value,{tmp:false,mutable:!node.const,const:false})
+	let res = copyESR(esr0.value,ctx,scope,node.identifier.value,{tmp:false,mutable:!node.isConst,const:false})
 	let esr = res.esr
 	scope.push(res.copyInstr)
 

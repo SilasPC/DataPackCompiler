@@ -20,13 +20,8 @@ export function parseConditional(iter:TokenIteratorI,ctx:CompileContext): ASTIfN
         secondaryBranch = bodyOrLineSyntaxParser(iter,ctx)
     }
 
-    return {
-        type: ASTNodeType.CONDITIONAL,
-        expression,
-        primaryBranch,
-        secondaryBranch,
-        keyword: ifToken,
-        keywordElse: elseToken
-    }
+    let last = secondaryBranch[secondaryBranch.length-1] || primaryBranch[primaryBranch.length-1]
+
+    return new ASTIfNode(iter.file,ifToken.indexStart,last.indexEnd,expression,primaryBranch,secondaryBranch)
 
 }

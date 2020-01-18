@@ -1,6 +1,7 @@
 
 import { SourceLine } from "../lexing/SourceLine"
 import cols from 'colors/safe'
+import { ParsingFile } from "./ParsingFile"
 
 export class CompileError extends Error {
 
@@ -21,7 +22,9 @@ export class CompileError extends Error {
 
 }
 
-export function createErrorMessage(fl:SourceLine,ll:SourceLine,fi:number,li:number,err:string) {
+export function createErrorMessage(pfile:ParsingFile,fi:number,li:number,err:string) {
+
+	let fl = pfile.getLineFromIndex(fi), ll = pfile.getLineFromIndex(li)
 	
 	let msg: string[] = []
 	let nrLen = (ll.nr+1).toString().length

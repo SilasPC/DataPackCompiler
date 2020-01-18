@@ -47,15 +47,10 @@ export function lineSyntaxParser(iter:TokenIteratorI,ctx:CompileContext): null |
                         !peek ||
                         (peek.type == TokenType.MARKER && peek.value == ';')
                     )
-                        return {
-                            type: ASTNodeType.RETURN,
-                            keyword: token,
-                            node: null
-                        }
-                    else return {
-                        type: ASTNodeType.RETURN,
-                        keyword: token,
-                        node: expressionSyntaxParser(iter,ctx,true).ast
+                        return new ASTReturnNode(iter.file,token.indexStart,token.indexEnd,null)
+                    else {
+                        let res = expressionSyntaxParser(iter,ctx,true).ast
+                        return new ASTReturnNode(iter.file,token.indexStart,res.indexEnd,res)
                     }
                 }
                 case 'fn':

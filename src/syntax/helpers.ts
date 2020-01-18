@@ -11,8 +11,7 @@ export function getType(iter:TokenIteratorI): TokenI | null {
 
 export function wrapExport(node:Exclude<ASTStaticDeclaration,ASTExportNode>,keyword:KeywordToken|null): ASTStaticDeclaration {
     if (keyword) {
-        let ret: ASTExportNode = {type:ASTNodeType.EXPORT,keyword,node}
-        return ret
+        return new ASTExportNode(node.pfile,keyword.indexStart,node.indexEnd,node)
     }
     return node
 }

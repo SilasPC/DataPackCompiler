@@ -1,5 +1,5 @@
 
-import { ASTNodeType, ASTFnNode, ASTLetNode, ASTStaticDeclaration, astError, ASTExportNode, ASTStatement } from "../syntax/AST";
+import { ASTNodeType, ASTFnNode, ASTLetNode, ASTStaticDeclaration, ASTExportNode, ASTStatement } from "../syntax/AST";
 import { exhaust } from "../toolbox/other";
 import { ParsingFile } from "../toolbox/ParsingFile";
 import { Fetcher } from "../codegen/Datapack";

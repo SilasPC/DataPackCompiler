@@ -3,16 +3,21 @@ import file from './test'
 
 // on std::events::player_join {}
 
-// on std::events::every!(3) {;;;}
+// on std::events::interval!(3) {;;;}
 
 /*fn getAllPlayers(): selector {
 	return @a[]
 }*/
 
+fn testRef(ref lol:int): void {
+	lol++
+}
+
 fn x(): int {
+	testRef(ref a)
 	a += b
-	a.abs
-	file::a.abs
+	//a.abs
+	//file::a.abs
 	/execute as @a positioned <coords> align x facing entity @s feet run say hello!
 	/say hello
 	/say hello

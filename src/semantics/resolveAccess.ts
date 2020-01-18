@@ -1,4 +1,4 @@
-import { ASTOpNode, ASTNodeType, astErrorMsg, ASTIdentifierNode, ASTAccessNode, ASTExpr, astError, ASTAccess, ASTDynamicAccessNode, ASTStaticAccessNode } from "../syntax/AST";
+import { ASTOpNode, ASTNodeType, ASTIdentifierNode, ASTAccess, ASTDynamicAccessNode, ASTStaticAccessNode } from "../syntax/AST";
 import { Scope } from "./Scope";
 import { CompileContext } from "../toolbox/CompileContext";
 import { Declaration, DeclarationType, ModDeclaration, DeclarationWrapper } from "./Declaration";
@@ -18,8 +18,8 @@ export function resolveStatic(node:ASTStaticAccessNode|ASTIdentifierNode,scope:S
 	let staticAccesses: GenericToken[] = []
 	let op = node
 	while (true) {
-		if (!op.static) {
-			ctx.addError(astError(op,'cannot access statically on non static'))
+		if (!op.isStatic) {
+			ctx.addError(op.error('cannot access statically on non static'))
 			return maybe.none()
 		}
 		if (op.accessee.type == ASTNodeType.IDENTIFIER) {
@@ -71,7 +71,7 @@ export function resolveAccess(node:ASTAccess,scope:Scope,ctx:CompileContext): Ma
 
 		let staticOp: ASTStaticAccessNode | null = null
 
-		if (!node.static) {
+		if (!node.isStatic) {
 
 			let dynOp: ASTDynamicAccessNode = node
 
@@ -83,7 +83,7 @@ export function resolveAccess(node:ASTAccess,scope:Scope,ctx:CompileContext): Ma
 					accessOn = declw.value
 					break doStatic
 				} else if (dynOp.accessee.type == ASTNodeType.ACCESS) {
-					if (dynOp.accessee.static) {
+					if (dynOp.accessee.isStatic) {
 						staticOp = dynOp.accessee
 						break
 					}

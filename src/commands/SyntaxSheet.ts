@@ -32,11 +32,7 @@ export class SyntaxSheet {
 			ctx.addError(res)
 			return maybe.none()
 		}
-		return maybe.wrap({
-			type: ASTNodeType.COMMAND,
-			token,
-			consume: res
-		})
+		return maybe.wrap(new ASTCMDNode(token.line.file,token.indexStart,token.indexEnd,token,res))
 	}
 
 	/*verifySemantics(token:Token,ctx:CompileContext,scope:Scope) {
