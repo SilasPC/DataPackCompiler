@@ -4,6 +4,7 @@ import { CompileContext } from "../../toolbox/CompileContext";
 import { Declaration, StructDeclaration, DeclarationType, DeclarationWrapper } from "../Declaration";
 import { Maybe, MaybeWrapper } from "../../toolbox/Maybe";
 import { Struct } from "../types/Struct";
+import { TokenI, GenericToken } from "../../lexing/Token";
 
 export function parseStruct(node:ASTStructNode,scope:Scope,ctx:CompileContext): Maybe<StructDeclaration> {
     const maybe = new MaybeWrapper<StructDeclaration>()
@@ -15,7 +16,7 @@ export function parseStruct(node:ASTStructNode,scope:Scope,ctx:CompileContext): 
             if (w.decl.type != DeclarationType.STRUCT) {
                 ctx.addError(p.token.error('not a struct'))
                 maybe.noWrap()
-                return []
+                return [] as {struct:StructDeclaration,errOn:GenericToken}[]
             }
             return {struct:w.decl,errOn:p.token}
         })

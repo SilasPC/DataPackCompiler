@@ -4,10 +4,13 @@ import { Instruction, INT_OP, InstrType } from "../codegen/Instructions";
 import { Scoreboard, ESR, ESRType } from "./ESR";
 import { CompileContext } from "../toolbox/CompileContext";
 import { InstrWrapper } from "../codegen/InstrWrapper";
+import { exhaust } from "../toolbox/other";
 
 export type ScopeType = 'FN' | 'NONE'
 
 export class Scope {
+
+	public readonly type: ScopeType = 'NONE'
 
 	private instrBuffer: InstrWrapper
 	private readonly stack: InstrWrapper[]
@@ -18,20 +21,16 @@ export class Scope {
 			symbols,
 			name,
 			ctx,
-			ctx.scoreboards.getStatic([name,'break']),
-			null,
-			'NONE'
+			ctx.scoreboards.getStatic([name,'break'])
 		)
 	}
 
-	private constructor(
+	protected constructor(
 		private readonly parent: Scope|null,
 		public readonly symbols: SymbolTable,
 		private readonly name: string,
 		private ctx: CompileContext,
 		private readonly breakerVar: Scoreboard,
-		private returnVar: ESR | null,
-		public readonly type: ScopeType
 	) {
 		this.stack = [this.instrBuffer = new InstrWrapper()]
 	}
@@ -63,19 +62,14 @@ export class Scope {
 		return [...this.parent.breakScopesRec(scope),instr]
 	}
 
+	getSuperByType(type:'FN'): FnScope | null
+	getSuperByType(type:'NONE'): Scope | null
 	getSuperByType(type:ScopeType): Scope|null {
 		if (this.type == type) return this
 		if (!this.parent) return null
-		return this.parent.getSuperByType(type)
-	}
-
-	getReturnVar() {
-		return this.returnVar
-	}
-
-	setReturnVar(esr:ESR) {
-		if (this.returnVar) throw new Error('cannot overwrite scope return var')
-		this.returnVar = esr
+		if (type == 'FN') return this.parent.getSuperByType(type)
+		else if (type == 'NONE') return this.parent.getSuperByType(type)
+		else return exhaust(type)
 	}
 
 	private newFlowBuffer() {
@@ -114,22 +108,63 @@ export class Scope {
 		this.instrBuffer.addComments(...cmts)
 	}
 
-	public branch(newName:string,type:ScopeType,returnVar:ESR|null) {
-		return new Scope(
-			this,
-			this.symbols.branch(),
-			newName,
-			this.ctx,
-			this.ctx.scoreboards.getStatic([...this.getScopeNames(),newName,'break']),
-			returnVar,
-			type
-		)
+	public branch(newName:string,type:'NONE',returnVar:null): Scope
+	public branch(newName:string,type:'FN',returnVar:ESR|null): FnScope
+	public branch(newName:string,type:ScopeType,returnVar:ESR|null): Scope {
+		switch (type) {
+			case 'NONE':
+				return new Scope(
+					this,
+					this.symbols.branch(),
+					newName,
+					this.ctx,
+					this.ctx.scoreboards.getStatic([...this.getScopeNames(),newName,'break'])
+				)
+			case 'FN':
+				return new FnScope(
+					this,
+					this.symbols.branch(),
+					newName,
+					this.ctx,
+					this.ctx.scoreboards.getStatic([...this.getScopeNames(),newName,'break']),
+					returnVar
+				)
+			default:
+				return exhaust(type)
+		}
+		
 	}
+
+	nameAppend(name:string) {return this.getScopeNames().concat(name)}
 
 	public getScopeNames(): string[] {
 		let names = [this.name]
 		if (this.parent) names = this.parent.getScopeNames().concat(names)
 		return names
+	}
+
+}
+
+export class FnScope extends Scope {
+
+	public readonly type: ScopeType = 'FN'
+
+	constructor(
+		parent: Scope|null,
+		symbols: SymbolTable,
+		name: string,
+		ctx: CompileContext,
+		breakerVar: Scoreboard,
+		private returnVar: ESR | null
+	){super(parent,symbols,name,ctx,breakerVar)}
+
+	getReturnVar() {
+		return this.returnVar
+	}
+
+	setReturnVar(esr:ESR) {
+		if (this.returnVar) throw new Error('cannot overwrite scope return var')
+		this.returnVar = esr
 	}
 
 }

@@ -145,11 +145,12 @@ function invokation(node:ASTCallNode,scope:Scope,ctx:CompileContext,evalOnly:boo
 				return exhaust(esr)
 		}
 	}
+	if (!decl.returns) return maybe.none()
 	let returnType = getESRType(decl.returns)
 	let invokeInstr: INVOKE = {type:InstrType.INVOKE,fn:decl.fn}
 	switch (returnType.type) {
 		case Type.INT: {
-			let into: IntESR = {type:ESRType.INT,mutable:false,const:false,tmp:true,scoreboard:ctx.scoreboards.getStatic('tmp',scope)}
+			let into: IntESR = {type:ESRType.INT,mutable:false,const:false,tmp:true,scoreboard:ctx.scoreboards.getStatic(scope.nameAppend('tmp'))}
 			if (decl.returns.type != ESRType.INT) throw new Error('ESR error')
 			let copyRet: INT_OP = {type:InstrType.INT_OP,into,from:decl.returns,op:'='}
 			if (!evalOnly)
@@ -193,7 +194,7 @@ function operator(node:ASTOpNode,scope:Scope,ctx:CompileContext,evalOnly:boolean
 				return maybe.none()
 			}
 
-			let copy = copyESR(o0.value,ctx,scope,'tmp',{tmp:true,const:false,mutable:false})
+			let copy = copyESR(o0.value,ctx,scope.nameAppend('tmp'),{tmp:true,const:false,mutable:false})
 			let op: INT_OP = {type:InstrType.INT_OP,into:copy.esr,from:o1.value,op:node.operator.value+'='}
 			if (!evalOnly)
 				scope.push(copy.copyInstr,op)
@@ -218,7 +219,7 @@ function operator(node:ASTOpNode,scope:Scope,ctx:CompileContext,evalOnly:boolean
 				return maybe.none()
 			}
 			
-			let copy = copyESR(o0.value,ctx,scope,'tmp',{tmp:true,const:false,mutable:false})
+			let copy = copyESR(o0.value,ctx,scope.nameAppend('tmp'),{tmp:true,const:false,mutable:false})
 			let op: INT_OP = {type:InstrType.INT_OP,into:o0.value,from:o1.value,op:'='}
 			if (!evalOnly)
 				scope.push(op,copy.copyInstr)
@@ -246,7 +247,7 @@ function operator(node:ASTOpNode,scope:Scope,ctx:CompileContext,evalOnly:boolean
 				ctx.addError(node.operator.error('no cast for now'))
 				return maybe.none()
 			}
-			let copy = copyESR(o0.value,ctx,scope,'tmp',{tmp:true,const:false,mutable:false})
+			let copy = copyESR(o0.value,ctx,scope.nameAppend('tmp'),{tmp:true,const:false,mutable:false})
 			let op1: INT_OP = {type:InstrType.INT_OP,into:o0.value,from:o1.value,op:node.operator.value}
 			if (!evalOnly)
 				scope.push(op1,copy.copyInstr)
@@ -267,7 +268,7 @@ function operator(node:ASTOpNode,scope:Scope,ctx:CompileContext,evalOnly:boolean
 				ctx.addError(node.operator.error('only int op for now'))
 				return maybe.none()
 			}
-			let copy = copyESR(o.value,ctx,scope,'tmp',{tmp:true,const:false,mutable:false})
+			let copy = copyESR(o.value,ctx,scope.nameAppend('tmp'),{tmp:true,const:false,mutable:false})
 			let esr: IntESR = {type:ESRType.INT,mutable:false,const:true,tmp:false,scoreboard:ctx.scoreboards.getConstant(1)}
 			let op: INT_OP = {type:InstrType.INT_OP,into:o.value,from:esr,op:node.operator.value[0]+'='}
 			if (!evalOnly)

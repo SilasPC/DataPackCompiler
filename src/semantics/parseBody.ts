@@ -50,15 +50,24 @@ export function parseBody(nodes:ASTStatement[],scope:Scope,ctx:CompileContext): 
 			}
 			case ASTNodeType.RETURN: {
 				let fnscope = scope.getSuperByType('FN')
-				if (!fnscope) throw new Error('ast throw would be nice... return must be contained in fn scope')
-				let fnret = fnscope.getReturnVar()
-				if (!fnret) throw new Error('fn scope does not have return var')
+				if (!fnscope) {
+					ctx.addError(node.error('return must be contained in fn scope'))
+					maybe.noWrap()
+				}
 				let esr: ESR
 				if (!node.node) esr = {type:ESRType.VOID,const:false,tmp:false,mutable:false}
 				else {
 					let x = exprParser(node.node,scope,ctx,evalOnly())
 					if (maybe.merge(x)) continue
 					esr = x.value
+				}
+				if (!fnscope) continue
+				let fnret = fnscope.getReturnVar()
+				if (!fnret) {
+					// do not use copy instr, that is added further down
+					let copyRes = copyESR(esr,ctx,fnscope.nameAppend('return'),{tmp:false,const:false,mutable:false})
+					fnscope.setReturnVar(copyRes.esr)
+					fnret = copyRes.esr
 				}
 				
 				if (!isSubType(getESRType(esr),getESRType(fnret))) {

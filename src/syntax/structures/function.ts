@@ -29,7 +29,6 @@ export function parseFunction(iter:TokenIteratorI,ctx:CompileContext): ASTFnNode
     }
     iter.next().expectType(TokenType.MARKER).expectValue(')')
     let returnType = getType(iter)
-    if (!returnType) throw new Error('no fn infer')
     iter.next().expectType(TokenType.MARKER).expectValue('{')
     let body = bodySyntaxParser(iter,ctx)
     return new ASTFnNode(iter.file,fnToken.indexStart,iter.current().indexEnd,fnSymbol,parameters,returnType,body)

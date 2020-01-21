@@ -45,7 +45,7 @@ export interface VarDeclaration {
 export interface FnDeclaration {
 	type: DeclarationType.FUNCTION
 	thisBinding: ESR | null
-	returns: ESR
+	returns: ESR | null
 	parameters: Maybe<{ref:boolean,param:ESR}>[]
 	fn: FnFile
 }

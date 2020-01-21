@@ -13,11 +13,17 @@ fn testRef(ref lol:int): void {
 	lol++
 }
 
-struct A
+struct A /* {
+
+	val: int
+
+	test() {}
+
+} */
 
 struct B implements A
 
-fn x(): int {
+fn x() {
 	B()
 	testRef(ref a)
 	a += b

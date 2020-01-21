@@ -2,14 +2,14 @@ import { ASTFnNode } from "../../syntax/AST"
 import { Scope } from "../Scope"
 import { CompileContext } from "../../toolbox/CompileContext"
 import { MaybeWrapper, Maybe } from "../../toolbox/Maybe"
-import { Declaration, FnDeclaration, DeclarationType, VarDeclaration } from "../Declaration"
+import { FnDeclaration, DeclarationType, VarDeclaration } from "../Declaration"
 import { ESR, ESRType, IntESR, getESRType } from "../ESR"
 import { tokenToType, Type } from "../types/Types"
 import { exhaust } from "../../toolbox/other"
 import { parseBody } from "../parseBody"
 
 export function parseFunction(node:ASTFnNode,scope:Scope,ctx:CompileContext,thisBinding:ESR|null) {
-	const maybe = new MaybeWrapper<Declaration>()
+	const maybe = new MaybeWrapper<FnDeclaration>()
 
 	let parameters: Maybe<{param:ESR,ref:boolean}>[] = []
 	let branch = scope.branch(node.identifier.value,'FN',null)
@@ -17,27 +17,29 @@ export function parseFunction(node:ASTFnNode,scope:Scope,ctx:CompileContext,this
 		'Function definition for ' + branch.getScopeNames().join('::'),
 		`Signature: ${node.getSignatureString()}`
 	])
-	let type = tokenToType(node.returnType,scope.symbols)
+	let esr: ESR | null = null
+	if (node.returnType) {
+		let type = tokenToType(node.returnType,scope.symbols)
 
-	let esr: ESR
-	switch (type.type) {
-		case Type.VOID:
-			esr = {type:ESRType.VOID, mutable: false, const: false, tmp: false}
-			break
-		case Type.INT:
-			esr = {type:ESRType.INT, mutable: false, const: false, tmp: false, scoreboard: ctx.scoreboards.getStatic('return',branch)}
-			break
-		case Type.BOOL:
-			esr = {type:ESRType.BOOL, mutable: false, const: false, tmp: false, scoreboard: ctx.scoreboards.getStatic('return',branch)}
-			break
-		case Type.SELECTOR:
-			throw new Error('selector type not implemented')
-		case Type.STRUCT:
-			throw new Error('struct not ready')
-		default:
-			return exhaust(type)
+		switch (type.type) {
+			case Type.VOID:
+				esr = {type:ESRType.VOID, mutable: false, const: false, tmp: false}
+				break
+			case Type.INT:
+				esr = {type:ESRType.INT, mutable: false, const: false, tmp: false, scoreboard: ctx.scoreboards.getStatic(branch.nameAppend('return'))}
+				break
+			case Type.BOOL:
+				esr = {type:ESRType.BOOL, mutable: false, const: false, tmp: false, scoreboard: ctx.scoreboards.getStatic(branch.nameAppend('return'))}
+				break
+			case Type.SELECTOR:
+				throw new Error('selector type not implemented')
+			case Type.STRUCT:
+				throw new Error('struct not ready')
+			default:
+				return exhaust(type)
+		}
+		branch.setReturnVar(esr)
 	}
-	branch.setReturnVar(esr)
 
 	let fndecl: FnDeclaration = {
 		type: DeclarationType.FUNCTION,
@@ -67,7 +69,7 @@ export function parseFunction(node:ASTFnNode,scope:Scope,ctx:CompileContext,this
 			case Type.INT:
 				let iesr: IntESR = {
 					type: ESRType.INT,
-					scoreboard: ctx.scoreboards.getStatic(param.symbol.value,branch),
+					scoreboard: ctx.scoreboards.getStatic(branch.nameAppend(param.symbol.value)),
 					mutable: param.ref, // this controls if function parameters are mutable
 					const: false,
 					tmp: false
@@ -95,6 +97,11 @@ export function parseFunction(node:ASTFnNode,scope:Scope,ctx:CompileContext,this
 	}
 	if (maybe.merge(parseBody(node.body,branch,ctx)))
 		return maybe.none()
+
+	if (!branch.getReturnVar()) {
+		ctx.addError(node.identifier.error('could not infer function return type'))
+		return maybe.none()
+	}
 
 	fn.insertEnd(branch.mergeBuffers())
 

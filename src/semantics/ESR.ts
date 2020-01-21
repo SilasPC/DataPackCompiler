@@ -69,7 +69,7 @@ export function assignESR(from:ESR,to:ESR): Instruction[] {
 }
 
 /** Copies esr into a new esr (with the returned instruction) */
-export function copyESR<T extends ESR>(esr:T,ctx:CompileContext,scope:Scope,name:string,base:ESRBase): {copyInstr:Instruction,esr:T} {
+export function copyESR<T extends ESR>(esr:T,ctx:CompileContext,names:string[],base:ESRBase): {copyInstr:Instruction,esr:T} {
 	let esr0 = esr as ESR
 	switch (esr0.type) {
 		case ESRType.VOID:
@@ -77,7 +77,7 @@ export function copyESR<T extends ESR>(esr:T,ctx:CompileContext,scope:Scope,name
 		case ESRType.BOOL:
 			throw new Error('bool copy not supported yet')
 		case ESRType.INT:
-			let retEsr: IntESR = {type:ESRType.INT,...base,scoreboard:ctx.scoreboards.getStatic(name,scope)}
+			let retEsr: IntESR = {type:ESRType.INT,...base,scoreboard:ctx.scoreboards.getStatic(names)}
 			let copyInstr: INT_OP = {type:InstrType.INT_OP,into:retEsr,from:esr0,op:'='}
 			return {copyInstr,esr:retEsr as T}
 		default:

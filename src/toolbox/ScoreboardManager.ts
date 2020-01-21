@@ -22,22 +22,13 @@ export class ScoreboardManager {
 				[this.generateName(['globals']),this.generateName(['constants'])]
 	}
 
-	getStatic(names:string[]): Scoreboard
-	getStatic(name:string,scope:Scope): Scoreboard
-	getStatic(names:string|string[],scope?:Scope) {
-		let resNames: string[]
-		if (Array.isArray(names)) {
-			resNames = [...names]
-		} else {
-			if (!scope) throw new Error('scope arg should be provided in overload ??')
-			resNames = [...scope.getScopeNames(),names]
-		}
+	getStatic(names:string[]): Scoreboard {
 		let ret = {
 			scoreboard: this.globalStatic,
 			selector:
 				this.options.obscureNames ?
 					this.generateObscure() :
-					this.generateName(resNames)
+					this.generateName(names)
 		}
 		this.globals.add(ret.selector)
 		return ret
