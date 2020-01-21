@@ -31,7 +31,7 @@ export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext,
     let que: ASTExpr[] = []
     let postfix: string[] = []
 
-    let refs: boolean[] = []
+    // let refs: boolean[] = []
     let fncalls: boolean[] = [] // store astnodes instead?
 
     let lastWasOperand = false
@@ -119,12 +119,12 @@ export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext,
                             if (fn.type != ASTNodeType.IDENTIFIER && fn.type != ASTNodeType.ACCESS)
                                 return t.throwDebug('not static fn: '+ASTNodeType[fn.type])
                             que.push(new ASTCallNode(pfile,fn.indexStart,t.indexEnd,fn,argnode.list.map(a=>{
-                                let x = refs.pop()
-                                if (typeof x == 'undefined') throw new Error('refs not filled')
-                                if (!x) return a
-                                if (a.type != ASTNodeType.ACCESS && a.type != ASTNodeType.IDENTIFIER)
+                                // let x = refs.pop()
+                                // if (typeof x == 'undefined') throw new Error('refs not filled')
+                                /*if (!x)*/ return a
+                                /*if (a.type != ASTNodeType.ACCESS && a.type != ASTNodeType.IDENTIFIER)
                                     throw new Error('ref non access')
-                                return new ASTRefNode(pfile,a.indexStart,a.indexEnd,a)
+                                return new ASTRefNode(pfile,a.indexStart,a.indexEnd,a)*/
                             })))
                             postfix.push('$')
                         }
@@ -136,9 +136,9 @@ export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext,
                         lastWasOperand = false
                         break
                     case ',':
-                        if (fncalls[fncalls.length-1])
+                        /*if (fncalls[fncalls.length-1])
                             if (tokens.peek().value != 'ref')
-                                refs.push(false)
+                                refs.push(false)*/
                         let coptopush = opInfo(t,false)
                         pushOperator(coptopush,false)
                         let cop = opTop()
@@ -189,8 +189,9 @@ export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext,
             case TokenType.KEYWORD: {
                 switch (t.value) {
                     case 'ref':
+                        throw new Error('ref disabled')
                         if (lastWasOperand||!fncalls[fncalls.length-1]) t.throwDebug('unexpected keyword')
-                        refs.push(true)
+                        // refs.push(true)
                         break
                     default:
                         if (!asi||!tokens.currentFollowsNewline())

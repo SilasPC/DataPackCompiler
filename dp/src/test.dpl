@@ -9,9 +9,9 @@ import file from './test'
 	return @a[]
 }*/
 
-fn testRef(ref lol:int): void {
+/*fn testRef(ref lol:int): void {
 	lol++
-}
+}*/
 
 struct A /* {
 
@@ -25,7 +25,7 @@ struct B implements A
 
 fn x() {
 	B()
-	testRef(ref a)
+	//testRef(ref a)
 	a += b
 	//a.abs
 	//file::a.abs
@@ -42,5 +42,7 @@ fn x() {
 let a = b;
 const b = 2;
 let yr = y()
+
+let xi: int = x()
 
 fn y(): int {return 1}
