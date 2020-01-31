@@ -20,5 +20,5 @@ export function parseStruct(node:ASTStructNode,scope:Scope,ctx:CompileContext): 
             }
             return {struct:w.decl,errOn:p.token}
         })
-    return maybe.map<Struct,StructDeclaration>(Struct.create(parents,ctx),struct=>({type:DeclarationType.STRUCT,struct}))
+    return maybe.map<Struct,StructDeclaration>(Struct.create(node.identifier.value,parents,ctx),struct=>({type:DeclarationType.STRUCT,struct,namePath:scope.getScopeNames()}))
 }

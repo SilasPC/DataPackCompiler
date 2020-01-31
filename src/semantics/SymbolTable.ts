@@ -2,9 +2,10 @@
 import { TokenI } from "../lexing/Token"
 import { DeclarationWrapper, Declaration, ModDeclaration, DeclarationType, VarDeclaration } from "./Declaration"
 import { Maybe, MaybeWrapper } from "../toolbox/Maybe"
-import { CompileContext } from "../toolbox/CompileContext"
 import $ from 'js-itertools'
 import { keywords, types, reservedSymbols } from "../lexing/values"
+import { Logger } from "../toolbox/Logger"
+import { IChainableIterable } from "js-itertools/lib/src/types"
 
 export type Hoister = (/*earlyReplace:(decl:Declaration)=>void*/) => Maybe<Declaration>
 
@@ -18,11 +19,27 @@ type InternalWrapper = {
     hoisted: boolean
 }
 
+// Change to PublicSymbolTable (use a pubGet method for getting public members)
 export interface ReadOnlySymbolTable {
-    getDeclaration(name:TokenI,ctx:CompileContext): Maybe<DeclarationWrapper>
+    getDeclaration(name:TokenI,log:Logger): Maybe<DeclarationWrapper>
 }
 
 export class SymbolTable implements ReadOnlySymbolTable {
+
+    public static getAllUnreferenced(st:SymbolTable): IChainableIterable<DeclarationWrapper> {
+        return $(st.declarations)
+            .map(([_,w])=>w)
+            .filter(w=>!w.decl||!w.refCounter)
+            .map(w=>w.decl as DeclarationWrapper)
+            .chain(...st.children.map(c=>SymbolTable.getAllUnreferenced(c)))
+    }
+
+    public static getAllDeclarations(st:SymbolTable): IChainableIterable<DeclarationWrapper> {
+        return ($(st.declarations)
+            .map(([_,w])=>w.decl)
+            .filter(d=>d != null) as IChainableIterable<DeclarationWrapper>)
+            .chain(...st.children.map(c=>SymbolTable.getAllDeclarations(c)))
+    }
 
     public static createRoot() {
         return new SymbolTable(null)
@@ -35,13 +52,6 @@ export class SymbolTable implements ReadOnlySymbolTable {
     protected constructor(
         public readonly parent: SymbolTable|null
     ) {}
-
-    /** Only returns for local scope */
-    getUnreferenced() {
-        return $(this.declarations)
-            .filter(([_,w])=>!w.refCounter)
-            .map(([k,w])=>[k,w.decl] as [string,DeclarationWrapper])
-    }
 
     branch() {
         let child = new SymbolTable(this)
@@ -65,17 +75,17 @@ export class SymbolTable implements ReadOnlySymbolTable {
         return null
     }
 
-    getDeclaration(name:TokenI,ctx:CompileContext): Maybe<DeclarationWrapper> {
+    getDeclaration(name:TokenI,log:Logger): Maybe<DeclarationWrapper> {
         let maybe = new MaybeWrapper<DeclarationWrapper>()
         let iw = this.getInternal(name.value)
         if (!iw) {
-            ctx.addError(name.error(`'${name.value}' not available in scope`))
+            log.addError(name.error(`'${name.value}' not available in scope`))
             return maybe.none()
         }
         iw.refCounter++
         if (iw.failed) return maybe.none()
         if (iw.active) {
-            ctx.addError(name.error('circular dependency'))
+            log.addError(name.error('circular dependency'))
             return maybe.none()
         }
         if (iw.decl) return maybe.wrap(iw.decl)
@@ -132,14 +142,14 @@ export class SymbolTable implements ReadOnlySymbolTable {
         this.declarations.set('this',iw)
     }
 
-    declareDirect(id:TokenI,decl:Declaration,ctx:CompileContext): Maybe<true> {
+    declareDirect(id:TokenI,decl:Declaration,log:Logger): Maybe<true> {
         const maybe = new MaybeWrapper<true>()
         if (reservedSymbols.includes(id.value)) {
-            ctx.addError(id.error('reserved identifier'))
+            log.addError(id.error('reserved identifier'))
             return maybe.none()
         }
         if (this.getInternal(id.value)) {
-            ctx.addError(id.error('duplicate declaration'))
+            log.addError(id.error('duplicate declaration'))
             return maybe.none()
         }
         let iw: InternalWrapper = {
@@ -155,10 +165,10 @@ export class SymbolTable implements ReadOnlySymbolTable {
         return maybe.wrap(true)
     }
 
-    declareHoister(id:TokenI,hoister:Hoister,ctx:CompileContext): Maybe<true> {
+    declareHoister(id:TokenI,hoister:Hoister,log:Logger): Maybe<true> {
         const maybe = new MaybeWrapper<true>()
         if (reservedSymbols.includes(id.value)) {
-            ctx.addError(id.error('reserved identifier'))
+            log.addError(id.error('reserved identifier'))
             return maybe.none()
         }
         let iw: InternalWrapper = {
@@ -171,7 +181,7 @@ export class SymbolTable implements ReadOnlySymbolTable {
             hoisted: false
         }
         if (this.getInternal(id.value)) {
-            ctx.addError(id.error('duplicate declaration'))
+            log.addError(id.error('duplicate declaration'))
             this.callHoister(iw)
             return maybe.none()
         }
@@ -187,13 +197,6 @@ export class SymbolTable implements ReadOnlySymbolTable {
             maybe.noWrap()
         }
         return maybe.wrap(true)
-    }
-
-    asModule(): ModDeclaration {
-        return {
-            type: DeclarationType.MODULE,
-            symbols: this
-        }
     }
 
 }

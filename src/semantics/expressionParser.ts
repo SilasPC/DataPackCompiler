@@ -1,58 +1,64 @@
 import { ASTNode, ASTNodeType, ASTOpNode, ASTExpr, ASTCallNode, ASTRefNode } from "../syntax/AST"
-import { Instruction, INT_OP, InstrType, INVOKE } from "../codegen/Instructions"
-import { ESR, ESRType, IntESR, getESRType, assignESR, copyESR } from "./ESR"
-import { DeclarationType, Declaration, DeclarationWrapper } from "./Declaration"
-import { Type, isSubType } from "./types/Types"
 import { exhaust, Errorable } from "../toolbox/other"
-import { CompileContext } from "../toolbox/CompileContext"
-import { Scope } from "./Scope"
 import { Maybe } from "../toolbox/Maybe"
 import { MaybeWrapper } from "../toolbox/Maybe"
 import { CompileError } from "../toolbox/CompileErrors"
-import { resolveAccess } from "./resolveAccess"
+import { ParseTree, PTKind, PTExpr, PTOpNode, ptExprToType, ptCanMut, PTCallNode, PTVarNode } from "./ParseTree"
+import { Logger } from "../toolbox/Logger"
+import { resolveStatic, resolveAccess } from "./resolveAccess"
+import { DeclarationType } from "./Declaration"
+import { Type, isSubType } from "./types/Types"
+import { Scope } from "./Scope"
 
-export function exprParser(node: ASTExpr, scope: Scope, ctx: CompileContext, evalOnly:boolean): Maybe<ESR> {
+export function parseExpression(
+	node: ASTExpr,
+	scope: Scope,
+	log: Logger
+): Maybe<PTExpr> {
 
-	let maybe = new MaybeWrapper<ESR>()
+	const maybe = new MaybeWrapper<PTExpr>()
 
 	switch (node.type) {
 
-		case ASTNodeType.SELECTOR:
-			throw new Error('not implemented')
-
 		case ASTNodeType.ACCESS:
 		case ASTNodeType.IDENTIFIER: {
-			let res = resolveAccess(node,scope,ctx)
+			let res = resolveAccess(node,scope,log)
 			if (!res.value) return maybe.none()
-			if (res.value.isESR) return maybe.wrap(res.value.esr)
-			return coerseDeclWrapperToESR(res.value.wrapper,node,ctx)
+			switch (res.value.decl.type) {
+				case DeclarationType.VARIABLE:
+					return maybe.wrap({kind:PTKind.VARIABLE,decl:res.value.decl})
+				default: throw new Error('kiiill mmeeeee')
+			}
 		}
 		
+		case ASTNodeType.SELECTOR:
+			return maybe.wrap({kind:PTKind.PRIMITIVE,value:{type:Type.SELECTOR},scopeNames:scope.getScopeNames()})
 		case ASTNodeType.PRIMITIVE: {
 			if (node.value.value == 'true')
-				return maybe.wrap({type:ESRType.BOOL,mutable:false,const:true,tmp:false,scoreboard:ctx.scoreboards.getConstant(1)})
+				return maybe.wrap({kind:PTKind.PRIMITIVE,value:{type:Type.BOOL,value:true},scopeNames:scope.getScopeNames()})
 			if (node.value.value == 'false')
-				return maybe.wrap({type:ESRType.BOOL,mutable:false,const:true,tmp:false,scoreboard:ctx.scoreboards.getConstant(0)})
+				return maybe.wrap({kind:PTKind.PRIMITIVE,value:{type:Type.BOOL,value:false},scopeNames:scope.getScopeNames()})
 			if (node.value.value.startsWith('\'')) {
-				ctx.addError(node.value.error('no strings in expressions for now I guess'))
+				log.addError(node.value.error('no strings in expressions for now I guess'))
 				return maybe.none()
 			}
 			let n = Number(node.value.value)
 			if (Number.isNaN(n)||!Number.isInteger(n)) {
-				ctx.addError(node.value.error('kkk only int primitives'))
+				log.addError(node.value.error('kkk only int primitives'))
 				return maybe.none()
 			}
-			return maybe.wrap({type:ESRType.INT,mutable:false,const:true,tmp:false,scoreboard:ctx.scoreboards.getConstant(n)})
+			return maybe.wrap({kind:PTKind.PRIMITIVE,value:{type:Type.INT,value:n},scopeNames:scope.getScopeNames()})
 		}
 
-		case ASTNodeType.OPERATION:
-			return operator(node,scope,ctx,evalOnly)
+		case ASTNodeType.OPERATION: {
+			return maybe.pass(operator(node,scope,log))
+		}
 
 		case ASTNodeType.INVOKATION:
-			return invokation(node,scope,ctx,evalOnly,maybe)			
+			return maybe.pass(invokation(node,scope,log))			
 
 		case ASTNodeType.LIST:
-			ctx.addError(node.error('no lists in expr yet'))
+			log.addError(node.error('no lists in expr yet'))
 			return maybe.none()
 
 		default:
@@ -62,256 +68,256 @@ export function exprParser(node: ASTExpr, scope: Scope, ctx: CompileContext, eva
 
 }
 
-function invokation(node:ASTCallNode,scope:Scope,ctx:CompileContext,evalOnly:boolean,maybe:MaybeWrapper<ESR>) {
+function invokation(node:ASTCallNode,scope:Scope,log:Logger): Maybe<PTCallNode> {
+	type Arg = ({ref:true,pt:PTVarNode}|{ref:false,pt:PTExpr})
+	const maybe = new MaybeWrapper<PTCallNode>()
 	if (node.func.type != ASTNodeType.IDENTIFIER && node.func.type != ASTNodeType.ACCESS) throw new Error('only direct calls for now')
-	let params = node.parameters.map(p=>{
-		let maybe = new MaybeWrapper<{esr:ESR,ref:boolean}>()
+	const params: Maybe<Arg>[] = node.parameters.map(p=>{
+		const maybe = new MaybeWrapper<Arg>()
 		if (p.type == ASTNodeType.REFERENCE) {
-			let res = resolveAccess(p.ref,scope,ctx) // scope.symbols.getDeclaration(p.expr.identifier,ctx)
+			throw new Error('wait ref')
+			/*let res = resolveAccess(p.ref,scope,log)
 			if (!res.value) return maybe.none()
 			if (res.value.isESR) {
-				ctx.addError(node.func.error('cannot reference an expression'))
+				log.addError(node.func.error('cannot reference an expression'))
 				return maybe.none()
 			}
 			let declw = res.value.wrapper
 			if (declw.decl.type != DeclarationType.VARIABLE) {
-				ctx.addError(p.ref.error('can only reference variables'))
+				log.addError(p.ref.error('can only reference variables'))
 				return maybe.none()
 			}
-			return maybe.wrap({ref:true,esr:declw.decl.esr})
+			return maybe.wrap({ref:true,esr:declw.decl.esr})*/
 		}
-		let esr = exprParser(p,scope,ctx,evalOnly)
-		if (!esr.value) return maybe.none()
-		return maybe.wrap({esr:esr.value,ref:false})
+		let pt = parseExpression(p,scope,log)
+		if (!pt.value) return maybe.none()
+		return maybe.wrap({pt:pt.value,ref:false})
 	})
-	let res = resolveAccess(node.func,scope,ctx) //symbols.getDeclaration(node.func.identifier.value)
+	if (node.func.type == ASTNodeType.ACCESS && !node.func.isStatic)
+		throw new Error('wait dyn access')
+	let res = resolveStatic(node.func,scope.symbols,log)
 	if (!res.value) return maybe.none()
-	if (res.value.isESR) {
-		ctx.addError(node.func.error('expected a callable expression'))
-		return maybe.none()
-	}
-	let declw = res.value.wrapper
-	let decl = declw.decl
+	let decl = res.value.decl
 	if (decl.type == DeclarationType.STRUCT) {
-		ctx.addError(node.func.error('con_struct_ion not available yet'))
+		log.addError(node.func.error('con_struct_ion not available yet'))
 		return maybe.none()
 	}
 	if (decl.type != DeclarationType.FUNCTION) {
-		ctx.addError(node.func.error('not a fn'))
+		log.addError(node.func.error('not a fn'))
 		return maybe.none()
 	}
-	if (decl.thisBinding != null) return declw.token.throwDebug('methods not implemented')
+	if (decl.thisBinding.type != Type.VOID) return res.value.token.throwDebug('methods not implemented')
 	if (params.length != decl.parameters.length) {
-		ctx.addError(node.func.error('param length unmatched'))
+		log.addError(node.func.error('param length unmatched'))
 		return maybe.none()
 	}
-	let copyBackInstrs: Instruction[] = []
 	for (let i = 0; i < params.length; i++) {
 		let param = params[i]
 		if (!param.value) continue
 		let declParam = decl.parameters[i]
-		if (!declParam.value) continue
-		let esr = declParam.value.param
 		let canNoDo = false
-		if (!isSubType(getESRType(param.value.esr),getESRType(esr))) {
-			ctx.addError(node.parameters[i].error('param type mismatch'))
+		if (!isSubType(declParam.type,ptExprToType(param.value.pt))) {
+			log.addError(node.parameters[i].error('param type mismatch'))
 			canNoDo = true
 		}
-		if (param.value.ref != declParam.value.ref) {
-			ctx.addError(node.parameters[i].error('reference mismatch'))
+		if (param.value.ref != declParam.isRef) {
+			log.addError(node.parameters[i].error('reference mismatch'))
 			canNoDo = true
 		}
 		if (canNoDo) {
 			maybe.noWrap()
 			continue
 		}
-		copyBackInstrs.push(...assignESR(declParam.value.param,param.value.esr))
-		switch (esr.type) {
-			case ESRType.BOOL:
-				throw new Error('no impl')
-			case ESRType.INT:
-				let instr: INT_OP = {
-					type: InstrType.INT_OP,
-					from: param.value.esr as IntESR,
-					into: esr,
-					op: '='
-				}
-				if (!evalOnly)
-					scope.push(instr)
-				break
-			case ESRType.VOID:
-				throw new Error(`this can't happen`)
-			default:
-				return exhaust(esr)
-		}
 	}
 	if (!decl.returns) return maybe.none()
-	let returnType = getESRType(decl.returns)
-	let invokeInstr: INVOKE = {type:InstrType.INVOKE,fn:decl.fn}
-	switch (returnType.type) {
-		case Type.INT: {
-			let into: IntESR = {type:ESRType.INT,mutable:false,const:false,tmp:true,scoreboard:ctx.scoreboards.getStatic(scope.nameAppend('tmp'))}
-			if (decl.returns.type != ESRType.INT) throw new Error('ESR error')
-			let copyRet: INT_OP = {type:InstrType.INT_OP,into,from:decl.returns,op:'='}
-			if (!evalOnly)
-				scope.push(invokeInstr,copyRet,...copyBackInstrs)
-			return maybe.wrap(into)
-		}
-		case Type.VOID: {
-			if (!evalOnly)
-				scope.push(invokeInstr,...copyBackInstrs)
-			return maybe.wrap({type:ESRType.VOID,mutable:false,const:false,tmp:false})
-		}
-		case Type.BOOL:
-			throw new Error('no bool ret rn')
-		case Type.SELECTOR:
-			throw new Error('selector return not implemented')
-		case Type.STRUCT:
-			throw new Error('struct return not yet')
-		default:
-			return exhaust(returnType)
-	}
+	return maybe.wrap({
+		kind: PTKind.INVOKATION,
+		func: decl,
+		args: params.map(p=>p.value as Arg),
+		scopeNames:scope.getScopeNames()
+	})
 }
 
-function operator(node:ASTOpNode,scope:Scope,ctx:CompileContext,evalOnly:boolean): Maybe<ESR> {
-	const maybe = new MaybeWrapper<IntESR>()
+function operator(node:ASTOpNode,scope:Scope,log:Logger): Maybe<PTOpNode> {
+	const maybe = new MaybeWrapper<PTOpNode>()
 	switch (node.operator.value) {
 		case '+':
 		case '-':
 		case '*':
 		case '/':
 		case '%': {
-			console.assert(node.operands.length == 2, 'two operands')
-			let [o0,o1] = node.operands.map(o=>exprParser(o,scope,ctx,evalOnly))
+			console.assert(node.operands.length == 2, 'two operands') // skipping unary plus and minus for now
+			let [o0,o1] = node.operands.map(o=>parseExpression(o,scope,log))
 			if (!o0.value || !o1.value)
 				return maybe.none()
-			if (o0.value.type != ESRType.INT) {
-				ctx.addError(node.operator.error('only int op for now'))
+			let [t0,t1] = [ptExprToType(o0.value),ptExprToType(o1.value)]
+			if (t0.type != Type.INT) {
+				log.addError(node.operator.error('only int op for now'))
 				return maybe.none()
 			}
-			if (o0.value.type != o1.value.type) {
-				ctx.addError(node.operator.error('no cast for now'))
+			if (t0.type != t1.type) {
+				log.addError(node.operator.error('no cast for now'))
 				return maybe.none()
 			}
-
-			let copy = copyESR(o0.value,ctx,scope.nameAppend('tmp'),{tmp:true,const:false,mutable:false})
-			let op: INT_OP = {type:InstrType.INT_OP,into:copy.esr,from:o1.value,op:node.operator.value+'='}
-			if (!evalOnly)
-				scope.push(copy.copyInstr,op)
-			return maybe.wrap(copy.esr)
+			return maybe.wrap({
+				kind: PTKind.OPERATOR,
+				op: node.operator.value,
+				vals: [o0.value,o1.value],
+				type: t0,
+				scopeNames:scope.getScopeNames()
+			})
 		}
 
 		case '=': {
 			console.assert(node.operands.length == 2, 'two operands')
-			let [o0,o1] = node.operands.map(o=>exprParser(o,scope,ctx,evalOnly))
+			let [o0,o1] = node.operands.map(o=>parseExpression(o,scope,log))
 			if (!o0.value || !o1.value)
 				return maybe.none()
-			if (!o0.value.mutable) {
-				ctx.addError(node.operands[0].error('left hand side immutable'))
+			if (!ptCanMut(o0.value)) {
+				log.addError(node.operands[0].error('left hand side immutable'))
 				return maybe.none()
 			}
-			if (o0.value.type != ESRType.INT) {
-				ctx.addError(node.operator.error('only int op for now'))
+			let [t0,t1] = [ptExprToType(o0.value),ptExprToType(o1.value)]
+			if (!isSubType(t0,t1)) {
+				log.addError(node.operator.error('types not assignable'))
 				return maybe.none()
 			}
-			if (o0.value.type != o1.value.type) {
-				ctx.addError(node.operator.error('no cast for now'))
-				return maybe.none()
-			}
-			
-			let copy = copyESR(o0.value,ctx,scope.nameAppend('tmp'),{tmp:true,const:false,mutable:false})
-			let op: INT_OP = {type:InstrType.INT_OP,into:o0.value,from:o1.value,op:'='}
-			if (!evalOnly)
-				scope.push(op,copy.copyInstr)
-			return maybe.wrap(copy.esr)
+			return maybe.wrap({
+				kind: PTKind.OPERATOR,
+				op: node.operator.value,
+				vals: [o0.value,o1.value],
+				type: t0,
+				scopeNames:scope.getScopeNames()
+			})
 		}
-		
+
 		case '+=':
 		case '-=':
 		case '*=':
 		case '/=':
 		case '%=': {
 			console.assert(node.operands.length == 2, 'two operands')
-			let [o0,o1] = node.operands.map(o=>exprParser(o,scope,ctx,evalOnly))
+			let [o0,o1] = node.operands.map(o=>parseExpression(o,scope,log))
 			if (!o0.value || !o1.value)
 				return maybe.none()
-			if (!o0.value.mutable) {
-				ctx.addError(node.operands[0].error('left hand side immutable'))
+			if (!ptCanMut(o0.value)) {
+				log.addError(node.operands[0].error('left hand side immutable'))
 				return maybe.none()
 			}
-			if (o0.value.type != ESRType.INT) {
-				ctx.addError(node.operator.error('only int op for now'))
+			let [t0,t1] = [ptExprToType(o0.value),ptExprToType(o1.value)]
+			if (t0.type != Type.INT) {
+				log.addError(node.operands[0].error('only int op for now'))
 				return maybe.none()
 			}
-			if (o0.value.type != o1.value.type) {
-				ctx.addError(node.operator.error('no cast for now'))
+			if (t0.type != t1.type) {
+				log.addError(node.operator.error('no cast for now'))
 				return maybe.none()
 			}
-			let copy = copyESR(o0.value,ctx,scope.nameAppend('tmp'),{tmp:true,const:false,mutable:false})
-			let op1: INT_OP = {type:InstrType.INT_OP,into:o0.value,from:o1.value,op:node.operator.value}
-			if (!evalOnly)
-				scope.push(op1,copy.copyInstr)
-			return maybe.wrap(copy.esr)
+			return maybe.wrap({
+				kind: PTKind.OPERATOR,
+				op: node.operator.value,
+				vals: [o0.value,o1.value],
+				type: t0,
+				scopeNames:scope.getScopeNames()
+			})
 		}
 		
 		case '++':
 		case '--': {
 			console.assert(node.operands.length == 1, 'one operand')
-			let o = exprParser(node.operands[0],scope,ctx,evalOnly)
+			let o = parseExpression(node.operands[0],scope,log)
 			if (!o.value)
 				return maybe.none()
-			if (!o.value.mutable) {
-				ctx.addError(node.operands[0].error('left hand side immutable'))
+			if (!ptCanMut(o.value)) {
+				log.addError(node.operands[0].error('left hand side immutable'))
 				return maybe.none()
 			}
-			if (o.value.type != ESRType.INT) {
-				ctx.addError(node.operator.error('only int op for now'))
+			let type = ptExprToType(o.value)
+			if (type.type != Type.INT) {
+				log.addError(node.operator.error('only int op for now'))
 				return maybe.none()
 			}
-			let copy = copyESR(o.value,ctx,scope.nameAppend('tmp'),{tmp:true,const:false,mutable:false})
-			let esr: IntESR = {type:ESRType.INT,mutable:false,const:true,tmp:false,scoreboard:ctx.scoreboards.getConstant(1)}
-			let op: INT_OP = {type:InstrType.INT_OP,into:o.value,from:esr,op:node.operator.value[0]+'='}
-			if (!evalOnly)
-				scope.push(op,copy.copyInstr)
-			return maybe.wrap(copy.esr)
+			return maybe.wrap({
+				kind: PTKind.OPERATOR,
+				op: node.operator.value,
+				vals: [o.value],
+				type,
+				scopeNames:scope.getScopeNames()
+			})
 		}
-		
-		case '&&':
-		case '||':
-
-		case '!':
 		
 		case '>':
 		case '<':
 		case '>=':
 		case '<=':
 		case '==':
-		case '!=':
-			ctx.addError(new CompileError('i rly h8 boilerplate',false))
-			return maybe.none()
+		case '!=': {
+			console.assert(node.operands.length == 2, 'two operands')
+			let [o0,o1] = node.operands.map(o=>parseExpression(o,scope,log))
+			if (!o0.value || !o1.value)
+				return maybe.none()
+			let [t0,t1] = [ptExprToType(o0.value),ptExprToType(o1.value)]
+			if (t0.type != Type.INT) {
+				log.addError(node.operands[0].error('only int op for now'))
+				return maybe.none()
+			}
+			if (t0.type != t1.type) {
+				log.addError(node.operator.error('no cast for now'))
+				return maybe.none()
+			}
+			return maybe.wrap({
+				kind: PTKind.OPERATOR,
+				op: node.operator.value,
+				vals: [o0.value,o1.value],
+				type: {type:Type.BOOL},
+				scopeNames:scope.getScopeNames()
+			})
+		}
+		
+		case '&&':
+		case '||': {
+			console.assert(node.operands.length == 2, 'two operands')
+			let [o0,o1] = node.operands.map(o=>parseExpression(o,scope,log))
+			if (!o0.value || !o1.value)
+				return maybe.none()
+			let [t0,t1] = [ptExprToType(o0.value),ptExprToType(o1.value)]
+			if (t0.type != Type.BOOL) {
+				log.addError(node.operands[0].error('expected bool'))
+				maybe.noWrap()
+			}
+			if (t0.type != Type.BOOL) {
+				log.addError(node.operands[1].error('expected bool'))
+				maybe.noWrap()
+			}
+			return maybe.wrap({
+				kind: PTKind.OPERATOR,
+				op: node.operator.value,
+				vals: [o0.value,o1.value],
+				type: {type:Type.BOOL},
+				scopeNames:scope.getScopeNames()
+			})
+		}	
+
+		case '!': {
+			console.assert(node.operands.length == 1, 'one operand')
+			let o = parseExpression(node.operands[0],scope,log)
+			if (!o.value)
+				return maybe.none()
+			let type = ptExprToType(o.value)
+			if (type.type != Type.BOOL) {
+				log.addError(node.operands[0].error('expected bool'))
+				maybe.noWrap()
+			}
+			return maybe.wrap({
+				kind: PTKind.OPERATOR,
+				op: node.operator.value,
+				vals: [o.value],
+				type: {type:Type.BOOL},
+				scopeNames:scope.getScopeNames()
+			})
+		}	
 
 		default:
 			return exhaust(node.operator.value)
-	}
-}
-
-function coerseDeclWrapperToESR(decl:DeclarationWrapper,errOn:Errorable,ctx:CompileContext): Maybe<ESR> {
-	const maybe = new MaybeWrapper<ESR>()
-	switch (decl.decl.type) {
-		case DeclarationType.VARIABLE: return maybe.wrap(decl.decl.esr)
-		case DeclarationType.FUNCTION:
-				ctx.addError(errOn.error('cannot use function as value'))
-				return maybe.none()
-		case DeclarationType.MODULE:
-			ctx.addError(errOn.error('cannot use module as value'))
-			return maybe.none()
-		case DeclarationType.RECIPE:
-			ctx.addError(errOn.error('cannot use recipe as value'))
-			return maybe.none()
-		case DeclarationType.STRUCT:
-			ctx.addError(errOn.error('cannot use struct definition as value'))
-			return maybe.none()
-		default:
-			return exhaust(decl.decl)
 	}
 }

@@ -1,25 +1,23 @@
 import { ASTOpNode, ASTNodeType, ASTIdentifierNode, ASTAccess, ASTDynamicAccessNode, ASTStaticAccessNode } from "../syntax/AST";
-import { Scope } from "./Scope";
-import { CompileContext } from "../toolbox/CompileContext";
 import { Declaration, DeclarationType, ModDeclaration, DeclarationWrapper } from "./Declaration";
 import { MaybeWrapper, Maybe } from "../toolbox/Maybe";
 import { TokenType, GenericToken, TokenI } from "../lexing/Token";
-import { CompileError } from "../toolbox/CompileErrors";
 import { SymbolTable, ReadOnlySymbolTable } from "./SymbolTable";
-import { exprParser } from "./expressionParser";
-import { ESR } from "./ESR";
 import { exhaust } from "../toolbox/other";
+import { Logger } from "../toolbox/Logger";
+import { parseExpression } from "./expressionParser";
+import { Scope } from "./Scope";
 
-export function resolveStatic(node:ASTStaticAccessNode|ASTIdentifierNode,scope:Scope,ctx:CompileContext): Maybe<DeclarationWrapper> {
+export function resolveStatic(node:ASTStaticAccessNode|ASTIdentifierNode,symbols:SymbolTable,log:Logger): Maybe<DeclarationWrapper> {
 	const maybe = new MaybeWrapper<DeclarationWrapper>()
 	if (node.type == ASTNodeType.IDENTIFIER)
-		return scope.symbols.getDeclaration(node.identifier,ctx)
+		return symbols.getDeclaration(node.identifier,log)
 
 	let staticAccesses: GenericToken[] = []
 	let op = node
 	while (true) {
 		if (!op.isStatic) {
-			ctx.addError(op.error('cannot access statically on non static'))
+			log.addError(op.error('cannot access statically on non static'))
 			return maybe.none()
 		}
 		if (op.accessee.type == ASTNodeType.IDENTIFIER) {
@@ -31,10 +29,10 @@ export function resolveStatic(node:ASTStaticAccessNode|ASTIdentifierNode,scope:S
 		op = op.accessee
 	}
 
-	let sym: ReadOnlySymbolTable = scope.symbols
+	let sym: ReadOnlySymbolTable = symbols
 	for (let i = 0; i < staticAccesses.length; i++) {
 		let acc = staticAccesses[i]
-		let declw = sym.getDeclaration(acc,ctx)
+		let declw = sym.getDeclaration(acc,log)
 		if (maybe.merge(declw)) return maybe.none()
 		if (declw.value.decl.type == DeclarationType.MODULE) {
 			if (i == staticAccesses.length - 1) {
@@ -42,13 +40,13 @@ export function resolveStatic(node:ASTStaticAccessNode|ASTIdentifierNode,scope:S
 			}
 			sym = declw.value.decl.symbols
 			if (i == staticAccesses.length - 1) {
-				ctx.addError(declw.value.token.error('module cannot be used directly'))
+				log.addError(declw.value.token.error('module cannot be used directly'))
 				return maybe.none()
 			}
 			continue
 		}
 		if (i != staticAccesses.length - 1) {
-			ctx.addError(staticAccesses[i+1].error('static access on non-module'))
+			log.addError(staticAccesses[i+1].error('static access on non-module'))
 			return maybe.none()
 		}
 		return maybe.wrap(declw.value)
@@ -56,13 +54,11 @@ export function resolveStatic(node:ASTStaticAccessNode|ASTIdentifierNode,scope:S
 	throw new Error('cannot happen')
 }
 
-type ReturnType = {isESR:true,esr:ESR}|{isESR:false,wrapper:DeclarationWrapper}
-export function resolveAccess(node:ASTAccess,scope:Scope,ctx:CompileContext): Maybe<ReturnType> {
-	const maybe = new MaybeWrapper<ReturnType>()
+export function resolveAccess(node:ASTAccess,scope:Scope,log:Logger): Maybe<DeclarationWrapper> {
+	const maybe = new MaybeWrapper<DeclarationWrapper>()
 
 	if (node.type == ASTNodeType.IDENTIFIER)
-		return maybe.map(scope.symbols.getDeclaration(node.identifier,ctx),
-			wrapper=>({isESR:false,wrapper}))
+		return scope.symbols.getDeclaration(node.identifier,log)
 
 	let dynAccesses: GenericToken[] = []
 	let accessOn: DeclarationWrapper
@@ -78,7 +74,7 @@ export function resolveAccess(node:ASTAccess,scope:Scope,ctx:CompileContext): Ma
 			while (true) {
 				dynAccesses.push(dynOp.access)
 				if (dynOp.accessee.type == ASTNodeType.IDENTIFIER) {
-					let declw = scope.symbols.getDeclaration(dynOp.accessee.identifier,ctx)
+					let declw = scope.symbols.getDeclaration(dynOp.accessee.identifier,log)
 					if (!declw.value) return maybe.none()
 					accessOn = declw.value
 					break doStatic
@@ -89,15 +85,14 @@ export function resolveAccess(node:ASTAccess,scope:Scope,ctx:CompileContext): Ma
 					}
 					dynOp = dynOp.accessee
 				} else {
-					let expr = exprParser(dynOp.accessee,scope,ctx,false)
+					let expr = parseExpression(dynOp.accessee,scope,log)
 					if (!expr.value) return maybe.none()
-					return processDynamic(expr.value)
+					throw new Error('wait dyn process')
+					//return processDynamic(expr.value)
 				}
 			}
 
 		} else staticOp = node
-
-		if (!staticOp) throw new Error('should not happen')
 
 		let staticAccesses: GenericToken[] = []
 		while (true) {
@@ -115,7 +110,7 @@ export function resolveAccess(node:ASTAccess,scope:Scope,ctx:CompileContext): Ma
 		let sym: ReadOnlySymbolTable = scope.symbols
 		for (let i = 0; i < staticAccesses.length; i++) {
 			let acc = staticAccesses[i]
-			let declw = sym.getDeclaration(acc,ctx)
+			let declw = sym.getDeclaration(acc,log)
 			if (maybe.merge(declw)) return maybe.none()
 			if (declw.value.decl.type == DeclarationType.MODULE) {
 				if (i == staticAccesses.length - 1) {
@@ -124,13 +119,13 @@ export function resolveAccess(node:ASTAccess,scope:Scope,ctx:CompileContext): Ma
 				}
 				sym = declw.value.decl.symbols
 				if (i == staticAccesses.length - 1) {
-					ctx.addError(declw.value.token.error('module cannot be used directly'))
+					log.addError(declw.value.token.error('module cannot be used directly'))
 					return maybe.none()
 				}
 				continue
 			}
 			if (i != staticAccesses.length - 1) {
-				ctx.addError(staticAccesses[i+1].error('static access on non-module'))
+				log.addError(staticAccesses[i+1].error('static access on non-module'))
 				return maybe.none()
 			}
 			accessOn = declw.value
@@ -142,25 +137,25 @@ export function resolveAccess(node:ASTAccess,scope:Scope,ctx:CompileContext): Ma
 	}
 
 	if (dynAccesses.length == 0)
-		return maybe.wrap({isESR:false,wrapper:accessOn})
+		return maybe.wrap(accessOn)
 	// this is fields/methods on static variables
 
 	if (accessOn.decl.type == DeclarationType.VARIABLE)
-		return processDynamic(accessOn.decl.esr)
+		//return processDynamic(accessOn.decl.esr)
 	
-	ctx.addError(dynAccesses[0].error('dynamic access not quite ready'))
+	log.addError(dynAccesses[0].error('dynamic access not quite ready'))
 	return maybe.none()
 	
-	function processDynamic(esr:ESR): Maybe<ReturnType> {
+	/*function processDynamic(esr:ESR): Maybe<ReturnType> {
 		const maybe = new MaybeWrapper<ReturnType>()
 
 		if (dynAccesses.length == 0) return maybe.wrap({isESR:true,esr})
 
 		// console.log(dynAccesses.map(t=>t.value))
-		ctx.addError(dynAccesses[0].error('not ready to dyn resolve'))
+		log.addError(dynAccesses[0].error('not ready to dyn resolve'))
 
 		return maybe.none()
 
-	}
+	}*/
 
 }

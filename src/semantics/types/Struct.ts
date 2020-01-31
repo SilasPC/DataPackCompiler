@@ -6,15 +6,16 @@ import { Errorable } from "../../toolbox/other"
 
 export class Struct {
 
-    static create(structs:{struct:StructDeclaration,errOn:Errorable}[],ctx:CompileContext): Maybe<Struct> {
+    static create(name:string,structs:{struct:StructDeclaration,errOn:Errorable}[],ctx:CompileContext): Maybe<Struct> {
         const maybe = new MaybeWrapper<Struct>()
-        if (structs.length == 0) return maybe.wrap(new Struct([]))
-        return maybe.wrap(new Struct(structs.map(s=>s.struct.struct)))
+        if (structs.length == 0) return maybe.wrap(new Struct(name,[]))
+        return maybe.wrap(new Struct(name,structs.map(s=>s.struct.struct)))
     }
 
     public readonly type = Type.STRUCT
 
     private constructor(
+        public readonly name: string,
         private readonly parents: Struct[]
     ) {}
 

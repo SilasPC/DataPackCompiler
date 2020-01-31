@@ -6,9 +6,9 @@ import { Maybe, MaybeWrapper } from "../toolbox/Maybe";
 import { createDouble } from "./math/double";
 import { SymbolTable, ReadOnlySymbolTable } from "../semantics/SymbolTable";
 
-type Lib = {[key:string]:Lib|((ctx:CompileContext)=>Declaration)}
+type Lib = {[key:string]:(Lib|((ctx:CompileContext)=>Declaration))}
 
-const stdlib: Lib  = {
+const stdlib: Lib = {
 	'Math': {
 		abs: createAbs,
 		double: createDouble
@@ -18,14 +18,15 @@ const stdlib: Lib  = {
 export class StdLibrary implements ReadOnlySymbolTable {
 	
 	static create(ctx:CompileContext) {
-		return new StdLibrary(ctx,stdlib) as ReadOnlySymbolTable
+		return new StdLibrary(ctx,stdlib,['std']) as ReadOnlySymbolTable
 	}
 
 	private readonly loaded: Map<string,Declaration> = new Map()
 
 	private constructor(
 		private readonly ctx: CompileContext,
-		private readonly lib: Lib
+		private readonly lib: Lib,
+		private namePath: ReadonlyArray<string>
 	) {}
 
 	getDeclaration(name: TokenI): Maybe<DeclarationWrapper> {
@@ -46,7 +47,7 @@ export class StdLibrary implements ReadOnlySymbolTable {
 				this.ctx.log2(3,'inf',`loading std declaration '${val}'`)
 				this.loaded.set(val,decl = sub(this.ctx))
 			} else
-				this.loaded.set(val,decl = {type:DeclarationType.MODULE,symbols:new StdLibrary(this.ctx,sub)})
+				this.loaded.set(val,decl = {type:DeclarationType.MODULE,namePath:this.namePath,symbols:new StdLibrary(this.ctx,sub,this.namePath.concat(name.value))})
 			return maybe.wrap({token:name,decl})
 		}
 		return maybe.none()

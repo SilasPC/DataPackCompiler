@@ -1,5 +1,9 @@
 
-recipe someRecipe {}
+recipe someRecipe {
+
+
+    
+}
 
 recipe.enableFor(@a)
 

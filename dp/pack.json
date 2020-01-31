@@ -14,9 +14,9 @@
     "ignoreWarnings": false,
     "noUnused": false,
     "verbosity": 0,
-    "targetVersion": "latest"
+    "targetVersion": "latest",
+    "debugBuild": false
   },
   "srcDir": "./",
-  "emitDir": "./",
-  "debugMode": false
+  "emitDir": "./"
 }

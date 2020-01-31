@@ -1,17 +1,21 @@
 
-import { ASTLetNode } from "../syntax/AST";
-import { Scoreboard } from "../semantics/ESR";
-import { CompileContext } from "./CompileContext";
-import { Scope } from "../semantics/Scope";
-import { CompilerOptions } from "./config";
-import { getQualifiedName, getObscureName } from "./other";
+import { CompilerOptions } from "../toolbox/config"
+import { getObscureName, getQualifiedName } from "../toolbox/other"
+import { Declaration } from "../semantics/Declaration"
+
+export interface Scoreboard {
+	selector: string
+	scoreboard: string
+}
 
 export class ScoreboardManager {
 
-	private globalStatic: string
-	private globalConst: string
-	private constants: Map<number,Scoreboard> = new Map()
-	private globals: Set<string> = new Set()
+	private readonly globalStatic: string
+	private readonly globalConst: string
+	private readonly constants = new Map<number,Scoreboard>()
+	private readonly globals = new Set<string>()
+
+	private readonly declMap = new Map<Declaration,Scoreboard>()
 
 	constructor(
 		private readonly options: CompilerOptions
@@ -22,7 +26,14 @@ export class ScoreboardManager {
 				[this.generateName(['globals']),this.generateName(['constants'])]
 	}
 
-	getStatic(names:string[]): Scoreboard {
+	getDecl(decl:Declaration) {
+		if (this.declMap.has(decl)) return this.declMap.get(decl) as Scoreboard
+		let sb = this.getStatic(decl.namePath)
+		this.declMap.set(decl,sb)
+		return sb
+	}
+
+	getStatic(names:ReadonlyArray<string>): Scoreboard {
 		let ret = {
 			scoreboard: this.globalStatic,
 			selector:
@@ -55,7 +66,7 @@ export class ScoreboardManager {
 		return name
 	}
 
-	private generateName(names:string[]) {
+	private generateName(names:ReadonlyArray<string>) {
 		let name = getQualifiedName(names,this.globals,16)
 		this.globals.add(name)
 		return name

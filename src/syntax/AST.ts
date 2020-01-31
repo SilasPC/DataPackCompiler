@@ -51,7 +51,6 @@ function astSourceMap(pfile:ParsingFile,fi:number,li:number) {
 	return cmts
 }
 
-// Add expression wrapper?
 export enum ASTNodeType {
     EXPORT,
     DEFINE,
@@ -73,12 +72,13 @@ export enum ASTNodeType {
     ACCESS,
     SELECTOR,
     RECIPE,
-    STRUCT
+    STRUCT,
+    WHILE
 }
 
 export type ASTAccess = ASTAccessNode | ASTIdentifierNode
 export type ASTExpr = ASTAccess | ASTSelectorNode | ASTPrimitiveNode | ASTIdentifierNode | ASTOpNode | ASTListNode | ASTCallNode
-export type ASTStatement = ASTExpr | ASTReturnNode | ASTLetNode | ASTIfNode | ASTCMDNode
+export type ASTStatement = ASTWhileNode | ASTExpr | ASTReturnNode | ASTLetNode | ASTIfNode | ASTCMDNode
 export type ASTStaticDeclaration = ASTRecipeNode | ASTLetNode | ASTModuleNode | ASTFnNode | ASTExportNode | ASTImportNode | ASTStructNode
 export type ASTNode = ASTExpr | ASTStatement | ASTStaticDeclaration
 
@@ -116,6 +116,17 @@ export class ASTModuleNode extends ASTNodeBase {
         indexEnd: number,
         public readonly identifier: TokenI,
         public readonly body: ASTStaticDeclaration[]
+    ){super(pf,indexStart,indexEnd)}
+}
+
+export class ASTWhileNode extends ASTNodeBase {
+    public readonly type = ASTNodeType.WHILE
+    constructor(
+        pf: ParsingFile,
+        indexStart: number,
+        indexEnd: number,
+        public readonly clause: ASTExpr,
+        public readonly body: ASTStatement[]
     ){super(pf,indexStart,indexEnd)}
 }
 

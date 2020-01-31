@@ -3,13 +3,14 @@ import { inlineLiveLexer } from "../lexing/lexer"
 import { TokenI, TokenType } from "../lexing/Token"
 import { CompileContext } from "../toolbox/CompileContext"
 import { Scope } from "../semantics/Scope"
-import { exprParser } from "../semantics/expressionParser"
+import { parseExpression } from "../semantics/expressionParser"
 import { ASTNode, ASTExpr } from "../syntax/AST"
 import { SheetSpecials } from "./sheetParser"
 import { exhaust } from "../toolbox/other"
 import { Maybe, MaybeWrapper } from "../toolbox/Maybe"
 import { readNumber, readSelector } from "./specialParsers"
 import { CompileError } from "../toolbox/CompileErrors"
+import { ValueType, Type } from "../semantics/types/Types"
 
 export type ParsedSyntax = {node:CMDNode,expr:ASTExpr|null,capture:string}[]
 
@@ -66,6 +67,10 @@ export class CMDNode {
 		return this.cmpStr == x ? x.length + 1 : `expected '${this.cmpStr}'`
 	}
 
+	getSubstituteType(): ValueType {
+		throw new Error('non-semantical cmd-node asked for subtitute type')
+	}
+
 }
 
 export class SemanticalCMDNode extends CMDNode {
@@ -112,6 +117,10 @@ export class SemanticalCMDNode extends CMDNode {
 			default:
 				return exhaust(spec)
 		}
+	}
+	
+	getSubstituteType(): ValueType {
+		return {type:Type.VOID}
 	}
 
 }

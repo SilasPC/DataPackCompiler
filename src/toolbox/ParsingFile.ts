@@ -4,19 +4,16 @@ import { ASTNode, ASTStaticDeclaration } from "../syntax/AST";
 import { promises as fs } from "fs";
 import { resolve, relative, basename } from 'path'
 import { TokenIterator } from "../lexing/TokenIterator";
-import { DeclarationWrapper, Declaration, ModDeclaration } from "../semantics/Declaration";
+import { DeclarationWrapper, Declaration, ModDeclaration, DeclarationType } from "../semantics/Declaration";
 import { Scope } from "../semantics/Scope";
 import { CompileContext } from "./CompileContext";
 import { SymbolTable } from "../semantics/SymbolTable";
 import { SourceLine } from "../lexing/SourceLine";
+import { ParseTree, PTStatic } from "../semantics/ParseTree";
 
-export class ParsingFile extends SymbolTable {
+export class ParsingFile {
 
-    static extractUnsafe(pf:ParsingFile,name:string) {
-        return pf.getUnsafe(name)
-    }
-
-    static async loadFile(path:string,ctx:CompileContext) {
+    static async loadFile(path:string) {
         let fullPath = resolve(path)
         let relativePath = './'+relative('./',fullPath).replace(/\\/g,'/').split('.').slice(0,-1).join('.')
         let file = new ParsingFile(
@@ -24,20 +21,20 @@ export class ParsingFile extends SymbolTable {
             fullPath,
             relativePath,
             (await fs.readFile(fullPath)).toString(),
-            pf=>Scope.createRoot(pf,basename(fullPath).split('.').slice(0,-1).join('.'),ctx)
+            pf=>Scope.createRoot(basename(fullPath).split('.').slice(0,-1).join('.'))
         )
         return file
     }
 
-    static fromSource(source:string,sourceName:string,ctx:CompileContext) {
-        return new ParsingFile(sourceName,'','',source,pf=>Scope.createRoot(pf,sourceName,ctx))
+    static fromSource(source:string,sourceName:string) {
+        return new ParsingFile(sourceName,'','',source,pf=>Scope.createRoot(sourceName))
     }
 
     private readonly lines: SourceLine[] = []
     private readonly tokens: TokenI[] = []
-    private readonly ast: ASTStaticDeclaration[] = []
-    private readonly exports: Map<string,Declaration> = new Map()
     public readonly scope: Scope
+
+    readonly module: ModDeclaration
 
     public status: 'lexed'|'parsing'|'parsed'|'generating'|'generated' = 'lexed'
 
@@ -48,8 +45,12 @@ export class ParsingFile extends SymbolTable {
         public readonly source: string,
         scopeGen: (pf:ParsingFile)=>Scope
     ) {
-        super(null)
         this.scope = scopeGen(this)
+        this.module = {
+            type: DeclarationType.MODULE,
+            symbols: this.scope.symbols,
+            namePath: this.scope.getScopeNames()
+        }
     }
 
     addLine(l:SourceLine) {this.lines.push(l)}
@@ -63,8 +64,13 @@ export class ParsingFile extends SymbolTable {
     addToken(t:TokenI) {this.tokens.push(t)}
     getTokenIterator() {return new TokenIterator(this,this.tokens)}
 
+    private readonly ast: ASTStaticDeclaration[] = []
     addASTNode(n:ASTStaticDeclaration) {this.ast.push(n)}
     getAST(): ReadonlyArray<ASTStaticDeclaration> {return this.ast}
+
+    /*private pt: PTStatic[] = []
+    addPT(pt:PTStatic) {this.pt.push(pt)}
+    getPTs(): ReadonlyArray<PTStatic> {return this.pt}*/
 
     throwUnexpectedEOF() {
         return (<TokenI>this.tokens.pop()).line.fatal('Unexpected EOF',0,0)

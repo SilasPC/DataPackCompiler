@@ -32,7 +32,7 @@ export function tokenToType(token:TokenI,symbols:SymbolTable): ValueType {
 				return exhaust(token.value)
 		}
 	}
-	throw new Error('only elementary types for now')
+	throw new Error(`only elementary types for now (got ${token.value})`)
 	// let decl = symbols.getDeclaration(token)
 }
 
@@ -49,5 +49,17 @@ export function isSubType(sup:ValueType,sub:ValueType): boolean {
 			return sup.checkIsSubType(sub as Struct)
 		default:
 			return exhaust(sup)
+	}
+}
+
+export function typeSignature(type:ValueType) {
+	switch (type.type) {
+		case Type.VOID: return 'void'
+		case Type.BOOL: return 'bool'
+		case Type.INT: return 'int'
+		case Type.STRUCT: return type.name
+		case Type.SELECTOR: return 'selector'
+		default:
+			return exhaust(type)
 	}
 }

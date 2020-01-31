@@ -1,8 +1,7 @@
 
 require('source-map-support').install()
-import { Datapack } from './codegen/Datapack'	
+import { Datapack } from './api/Datapack'	
 import yargs from 'yargs'
-import { WeakCompilerOptions } from './toolbox/config'
 
 const COMPILE_GROUP = 'Compilation overrides:'
 
@@ -67,6 +66,13 @@ const argv = yargs
 		group: COMPILE_GROUP
 	})
 
+	.option('debug', {
+		alias: 'd',
+		description: 'Use debug build',
+		boolean: true,
+		group: COMPILE_GROUP
+	})
+
 	.option('no-optimize', {
 		description: 'Disable optimization',
 		boolean: true,
@@ -128,7 +134,8 @@ async function compile(argv:any): Promise<void> {
 				verbosity: argv.verbose ? argv.verbose as number : undefined,
 				colorLog: argv.color === false ? false : undefined,
 				optimize: argv.optimize === false ? false : undefined,
-				ignoreWarnings: argv.warn === false ? true : undefined
+				ignoreWarnings: argv.warn === false ? true : undefined,
+				debugBuild: argv.debug === true ? true : undefined
 			})
 			if (dp.canEmit() && argv.emit !== false) await dp.emit()
 			

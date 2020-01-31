@@ -23,16 +23,25 @@ struct A /* {
 
 struct B implements A
 
-fn x() {
-	B()
+//let lol = false
+
+fn x(): int {
+	//B()
 	//testRef(ref a)
 	a += b
+	//while (false) /say b
+	/*if (!lol) {
+		if (true) /say a
+		lol = a != b
+		/say say whaaat
+	} else /say oka
+	*/
 	//a.abs
-	//file::a.abs
+	file::a++
 	/execute as @a positioned <coords> align x facing entity @s feet run say hello!
 	/say hello
 	/say hello
-	// x()
+	//x()
 	file::yr++;
 	/say helloo
 	return file::a *
@@ -41,8 +50,8 @@ fn x() {
 
 let a = b;
 const b = 2;
-let yr = y()
+let yr = 3//y()
 
-let xi: int = x()
+let xi: int = 1//x()
 
 fn y(): int {return 1}

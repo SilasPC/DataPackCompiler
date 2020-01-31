@@ -6,7 +6,7 @@
 export const keywords: ReadonlyArray<string> = ['implements','struct','recipe','ref','namespace','fn','let','var','break','for','event','while','return','if','else','class','tick','import','const','from','export']
 export type Keyword = 'implements' | 'struct' | 'recipe' | 'ref' | 'namespace' | 'fn' | 'let' | 'var' | 'break' | 'for' | 'event' | 'while' | 'return' | 'if' | 'else' | 'class' | 'tick' | 'import' | 'const' | 'from' | 'export'
 
-export const types: ReadonlyArray<string> = ['selector','int','void','bool"']
+export const types: ReadonlyArray<string> = ['selector','int','void','bool']
 export type Type = 'selector' | 'int' | 'void' | 'bool'
 
 export const reservedSymbols = ['this',...keywords,...types]

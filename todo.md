@@ -41,7 +41,9 @@
   may modify the variables in question
 
 # STD Lib:
-- Math
+- debug
+	- trace
+- math
 	- sqrt
 	- sqr
 	- trig funcs
@@ -51,9 +53,8 @@
 	- pow
 - Entity
 	- ?
-- Block
-	- Get ID
-	- ?
+- blocks
+	- getID
 - Item
 	- ?
 - Biome
