@@ -45,11 +45,11 @@ export function parseFile(pf:ParsingFile,ctx:CompileContext,fetcher:Fetcher,stor
 								if (!rmod.value) return maybe.none()
 								mod = rmod.value
 							}
-							return mod.symbols.getDeclaration(t,ctx).pick('decl')
-						},ctx))
+							return mod.symbols.getDeclaration(t,ctx.logger).pick('decl')
+						},ctx.logger))
 					}
 				} else {
-					maybe.merge(scope.symbols.declareHoister(node.imports,()=>fetcher(pf,node0.source),ctx))
+					maybe.merge(scope.symbols.declareHoister(node.imports,()=>fetcher(pf,node0.source),ctx.logger))
 				}
 				break
 			}
@@ -61,17 +61,17 @@ export function parseFile(pf:ParsingFile,ctx:CompileContext,fetcher:Fetcher,stor
 			case ASTNodeType.DEFINE: {
 				let node0 = node
 				maybe.merge(scope.symbols.declareHoister(node.identifier,()=>{
-					let res = parseDefine(node0,scope,ctx)
+					let res = parseDefine(node0,scope,ctx.logger)
 					if (res.value)
 						store.init.add(res.value.pt)
 					return res.pick('decl')
-				},ctx))
+				},ctx.logger))
 				break
 			}
 	
 			case ASTNodeType.FUNCTION: {
 				let node0 = node
-				maybe.merge(scope.symbols.declareHoister(node.identifier,()=>parseFunction(node0,scope,store,ctx),ctx))
+				maybe.merge(scope.symbols.declareHoister(node.identifier,()=>parseFunction(node0,scope,store,ctx.logger),ctx.logger))
 				break
 			}
 	
@@ -81,9 +81,13 @@ export function parseFile(pf:ParsingFile,ctx:CompileContext,fetcher:Fetcher,stor
 	
 			case ASTNodeType.STRUCT: {
 				let node0 = node
-				scope.symbols.declareHoister(node.identifier,()=>parseStruct(node0,scope,ctx),ctx)
+				scope.symbols.declareHoister(node.identifier,()=>parseStruct(node0,scope,ctx),ctx.logger)
 				break
 			}
+
+			case ASTNodeType.EVENT:
+				console.log('wait event')
+				break
 				
 			default:
 				return exhaust(node)

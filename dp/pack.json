@@ -3,6 +3,7 @@
   "description": "My precious compiler :DD",
   "dependencies": [],
   "compilerOptions": {
+    "minimumVersion": "0.1",
     "obscureNames": false,
     "obscureSeed": "",
     "noInference": true,
@@ -15,7 +16,7 @@
     "noUnused": false,
     "verbosity": 0,
     "targetVersion": "latest",
-    "debugBuild": false
+    "debugBuild": true
   },
   "srcDir": "./",
   "emitDir": "./"

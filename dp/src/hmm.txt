@@ -5,6 +5,15 @@ recipe someRecipe {
     
 }
 
+event myEvent;
+
+event std::debug::reinit {
+    /say Cleanup some shit
+    std::debug::panic() // crash with stacktrace
+    // this code is never executed
+    /say I am redundant :')
+}
+
 recipe.enableFor(@a)
 
 recipe.disableFor(@r)

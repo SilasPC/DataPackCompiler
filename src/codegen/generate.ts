@@ -31,7 +31,7 @@ export function generate(store:ParseTreeStore,om:OutputManager) {
 		])
 		done.add(decl)
 		generateFn(fnf,body,om)
-		fnf.mergeBuffers(om,)
+		fnf.mergeBuffers((namePath:string[])=>om.functions.createFn(namePath))
 	}
 
 }

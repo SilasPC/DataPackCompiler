@@ -2,13 +2,14 @@
 require('source-map-support').install()
 import { Datapack } from './api/Datapack'	
 import yargs from 'yargs'
+import { compilerVersion } from './api/Compiler'
 
 const COMPILE_GROUP = 'Compilation overrides:'
 
 const argv = yargs
 
 	.scriptName('dpc')
-	.version('0.1')
+	.version(compilerVersion)
 	.epilogue('This compiler is a work in progress, expect bugs')
 	.demandCommand(1)
 	.alias('h','help')

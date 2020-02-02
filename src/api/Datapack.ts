@@ -4,6 +4,7 @@ import { promises as fs, Stats }  from 'fs'
 import { join } from "path";
 import { WeakCompilerOptions, compilerOptionDefaults } from "../toolbox/config";
 import { PackJSON, WeakPackJSON, compile, CompileResult } from './Compiler';
+import { Logger } from '../toolbox/Logger';
 
 export class Datapack {
 
@@ -67,12 +68,16 @@ export class Datapack {
 			}
 		})
 		
-		/*ctx.log2(2,'inf','Overwritten configurations:')
+		const logger = new Logger(cfg.compilerOptions)
+		
+		logger.logGroup(2,'inf','Overwritten configurations:')
 		for (let [key,val] of Object.entries(purgeKeys(cfgOverride)))
-			ctx.log2(2,'inf',`${key} => ${val}`)*/
+			logger.log(2,'inf',`${key} => ${val}`)
 		
 		try {
-			this.status = await compile(cfg,srcFiles)
+			let res = await compile(logger,cfg,srcFiles)
+			if (res.value) this.status = res.value
+			else this.status = 'fail'
 		} catch (e) {
 			this.status = 'fail'
 			throw e

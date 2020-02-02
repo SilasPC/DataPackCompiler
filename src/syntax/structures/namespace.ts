@@ -5,6 +5,7 @@ import { TokenIteratorI } from "../../lexing/TokenIterator"
 import { CompileContext } from "../../toolbox/CompileContext"
 import { parseFunction } from "./function"
 import { parseDeclaration } from "./declaration"
+import { parseEvent } from "./event"
 
 export function parseModule(iter:TokenIteratorI,ctx:CompileContext): ASTModuleNode {
     let keyword = iter.current()
@@ -29,6 +30,9 @@ function parser(iter: TokenIteratorI, ctx: CompileContext) {
                         break
                     case 'fn':
                         body.push(parseFunction(iter,ctx))
+                        break
+                    case 'event':
+                        body.push(parseEvent(iter,ctx))
                         break
                     case 'let':
                         body.push(parseDeclaration(iter,ctx))

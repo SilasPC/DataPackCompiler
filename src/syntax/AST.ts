@@ -73,13 +73,14 @@ export enum ASTNodeType {
     SELECTOR,
     RECIPE,
     STRUCT,
-    WHILE
+    WHILE,
+    EVENT
 }
 
 export type ASTAccess = ASTAccessNode | ASTIdentifierNode
 export type ASTExpr = ASTAccess | ASTSelectorNode | ASTPrimitiveNode | ASTIdentifierNode | ASTOpNode | ASTListNode | ASTCallNode
 export type ASTStatement = ASTWhileNode | ASTExpr | ASTReturnNode | ASTLetNode | ASTIfNode | ASTCMDNode
-export type ASTStaticDeclaration = ASTRecipeNode | ASTLetNode | ASTModuleNode | ASTFnNode | ASTExportNode | ASTImportNode | ASTStructNode
+export type ASTStaticDeclaration = ASTEventNode | ASTRecipeNode | ASTLetNode | ASTModuleNode | ASTFnNode | ASTExportNode | ASTImportNode | ASTStructNode
 export type ASTNode = ASTExpr | ASTStatement | ASTStaticDeclaration
 
 export type ASTAccessNode = ASTStaticAccessNode | ASTDynamicAccessNode
@@ -233,6 +234,17 @@ export class ASTCallNode extends ASTNodeBase {
         indexEnd: number,
         public readonly func: ASTAccess,
         public readonly parameters: (ASTRefNode|ASTExpr)[]
+    ){super(pf,indexStart,indexEnd)}
+}
+
+export class ASTEventNode extends ASTNodeBase {
+    public readonly type = ASTNodeType.EVENT
+    constructor(
+        pf: ParsingFile,
+        indexStart: number,
+        indexEnd: number,
+        public readonly identifier: ASTAccessNode | ASTIdentifierNode,
+        public readonly body: ASTStatement[]
     ){super(pf,indexStart,indexEnd)}
 }
 

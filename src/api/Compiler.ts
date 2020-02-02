@@ -22,6 +22,23 @@ import { MKDIRP, RIMRAF } from "../toolbox/fsHelpers"
 import $ from 'js-itertools'
 import { instrsToCmds } from "../codegen/Instructions"
 import { FnFile } from "../codegen/FnFile"
+import { Logger } from "../toolbox/Logger"
+
+export const compilerVersion = '0.1.0'
+
+export function checkVersionFormat(ver:string) {
+	return ver
+		.split('.')
+		.map(n=>parseInt(n,10))
+		.every(n=>Number.isInteger(n) && n >= 0)
+}
+
+export function checkVersion(ver:string,min:string) {
+	let vers = ver.split('.').map(n=>parseInt(n,10)), mins = min.split('.').map(n=>parseInt(n,10))
+	for (let i = 0; i < mins.length; i++)
+		if (mins[i] > vers[i]) return false
+	return true
+}
 
 export class CompileResult {
 
@@ -50,7 +67,9 @@ export class CompileResult {
 				([name,fnf]) => fs.writeFile(
 					fns+'/'+name+'.mcfunction',
 					instrsToCmds(
-						fnf.mergeBuffers(),
+						this.output,
+						this.packJson.compilerOptions.debugBuild,
+						fnf.mergeBuffers((namePath:string[])=>this.output.functions.createFn(namePath)),
 						fnf.getHeader(),
 						(fnf:FnFile)=>{
 							let res = this.output.functions.getName(fnf)
@@ -87,14 +106,22 @@ export interface PackJSON extends Required<WeakPackJSON> {
 	compilerOptions: CompilerOptions
 }
 
-export async function compile(cfg:PackJSON,srcFiles:string[]): Promise<CompileResult> {
+export async function compile(logger:Logger,cfg:PackJSON,srcFiles:string[]): Promise<Maybe<CompileResult>> {
+
+	const maybe = new MaybeWrapper<CompileResult>()
 
 	const ctx = new CompileContext(
+		logger,
 		cfg.compilerOptions,
 		await SyntaxSheet.load(cfg.compilerOptions.targetVersion)
 	)
+
+	if (!checkVersion(compilerVersion,ctx.options.minimumVersion)) {
+		logger.log(0,'err',`Pack requires compiler version ${ctx.options.minimumVersion}, currently installed: ${compilerVersion}`)
+		return maybe.none()
+	}
 	
-	ctx.log2(1,'inf',`Begin compilation`)
+	logger.logGroup(1,'inf',`Begin compilation`)
 	let start = moment()
 
 	const pfiles = await Promise.all(
@@ -103,13 +130,13 @@ export async function compile(cfg:PackJSON,srcFiles:string[]): Promise<CompileRe
 			.map(srcFile=>ctx.loadFile(srcFile))
 	)
 	
-	ctx.log2(1,'inf',`Loaded ${srcFiles.length} file(s)`)
+	logger.log(1,'inf',`Loaded ${srcFiles.length} file(s)`)
 	
 	pfiles.forEach(pf=>lexer(pf,ctx))
-	ctx.log2(1,'inf',`Lexical analysis complete`)
+	logger.log(1,'inf',`Lexical analysis complete`)
 
 	pfiles.forEach(pf=>fileSyntaxParser(pf,ctx))
-	ctx.log2(1,'inf',`Syntax analysis complete`)
+	logger.log(1,'inf',`Syntax analysis complete`)
 
 	const store = new ParseTreeStore()
 	const fetcher = createFetcher(pfiles,ctx,store)
@@ -120,40 +147,41 @@ export async function compile(cfg:PackJSON,srcFiles:string[]): Promise<CompileRe
 		if (!res.value) gotErrors = true
 	})
 	if (!gotErrors)
-		ctx.log2(1,'inf',`Semantical analysis complete`)
+		logger.log(1,'inf',`Semantical analysis complete`)
 	else
-		ctx.log2(1,'err',`Semantical analysis failed`)
+		logger.log(1,'err',`Semantical analysis failed`)
 
 	const output = new OutputManager(cfg.compilerOptions)
 	if (!gotErrors) {
 
 		generate(store,output)
-		ctx.log2(1,'inf',`Generation complete`)
+		logger.log(1,'inf',`Generation complete`)
 
-		ctx.log2(0,'wrn',`No verifier function yet`)
-		ctx.log2(1,'inf',`Verification complete`)
+		logger.log(0,'wrn',`No verifier function yet`)
+		logger.log(1,'inf',`Verification complete`)
 
-		ctx.log2(1,'inf',`Compilation complete`)
-		ctx.log2(2,'inf',`Elapsed time: ${(moment.duration(moment().diff(start)) as any).format()}`)
+		logger.log(1,'inf',`Compilation complete`)
+		logger.log(2,'inf',`Elapsed time: ${(moment.duration(moment().diff(start)) as any).format()}`)
 
 	}
 
-	if (ctx.hasErrors()) {
-		ctx.logErrors()
-		ctx.log2(1,'err',`Raised ${ctx.getErrorCount()} error${ctx.getErrorCount()>1?'s':''}`)
+	if (logger.hasErrors()) {
+		logger.logErrors()
+		logger.log(0,'err',`Raised ${logger.getErrorCount()} error${logger.getErrorCount()>1?'s':''}`)
 	}
 
-	if (ctx.hasWarnings()) {
-		ctx.logWarns()
-		ctx.log2(1,'wrn',`Raised ${ctx.getWarningCount()} warning${ctx.getWarningCount()>1?'s':''}`)
+	if (logger.hasWarnings()) {
+		logger.logWarns()
+		logger.log(0,'wrn',`Raised ${logger.getWarningCount()} warning${logger.getWarningCount()>1?'s':''}`)
 	}
 
-	if (ctx.hasErrors()) throw new Error(`${ctx.getErrorCount()} error(s) raised.`)
+	if (logger.hasErrors())
+		return maybe.none()
 
-	if (ctx.hasErrors()||gotErrors)
-		throw new Error('Failed to compile')
+	if (logger.hasErrors()||gotErrors)
+		return maybe.none()
 
-	return new CompileResult(cfg,output)
+	return maybe.wrap(new CompileResult(cfg,output))
 
 }
 
@@ -197,23 +225,23 @@ function createFetcher(pfiles:ParsingFile[],ctx:CompileContext,store:ParseTreeSt
 			let pf = pfiles.find(p=>p.fullPath == path)
 			if (pf instanceof ParsingFile) {
 				if (!parseFile(pf,ctx,fetcher,store).value) {
-					ctx.addError(token.error('file has errors'))
+					ctx.logger.addError(token.error('file has errors'))
 					return maybe.none()
 				}
 				return maybe.wrap(pf.module)
 			} else {
-				ctx.addError(token.error('could not find source file'))
+				ctx.logger.addError(token.error('could not find source file'))
 				maybe.noWrap()
 			}
 		}
 		// std library import
-		let decl = stdLib.getDeclaration(token,ctx)
+		let decl = stdLib.getDeclaration(token,ctx.logger)
 		if (!decl.value) {
-			ctx.addError(token.error('could not find library'))
+			ctx.logger.addError(token.error('could not find library'))
 			return maybe.none()
 		}
 		if (decl.value.decl.type != DeclarationType.MODULE) {
-			ctx.addError(token.error('not a module'))
+			ctx.logger.addError(token.error('not a module'))
 			return maybe.none()
 		}
 		return maybe.wrap(decl.value.decl)

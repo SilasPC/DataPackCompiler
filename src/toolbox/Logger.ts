@@ -10,19 +10,12 @@ export class Logger {
 		public readonly options: CompilerOptions
 	) {}
 
-	private lastLogLevel = 0
-	log(level:number,msg:string) {
-		if (level > this.options.verbosity) return 
-		if (this.lastLogLevel > level) console.log()
-		let pad = ''
-		if (level > 1) pad = ' '.repeat(2 * level - 3) + '- '
-		console.log(pad + msg)
-		this.lastLogLevel = level
-	}
-
 	private lastLogType: LogType|null = null
-	// private lastLogLevel2 = 0
-	log2(level:number,type:LogType,msg:string) {
+	logGroup(level:number,type:LogType,msg:string) {
+		this.lastLogType = null
+		this.log(level,type,msg)
+	}
+	log(level:number,type:LogType,msg:string) {
 		if (type == 'wrn' && this.options.ignoreWarnings) return
 		if (level > this.options.verbosity) return
 		let col = type == 'inf' ? cols.green : type == 'wrn' ? cols.yellow : cols.red
@@ -62,7 +55,7 @@ export class Logger {
 	logErrors() {
 		for (let err of this.errs) {
 			this.lastLogType = null
-			this.log2(0,'err',err.getErrorString())
+			this.log(0,'err',err.getErrorString())
 		}
 		this.lastLogType = null
 	}
@@ -70,7 +63,7 @@ export class Logger {
 	logWarns() {
 		for (let err of this.wrns) {
 			this.lastLogType = null
-			this.log2(0,'wrn',err.getErrorString())
+			this.log(0,'wrn',err.getErrorString())
 		}
 		this.lastLogType = null
 	}

@@ -29,7 +29,7 @@ export class FnFile {
 			this.stack.push(this.instrBuffer = new InstrWrapper())
 	}
 
-	public mergeBuffers(om:OutputManager,createFn:(namePath:string[])=>FnFile): InstrWrapper {
+	public mergeBuffers(createFn:(namePath:string[])=>FnFile): InstrWrapper {
 		// temporary merge function
 		// we need to do some flow processing here
 		// there is for now no 'if' check

@@ -99,7 +99,8 @@ export class CommentInterspercer<T> {
 		for (let [i,val] of this.data.entries()) {
 			if (this.comments.has(i))
 				yield [this.comments.get(i) as string[],val] as [string[],T]
-			yield [[],val] as [string[],T]
+			else
+				yield [[],val] as [string[],T]
 		}
 	}
 

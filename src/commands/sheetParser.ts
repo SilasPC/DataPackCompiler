@@ -17,7 +17,6 @@ export async function fromSheet(sheet:string): Promise<RootCMDNode> {
 	let root = new RootCMDNode('',false,[])
 	let def: Def = new Map([['',[root]]])
 	let tree = buildTree(await readSheet('./sheets/'+sheet+'.txt'))
-	console.log(sheet,JSON.stringify(tree,null,2))
 	root.children.push(...parseTree(tree,[def]))
 	return root
 }
@@ -181,7 +180,7 @@ function parseSpecial(sub:string,children:Tree,findDef:(str:string)=>CMDNode[]|u
 			return {nodes}
 		} else if (spec.length) {
 			if (!validSpecials.includes(spec)) {
-				console.warn('ss special not valid:',spec)
+				// console.warn('ss special not valid:',spec)
 				return {sub:spec}
 			}
 			return {spec}

@@ -44,7 +44,7 @@ export class StdLibrary implements ReadOnlySymbolTable {
 			let sub = this.lib[val]
 			let decl: Declaration
 			if (sub instanceof Function) {
-				this.ctx.log2(3,'inf',`loading std declaration '${val}'`)
+				this.ctx.logger.log(3,'inf',`loading std declaration '${val}'`)
 				this.loaded.set(val,decl = sub(this.ctx))
 			} else
 				this.loaded.set(val,decl = {type:DeclarationType.MODULE,namePath:this.namePath,symbols:new StdLibrary(this.ctx,sub,this.namePath.concat(name.value))})

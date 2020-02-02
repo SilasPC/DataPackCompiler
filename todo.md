@@ -43,6 +43,8 @@
 # STD Lib:
 - debug
 	- trace
+	- panic
+	- counter
 - math
 	- sqrt
 	- sqr

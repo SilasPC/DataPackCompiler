@@ -1,4 +1,4 @@
-import { ScoreboardManager } from "./ScoreboardManager";
+import { ScoreboardManager, Scoreboard } from "./ScoreboardManager";
 import { CompilerOptions } from "../toolbox/config";
 import { FnFileManager } from "./FnFileManager";
 
@@ -12,6 +12,12 @@ export class OutputManager {
 	) {
 		this.scoreboards = new ScoreboardManager(options)
 		this.functions = new FnFileManager(options)
+	}
+
+	private instrCounter?: Scoreboard
+	getInstrCounter() {
+		if (this.instrCounter) return this.instrCounter
+		return this.instrCounter = this.scoreboards.getStatic(["std","debug","counter"])
 	}
 
 }

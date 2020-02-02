@@ -6,11 +6,13 @@ import { resolve } from "path";
 import { getObscureName, getQualifiedName } from "./other";
 import { Logger } from "./Logger";
 
-export class CompileContext extends Logger {
+export class CompileContext {
 
 	static getDefaultWithNullSheet() {
+		const cfg = compilerOptionDefaults({})
 		return new CompileContext(
-			compilerOptionDefaults({}),
+			new Logger(cfg),
+			cfg,
 			SyntaxSheet.getNullSheet()
 		)
 	}
@@ -24,10 +26,10 @@ export class CompileContext extends Logger {
 	//public readonly scoreboards: ScoreboardManager = new ScoreboardManager(this.options)
 
 	constructor(
-		options: CompilerOptions,
+		public readonly logger: Logger,
+		public readonly options: CompilerOptions,
 		public readonly syntaxSheet: SyntaxSheet
 	) {
-		super(options)
 		//this.initFn = this.createFnFile(['std','init'],['Standard initialization'])
 		//this.loadFn = this.createFnFile(['std','load'],['Standard load'])
 	}
