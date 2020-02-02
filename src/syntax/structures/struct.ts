@@ -20,5 +20,7 @@ export function parseStruct(iter:TokenIteratorI,ctx:CompileContext): ASTStructNo
         }
         if (parents.length == 0) iter.peek().throwDebug('expected identifier')
     }
+    iter.next().expectValue('{')
+    iter.next().expectValue('}')
     return new ASTStructNode(iter.file,i,id.indexEnd,id,parents)
 }

@@ -1,0 +1,12 @@
+
+mod debug {
+
+	fn trace() {
+		/say TRACE!
+	}
+
+	fn panic() {
+		/say PANIC!
+	}
+
+}

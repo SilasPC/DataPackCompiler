@@ -6,6 +6,7 @@ import { CompileContext } from "../../toolbox/CompileContext"
 import { parseFunction } from "./function"
 import { parseDeclaration } from "./declaration"
 import { parseEvent } from "./event"
+import { parseStruct } from "./struct"
 
 export function parseModule(iter:TokenIteratorI,ctx:CompileContext): ASTModuleNode {
     let keyword = iter.current()
@@ -25,7 +26,7 @@ function parser(iter: TokenIteratorI, ctx: CompileContext) {
                     case 'import':
                     case 'export':
                         return token.throwUnexpectedKeyWord()
-                    case 'namespace':
+                    case 'mod':
                         body.push(parseModule(iter,ctx))
                         break
                     case 'fn':
@@ -36,6 +37,9 @@ function parser(iter: TokenIteratorI, ctx: CompileContext) {
                         break
                     case 'let':
                         body.push(parseDeclaration(iter,ctx))
+                        break
+                    case 'struct':
+                        body.push(parseStruct(iter,ctx))
                         break
                     default:
                         return token.throwUnexpectedKeyWord()

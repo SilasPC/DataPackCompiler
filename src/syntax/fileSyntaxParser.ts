@@ -5,7 +5,7 @@ import { parseFunction } from "./structures/function";
 import { wrapExport } from "./helpers";
 import { parseDeclaration } from "./structures/declaration";
 import { CompileContext } from "../toolbox/CompileContext";
-import { parseModule } from "./structures/namespace";
+import { parseModule } from "./structures/module";
 import { parseImport } from "./structures/import";
 import { parseStruct } from "./structures/struct";
 import { parseEvent } from "./structures/event";
@@ -26,7 +26,7 @@ export function fileSyntaxParser(pfile: ParsingFile, ctx: CompileContext): void 
                         if (doExport) return token.throwUnexpectedKeyWord()
                         doExport = token
                         break
-                    case 'namespace':
+                    case 'mod':
                         pfile.addASTNode(wrapExport(parseModule(iter,ctx),doExport))
                         doExport = null
                         break

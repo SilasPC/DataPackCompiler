@@ -2,26 +2,19 @@ import { ParsingFile } from "../toolbox/ParsingFile"
 import { CompileContext } from "../toolbox/CompileContext"
 import { Fetcher } from "../api/Compiler"
 import { Maybe, MaybeWrapper } from "../toolbox/Maybe"
-import { ASTNodeType } from "../syntax/AST"
+import { ASTNodeType, ASTModuleNode } from "../syntax/AST"
 import { PTModNode, PTKind, PTStatement, PTBody, ParseTreeStore } from "./ParseTree"
 import { exhaust } from "../toolbox/other"
 import { parseFunction } from "./statements/parseFunction"
-import { ModDeclaration, Declaration } from "./Declaration"
+import { ModDeclaration, Declaration, DeclarationType } from "./Declaration"
 import { parseDefine } from "./statements/parseDefine"
 import { parseStruct } from "./statements/parseStruct"
-import { parseModule } from "./parseModule"
+import { Scope } from "./Scope"
 
-export function parseFile(pf:ParsingFile,ctx:CompileContext,fetcher:Fetcher,store:ParseTreeStore): Maybe<true> {
-	const maybe = new MaybeWrapper<true>()
-
-	let scope = pf.scope
+export function parseModule(mod:ASTModuleNode,scope:Scope,ctx:CompileContext,fetcher:Fetcher,store:ParseTreeStore): Maybe<ModDeclaration> {
+	const maybe = new MaybeWrapper<ModDeclaration>()
 	
-	if (pf.status == 'parsing' || pf.status == 'parsed') return maybe.wrap(true)
-	pf.status = 'parsing'
-
-	let ast = pf.getAST()
-	
-	for (let node of ast) {
+	for (let node of mod.body) {
 		let shouldExport = false
 
 		if (node.type == ASTNodeType.EXPORT) {
@@ -32,7 +25,7 @@ export function parseFile(pf:ParsingFile,ctx:CompileContext,fetcher:Fetcher,stor
 		switch (node.type) {
 
 			case ASTNodeType.IMPORT: {
-				let node0 = node
+				/*let node0 = node
 				let fetched = false
 				let mod: ModDeclaration | null = null
 				if (Array.isArray(node.imports)) {
@@ -51,7 +44,8 @@ export function parseFile(pf:ParsingFile,ctx:CompileContext,fetcher:Fetcher,stor
 					}
 				} else {
 					maybe.merge(scope.symbols.declareHoister(node.imports,()=>fetcher(pf,node0.source),ctx.logger))
-				}
+				}*/
+				console.log('wait import in mod')
 				break
 			}
 	
@@ -103,8 +97,12 @@ export function parseFile(pf:ParsingFile,ctx:CompileContext,fetcher:Fetcher,stor
 
 	maybe.merge(scope.symbols.flushHoisters())
 
-	pf.status = 'parsed'
+	const modDecl: ModDeclaration = {
+		type: DeclarationType.MODULE,
+		namePath: scope.nameAppend(mod.identifier.value),
+		symbols: scope.symbols
+	}
 
-	return maybe.wrap(true)
+	return maybe.wrap(modDecl)
 
 }

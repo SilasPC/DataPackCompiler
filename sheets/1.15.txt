@@ -30,23 +30,31 @@ clone <coords> <coords> <coords> [
     block <coords> <nbtpath>
     entity <entities> <nbtpath>
 
+:data_modify
+  append <:dataval>
+  insert after|before <uint> <:dataval>
+  merge <:dataval>
+  prepend <:dataval>
+  set <:dataval>
+
 data
   get
     block <coords> [<nbtpath>] [<float>]
     entity <entities> [<nbtpath>] [<float>]
+    storage <id> <nbtpath>
   merge
     block <coords> <nbt>
     entity <entities> <nbt>
+    storage <id> <nbtpath>
   remove
     block <coords> <nbtpath>
     entity <entities> <nbtpath>
+    storage <id> <nbtpath>
   modify
-    block <coords> <nbtpath>
-      append <:dataval>
-      insert after|before <uint> <:dataval>
-      merge <:dataval>
-      prepend <:dataval>
-      set <:dataval>
+    block <coords> <nbtpath> <:data_modify>
+    entity <entities> <nbtpath> <:data_modify>
+    storage <id> <nbtpath> <:data_modify>
+      
 
 datapack
   enable <id> [

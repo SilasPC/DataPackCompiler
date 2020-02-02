@@ -1,0 +1,39 @@
+
+mod std {
+
+	mod debug {
+
+		fn panic(): void {
+			/say weell shit
+		}
+
+	}
+
+	mod math {
+
+		struct Vec3 {/*
+			pub x: int
+			pub y: int
+			pub z: int
+
+			pub add(vec:Vec3): Vec3 {
+				return Vec3(
+					this.x + vec.x,
+					this.y + vec.y,
+					this.z + vec.z
+				)
+			}
+
+			pub dot(vec:Vec3): int {
+				return this.x * vec.x + this.y * vec.y + this.z * vec.z
+			}
+
+		*/}
+
+		fn add(a:int,b:int): int {
+			return a + b
+		}
+		
+	}
+
+}

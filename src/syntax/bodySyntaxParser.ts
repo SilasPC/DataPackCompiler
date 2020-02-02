@@ -68,7 +68,7 @@ export function lineSyntaxParser(iter:TokenIteratorI,ctx:CompileContext): null |
                 case 'import':
                 case 'tick':
                 case 'class':
-                case 'namespace':
+                case 'mod':
                 case 'ref':
                 case 'recipe':
                 case 'struct':

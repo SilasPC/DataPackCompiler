@@ -13,15 +13,15 @@ import file from './test'
 	lol++
 }*/
 
-struct A /* {
+struct A {/*
 
 	val: int
 
 	test() {}
 
-} */
+*/}
 
-struct B implements A
+struct B implements A {}
 
 //let lol = false
 
@@ -46,6 +46,10 @@ fn x(): int {
 	/say helloo
 	return file::a *
 		3
+}
+
+mod amod {
+	let abc = 0;
 }
 
 let a = b;
