@@ -25,6 +25,7 @@
 - Loot tables
 - Advancements
 - Tags
+- Storage
 - Sub tick timing
 
 # IDEAS
@@ -42,6 +43,7 @@
 
 # STD Lib:
 - debug
+	- print
 	- trace
 	- panic
 	- counter

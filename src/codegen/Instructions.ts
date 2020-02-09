@@ -53,7 +53,13 @@ export function instrsToCmds(output:OutputManager,useDebug:boolean,instrs:InstrW
 				break
 			case InstrType.LOCAL_INVOKE:
 			case InstrType.INVOKE:
+				if (useDebug) {
+					// stack trace add
+				}
 				into.push(`function ${getFn(i.fn)}`)
+				if (useDebug) {
+					// stack trace remove
+				}
 				ic++
 				break
 			default:

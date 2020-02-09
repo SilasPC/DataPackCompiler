@@ -17,6 +17,8 @@ export class ScoreboardManager {
 
 	private readonly declMap = new Map<Declaration,Scoreboard>()
 
+	private readonly scoreboardNames = new Set<string>()
+
 	constructor(
 		private readonly options: CompilerOptions
 	) {
@@ -24,6 +26,15 @@ export class ScoreboardManager {
 			options.obscureNames ?
 				[this.generateObscure(),this.generateObscure()] :
 				[this.generateName(['globals']),this.generateName(['constants'])]
+		this.scoreboardNames.add(this.globalConst).add(this.globalStatic)
+	}
+
+	getScoreboard(names:ReadonlyArray<string>): string {
+		let ret = this.options.obscureNames ?
+					getObscureName(this.scoreboardNames) :
+					getQualifiedName(names,this.scoreboardNames,16)
+		this.scoreboardNames.add(ret)
+		return ret
 	}
 
 	getDecl(decl:Declaration) {
