@@ -17,7 +17,13 @@
 - Selectors
 - Event bindings
 - Macros
+- Operator overloading
 - Std functions
+- Directives:
+	- #[inline]
+	- #[tag=minecraft:tick]
+	- #[debug]
+	- ?
 
 # Look at
 - Recipies
@@ -47,6 +53,10 @@
 	- trace
 	- panic
 	- counter
+- events
+	- interval
+	- tick
+	- load
 - math
 	- sqrt
 	- sqr
@@ -70,7 +80,7 @@
 - Emit API documentation
 - Import structures (dpl import structure [save/structure])
 - Import from existing datapack in saves (dpl import datapack [save/dp])?
-- Move directly so save folder (dpl )
+- Move directly to save folder (dpl )
 - Packaging (dpl package | dpl install [save])
 - Pack repository (dpl require)
 

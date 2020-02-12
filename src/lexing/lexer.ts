@@ -10,7 +10,7 @@ import { operators, keywords, markers, types } from './values'
 
 const comments = "//|/\\*|\\*/"
 const primitives = "\\d+(?:\\.\\d+)?|true|false|'[^']*'"
-const symbol = "[a-zA-Z][a-zA-Z0-9]*"
+const symbol = "[a-zA-Z_][a-zA-Z0-9_]*"
 const cmd = '/\\w.*?(?=\r?\n)'
 const selector = '@\\w|@(?=\\[)'
 

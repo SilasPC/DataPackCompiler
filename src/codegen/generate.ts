@@ -1,5 +1,5 @@
 
-import { FnDeclaration, DeclarationType, fnSignature } from "../semantics/Declaration";
+import { FnDeclaration, DeclarationType, fnSignature } from "../semantics/declarations/Declaration";
 import { exhaust } from "../toolbox/other";
 import { InstrType, INT_OP } from "./Instructions";
 import { FnFile } from "./FnFile";
@@ -12,31 +12,32 @@ export function generate(store:ParseTreeStore,om:OutputManager) {
 
 	const init = om.functions.createFn(['std','init'])
 	init.setHeader([`Datapack initialization`])
-	generateFn(init,store.init,om)
+	generateBody(init,store.init,om)
 
-	const done = new Set<FnDeclaration>()
-
-	for (let [decl] of store.fnEntries())
-		gen(decl)
-
-	function gen(decl:FnDeclaration) {
-		if (done.has(decl)) return
-		const body = store.getBody(decl)
-		if (!body) throw new Error('fn decl not registered')
+	// functions
+	for (let [decl,body] of store.fnEntries()) {
 		let typename = decl.thisBinding.type == Type.VOID ? 'Function' : 'Method'
-		let fnf = om.functions.createFn(decl.namePath)
+		let fnf = om.functions.byDeclaration(decl)
 		fnf.setHeader([
 			`${typename} definition`,
 			`Signature: ${fnSignature(decl)}`
 		])
-		done.add(decl)
-		generateFn(fnf,body,om)
-		fnf.mergeBuffers((namePath:string[])=>om.functions.createFn(namePath))
+		generateBody(fnf,body,om)
+	}
+
+	// events
+	for (let [decl,bodies] of store.eventEntries()) {
+		let fnf = om.functions.byDeclaration(decl)
+		fnf.setHeader([
+			`Event definition`
+		])
+		for (let body of bodies)
+			generateBody(fnf,body,om)
 	}
 
 }
 
-function generateFn(fnf:FnFile,fn:PTBody,om:OutputManager): void {
+function generateBody(fnf:FnFile,fn:PTBody,om:OutputManager): void {
 
 	for (let [cmts,stmt] of fn.iterate()) {
 		fnf.addComments(...cmts)
@@ -62,24 +63,46 @@ function generateFn(fnf:FnFile,fn:PTBody,om:OutputManager): void {
 
 }
 
-function generateExpr(fnf:FnFile,pt:PTExpr,om:OutputManager): Scoreboard {
+function generateExpr(fnf:FnFile,pt:PTExpr,om:OutputManager): Scoreboard | null {
 	switch (pt.kind) {
 		case PTKind.VARIABLE:
 			if (pt.decl.varType.type != Type.INT) throw new Error('fak u')
 			return om.scoreboards.getDecl(pt.decl)
+
 		case PTKind.PRIMITIVE:
 			if (pt.value.type != Type.INT) throw new Error('fak u')
-			return om.scoreboards.getConstant(pt.value.value)
+			let sb = om.scoreboards.getConstant(pt.value.value)
+			return sb
+
 		case PTKind.INVOKATION:
-			throw new Error('noooooop')
+			if (pt.func.thisBinding.type != Type.VOID) throw new Error('no method gen plz')
+			for (let i = 0; i < pt.args.length; i++) {
+				let arg = pt.args[i]
+				let param = pt.func.parameters[i]
+				if (param.type.type != Type.INT) throw new Error('only int param rn')
+				if (arg.ref != param.isRef) throw new Error('codegen: invokation param ref did not match argument ref')
+				//generateExpr(fnf,arg.pt,om,/*var to write to: param scoreboard*/)
+			}
+			fnf.push({
+				type: InstrType.INVOKE,
+				fn: om.functions.byDeclaration(pt.func)
+			})
+			for (let arg of pt.args) {
+				// ref back-set
+			}
+			if (pt.func.returns.type == Type.VOID) return null
+			if (pt.func.returns.type != Type.INT) throw new Error('only void or int return rn')
+			return om.scoreboards.getDecl(pt.func)
+
 		case PTKind.OPERATOR:
 			return genOp(fnf,pt,om)
+			
 		default: return exhaust(pt)
 	}
 }
 
 function genOp(fnf:FnFile,pt:PTOpNode,om:OutputManager): Scoreboard {
-	if (pt.type.type != Type.INT) throw new Error('fuck dig')
+	if (pt.type.type != Type.INT) throw new Error('only intz')
 	switch (pt.op) {
 		case '+':
 		case '-':
@@ -88,9 +111,11 @@ function genOp(fnf:FnFile,pt:PTOpNode,om:OutputManager): Scoreboard {
 		case '*': {
 			let tmp = om.scoreboards.getStatic(pt.scopeNames.concat('tmp'))
 			let [o0,o1] = pt.vals.map(expr=>generateExpr(fnf,expr,om))
-			let setInstr: INT_OP = {type:InstrType.INT_OP,into:tmp,from:o0,op:'='}
-			let opInstr: INT_OP = {type:InstrType.INT_OP,into:tmp,from:o1,op:pt.op+'='}
-			fnf.push(setInstr,opInstr)
+			if (!o0||!o1) throw new Error('operands did not have the expected type (non void rn)')
+			fnf.push(
+				{type:InstrType.INT_OP,into:tmp,from:o0,op:'='},
+				{type:InstrType.INT_OP,into:tmp,from:o1,op:pt.op+'='}
+			)
 			return tmp
 		}
 		case '+=':
@@ -99,21 +124,22 @@ function genOp(fnf:FnFile,pt:PTOpNode,om:OutputManager): Scoreboard {
 		case '/=':
 		case '*=': {
 			let [o0,o1] = pt.vals.map(expr=>generateExpr(fnf,expr,om))
-			let opInstr: INT_OP = {type:InstrType.INT_OP,into:o0,from:o1,op:pt.op}
-			fnf.push(opInstr)
+			if (!o0||!o1) throw new Error('operands did not have the expected type (non void rn)')
+			fnf.push({type:InstrType.INT_OP,into:o0,from:o1,op:pt.op})
 			return o0
 		}
 		case '++':
 		case '--': {
+			// TODO: here we must differentiate between pre- and postfix operator
 			let o = generateExpr(fnf,pt.vals[0],om)
+			if (!o) throw new Error('operands did not have the expected type (non void rn)')
 			let one = om.scoreboards.getConstant(1)
-			let opInstr: INT_OP = {type:InstrType.INT_OP,into:o,from:one,op:pt.op[0]+'='}
-			fnf.push(opInstr)
+			fnf.push({type:InstrType.INT_OP,into:o,from:one,op:pt.op[0]+'='})
 			return o
 		}
 
 		default:
-			throw new Error('hahaha')
+			throw new Error('no other ops like comparators rn')
 			//return exhaust(pt.op)
 	}
 }

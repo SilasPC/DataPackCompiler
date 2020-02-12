@@ -23,8 +23,7 @@ function parser(iter: TokenIteratorI, ctx: CompileContext) {
         switch (token.type) {
             case TokenType.KEYWORD: {
                 switch (token.value) {
-                    case 'import':
-                    case 'export':
+                    case 'use':
                         return token.throwUnexpectedKeyWord()
                     case 'mod':
                         body.push(parseModule(iter,ctx))

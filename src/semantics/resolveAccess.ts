@@ -1,9 +1,9 @@
-import { ASTOpNode, ASTNodeType, ASTIdentifierNode, ASTAccess, ASTDynamicAccessNode, ASTStaticAccessNode } from "../syntax/AST";
-import { Declaration, DeclarationType, ModDeclaration, DeclarationWrapper } from "./Declaration";
+
+import { ASTNodeType, ASTIdentifierNode, ASTAccess, ASTDynamicAccessNode, ASTStaticAccessNode } from "../syntax/AST";
+import { DeclarationType, DeclarationWrapper } from "./declarations/Declaration";
 import { MaybeWrapper, Maybe } from "../toolbox/Maybe";
-import { TokenType, GenericToken, TokenI } from "../lexing/Token";
-import { SymbolTable, ReadOnlySymbolTable } from "./SymbolTable";
-import { exhaust } from "../toolbox/other";
+import { GenericToken } from "../lexing/Token";
+import { SymbolTable, ReadOnlySymbolTable } from "./declarations/SymbolTable";
 import { Logger } from "../toolbox/Logger";
 import { parseExpression } from "./expressionParser";
 import { Scope } from "./Scope";

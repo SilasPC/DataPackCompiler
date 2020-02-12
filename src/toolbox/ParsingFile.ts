@@ -1,15 +1,12 @@
 
 import { TokenI } from "../lexing/Token";
-import { ASTNode, ASTStaticDeclaration } from "../syntax/AST";
+import { ASTStaticDeclaration } from "../syntax/AST";
 import { promises as fs } from "fs";
 import { resolve, relative, basename } from 'path'
 import { TokenIterator } from "../lexing/TokenIterator";
-import { DeclarationWrapper, Declaration, ModDeclaration, DeclarationType } from "../semantics/Declaration";
+import { ModDeclaration, DeclarationType } from "../semantics/declarations/Declaration";
 import { Scope } from "../semantics/Scope";
-import { CompileContext } from "./CompileContext";
-import { SymbolTable } from "../semantics/SymbolTable";
 import { SourceLine } from "../lexing/SourceLine";
-import { ParseTree, PTStatic } from "../semantics/ParseTree";
 
 export class ParsingFile {
 
@@ -20,38 +17,24 @@ export class ParsingFile {
             relativePath,
             fullPath,
             relativePath,
-            (await fs.readFile(fullPath)).toString(),
-            pf=>Scope.createRoot(basename(fullPath).split('.').slice(0,-1).join('.'))
+            (await fs.readFile(fullPath)).toString()
         )
         return file
     }
 
     static fromSource(source:string,sourceName:string) {
-        return new ParsingFile(sourceName,'','',source,pf=>Scope.createRoot(sourceName))
+        return new ParsingFile(sourceName,'','',source)
     }
 
     private readonly lines: SourceLine[] = []
     private readonly tokens: TokenI[] = []
-    public readonly scope: Scope
-
-    readonly module: ModDeclaration
-
-    public status: 'lexed'|'parsing'|'parsed'|'generating'|'generated' = 'lexed'
 
     private constructor(
         public readonly displayName: string,
         public readonly fullPath: string,
         public readonly relativePath: string,
-        public readonly source: string,
-        scopeGen: (pf:ParsingFile)=>Scope
-    ) {
-        this.scope = scopeGen(this)
-        this.module = {
-            type: DeclarationType.MODULE,
-            symbols: this.scope.symbols,
-            namePath: this.scope.getScopeNames()
-        }
-    }
+        public readonly source: string
+    ) {}
 
     addLine(l:SourceLine) {this.lines.push(l)}
     

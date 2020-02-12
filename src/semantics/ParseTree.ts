@@ -1,4 +1,4 @@
-import { VarDeclaration, FnDeclaration, ModDeclaration } from "./Declaration";
+import { VarDeclaration, FnDeclaration, ModDeclaration, EventDeclaration } from "./declarations/Declaration";
 import { Primitive, primToType } from "./types/PrimitiveValue";
 import { Operator } from "../lexing/values";
 import { ValueType } from "./types/Types";
@@ -10,17 +10,21 @@ export class ParseTreeStore {
 
 	public readonly init: PTBody = new CommentInterspercer<PTStatement>()
 	private readonly fns = new Map<FnDeclaration,PTBody>()
+	private readonly events = new Map<EventDeclaration,PTBody[]>()
 
-	getBody(decl:FnDeclaration) {
-		return this.fns.get(decl)
-	}
-
-	setFn(decl:FnDeclaration,body:PTBody) {
+	addFn(decl:FnDeclaration,body:PTBody) {
 		if (this.fns.has(decl)) throw new Error('tried resetting fn decl body')
 		this.fns.set(decl,body)
 	}
 
+	appendToEvent(decl:EventDeclaration,body:PTBody) {
+		if (this.events.has(decl)) (this.events.get(decl) as PTBody[]).push(body)
+		else this.events.set(decl,[body])
+	}
+
 	fnEntries() {return this.fns.entries()}
+
+	eventEntries() {return this.events.entries()}
 
 }
 
@@ -50,7 +54,7 @@ export function ptCanMut(pt:PTExpr) {
 	}
 }
 
-export type PTStatic = PTFnNode | PTModNode
+export type PTStatic = PTFnNode | PTModNode | PTEventNode
 export type PTExpr = PTVarNode | PTPrimitiveNode | PTCallNode | PTOpNode
 export type ParseTree = PTStatic | PTExpr
 export type PTStatement = PTExpr | PTCmdNode | PTIfNode | PTWhileNode
@@ -64,10 +68,15 @@ export enum PTKind {
 	OPERATOR,
 	COMMAND,
 	CONDITIONAL,
-	WHILE
+	WHILE,
+	EVENT
 }
 
 export type PTBody = CommentInterspercer<PTStatement>
+
+export interface PTEventNode {
+	kind: PTKind.EVENT
+}
 
 export interface PTIfNode {
 	kind: PTKind.CONDITIONAL

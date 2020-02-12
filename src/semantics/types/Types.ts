@@ -1,5 +1,5 @@
 import { TokenI, TokenType } from "../../lexing/Token";
-import { SymbolTable } from "../SymbolTable";
+import { SymbolTable } from "../declarations/SymbolTable";
 import { exhaust } from "../../toolbox/other";
 import { Struct } from "./Struct";
 

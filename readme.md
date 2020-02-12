@@ -14,9 +14,9 @@ Currently, there are a number of cool features:
 - Create variables
 - Use infix notation
 - Type checking
-- Imports / exports
+- Module system
 - Automatic semicolon insertion
-- Hoisting and type inference (somewhat limited)
+- Hoisting and type inference (somewhat limited right now)
 
 When/if finished, there will also be a bunch of cool features like
 - Verifying datapack function and command syntax

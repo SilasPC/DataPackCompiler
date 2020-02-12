@@ -97,22 +97,32 @@ function parseTree(tree:Tree,defs:Def[]): CMDNode[] {
 	let findDef = (str:string) => defs.flatMap(def=>def.has(str)?[def.get(str)]:[]).pop()
 
 	let ret: CMDNode[] = []
-	for (let [keys,[keySubs,children]] of tree) {
-		if (keys.startsWith(':')) {
-			keys = keys.slice(1)
-			if (!keys.length) throw new Error('expected definition name')
-			if (findDef(keys)) throw new Error('redefining :'+keys)
+	for (let [mainKey,[keySubs,children]] of tree) {
+		if (mainKey.startsWith(':')) {
+			mainKey = mainKey.slice(1)
+			if (!mainKey.length) throw new Error('expected definition name')
+			if (findDef(mainKey)) throw new Error('redefining :'+mainKey)
 			if (keySubs.length) throw new Error('definition must only have children')
 			let defChildren: CMDNode[] = []
-			localDefs.set(keys,defChildren)
+			localDefs.set(mainKey,defChildren)
 			defChildren.push(...parseTree(children,defs))
 			continue
 		}
 		let nextOpt = keySubs[0]?keySubs[0].startsWith('['):false
-		let start = keys.split('|').map(k=>new CMDNode(k,nextOpt,[]))
+		let start = mainKey.split('|').map(k=>{
+			let ps = parseSpecial(k,children,findDef)
+			if (ps.spec)
+				return new SemanticalCMDNode(ps.spec,nextOpt,[])
+			if (ps.sub)
+				return new CMDNode(k,nextOpt,[])
+			if (ps.nodes)
+				throw new Error('cannot invoke on main key')
+			throw new Error('should not happen')
+		})
 		ret.push(...start)
 		let last = start
 		for (let [i,keySub] of keySubs.entries()) {
+			// keySub is the string token of an inline child
 			let nextOpt = keySubs[i+1] ? keySubs[i+1].startsWith('[') : false
 			if (keySub.startsWith('[')) {
 				keySub = keySub.slice(1)
@@ -120,12 +130,15 @@ function parseTree(tree:Tree,defs:Def[]): CMDNode[] {
 					keySub = keySub.slice(0,-1)
 			}
 			if (!keySub.length) {
+				// if it is empty, we just removed '['
+				// this is then an empty rest optional, which must be last
 				if (keySubs.length - 1 > i) throw new Error('children optional "[" must be last on line')
 				break
 			}
 			let newLast: CMDNode[] = []
 			let subs = keySub.split('|')
 			for (let [si,sub] of subs.entries()) {
+				// looping over possible subtokens of inline child
 				let ps = parseSpecial(sub,children,findDef)
 				if (ps.spec) {
 					let subnode = new SemanticalCMDNode(ps.spec,nextOpt,[])
@@ -163,9 +176,11 @@ const validSpecials = [
 	'coords2',
 	'float',
 	'ufloat',
-	'text'
+	'text',
+	'id',
+	'nbt'
 ]
-export type SheetSpecials = 'player' | 'players' | 'entity' | 'entities' | 'pint' | 'uint' | 'int' | 'coords' | 'coords2' | 'float' | 'ufloat' | 'text'
+export type SheetSpecials = 'nbt' | 'id' | 'player' | 'players' | 'entity' | 'entities' | 'pint' | 'uint' | 'int' | 'coords' | 'coords2' | 'float' | 'ufloat' | 'text'
 
 function parseSpecial(sub:string,children:Tree,findDef:(str:string)=>CMDNode[]|undefined): {spec?:string,nodes?:CMDNode[],sub?:string} {
 	if (sub.startsWith('<') && sub.endsWith('>')) {

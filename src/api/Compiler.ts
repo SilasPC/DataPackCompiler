@@ -1,28 +1,33 @@
 import { WeakCompilerOptions, CompilerOptions } from "../toolbox/config"
-import { join, resolve, dirname } from "path"
-import { Datapack } from "./Datapack"
+import { resolve, dirname } from "path"
 import { CompileContext } from "../toolbox/CompileContext"
 import { SyntaxSheet } from "../commands/SyntaxSheet"
 import moment = require("moment")
 import 'moment-duration-format'
 import { lexer } from "../lexing/lexer"
 import { fileSyntaxParser } from "../syntax/fileSyntaxParser"
-import { PTBody, ParseTreeStore } from "../semantics/ParseTree"
-import { CommentInterspercer } from "../toolbox/CommentInterspercer"
-import { parseFile } from "../semantics/parseFile"
+import { ParseTreeStore } from "../semantics/ParseTree"
 import { OutputManager } from "../codegen/OutputManager"
 import { generate } from "../codegen/generate"
 import { promises as fs, Stats } from 'fs'
 import { ParsingFile } from "../toolbox/ParsingFile"
 import { GenericToken } from "../lexing/Token"
 import { Maybe, MaybeWrapper } from "../toolbox/Maybe"
-import { ModDeclaration, DeclarationType } from "../semantics/Declaration"
+import { ModDeclaration, DeclarationType } from "../semantics/declarations/Declaration"
 import { StdLibrary } from "../stdlib/StdLibrary"
 import { MKDIRP, RIMRAF } from "../toolbox/fsHelpers"
 import $ from 'js-itertools'
 import { instrsToCmds } from "../codegen/Instructions"
 import { FnFile } from "../codegen/FnFile"
 import { Logger } from "../toolbox/Logger"
+import { HoistingMaster, UnreadableHoistingMaster } from "../semantics/managers/HoistingMaster"
+import { FileTree, loadFileTree, allParsingFiles } from "../toolbox/FileTree"
+import { ProgramManager, Program } from "../semantics/managers/ProgramManager"
+import { parseModule } from "../semantics/parseModule"
+import { ASTModuleNode } from "../syntax/AST"
+import { SymbolTable } from "../semantics/declarations/SymbolTable"
+import { Scope } from "../semantics/Scope"
+import { parseFileTree } from "../semantics/parseModuleTree"
 
 export const compilerVersion = '0.1.0'
 
@@ -70,12 +75,7 @@ export class CompileResult {
 						this.output,
 						this.packJson.compilerOptions.debugBuild,
 						fnf.mergeBuffers((namePath:string[])=>this.output.functions.createFn(namePath)),
-						fnf.getHeader(),
-						(fnf:FnFile)=>{
-							let res = this.output.functions.getName(fnf)
-							if (!res) throw new Error('tried calling non-existant function file')
-							return 'tmp:'+res
-						}
+						fnf.getHeader()
 					).join('\n')
 				)
 			)
@@ -106,7 +106,7 @@ export interface PackJSON extends Required<WeakPackJSON> {
 	compilerOptions: CompilerOptions
 }
 
-export async function compile(logger:Logger,cfg:PackJSON,srcFiles:string[]): Promise<Maybe<CompileResult>> {
+export async function compile(logger:Logger,cfg:PackJSON,src:FileTree): Promise<Maybe<CompileResult>> {
 
 	const maybe = new MaybeWrapper<CompileResult>()
 
@@ -124,13 +124,11 @@ export async function compile(logger:Logger,cfg:PackJSON,srcFiles:string[]): Pro
 	logger.logGroup(1,'inf',`Begin compilation`)
 	let start = moment()
 
-	const pfiles = await Promise.all(
-		srcFiles
-			.sort() // ensure same load order every run
-			.map(srcFile=>ctx.loadFile(srcFile))
-	)
+	const pfiles = allParsingFiles(src)
 	
-	logger.log(1,'inf',`Loaded ${srcFiles.length} file(s)`)
+	const programManager = new ProgramManager()
+	
+	logger.log(1,'inf',`Loaded ${pfiles.length} file(s)`)
 	
 	pfiles.forEach(pf=>lexer(pf,ctx))
 	logger.log(1,'inf',`Lexical analysis complete`)
@@ -138,14 +136,20 @@ export async function compile(logger:Logger,cfg:PackJSON,srcFiles:string[]): Pro
 	pfiles.forEach(pf=>fileSyntaxParser(pf,ctx))
 	logger.log(1,'inf',`Syntax analysis complete`)
 
-	const store = new ParseTreeStore()
-	const fetcher = createFetcher(pfiles,ctx,store)
 	let gotErrors = false
 
-	pfiles.forEach(pf=>{
-		let res = parseFile(pf,ctx,fetcher,store)
-		if (!res.value) gotErrors = true
-	})
+	parseFileTree(src,programManager,ctx)
+
+	if (!programManager.flushDefered().value)
+		gotErrors = true
+
+	/*for (let h of programManager.getUnreferenced()) {
+		logger.addError(h.getToken().warning('Never referenced'))
+	}*/
+
+	if (!programManager.flushAll(logger).value)
+		gotErrors = true
+
 	if (!gotErrors)
 		logger.log(1,'inf',`Semantical analysis complete`)
 	else
@@ -154,7 +158,7 @@ export async function compile(logger:Logger,cfg:PackJSON,srcFiles:string[]): Pro
 	const output = new OutputManager(cfg.compilerOptions)
 	if (!gotErrors) {
 
-		generate(store,output)
+		generate(programManager.parseTree,output)
 		logger.log(1,'inf',`Generation complete`)
 
 		logger.log(0,'wrn',`No verifier function yet`)
@@ -182,69 +186,5 @@ export async function compile(logger:Logger,cfg:PackJSON,srcFiles:string[]): Pro
 		return maybe.none()
 
 	return maybe.wrap(new CompileResult(cfg,output))
-
-}
-
-function def<T>(val:T|undefined,def:T): T {return val == undefined ? def : val}
-
-function purgeKeys<T>(obj:T): T {
-	obj = {...obj}
-	for (let key in obj)
-		if ([null,undefined].includes(obj[key] as any)) delete obj[key]
-	return obj
-}
-
-async function recursiveSearch(path:string): Promise<string[]> {
-	let files = await fs.readdir(path)
-	let stats = await Promise.all(files.map(f=>fs.stat(join(path,f))))
-	let dirs = stats
-		.map((d,i)=>([d,i] as [Stats,number]))
-		.filter(([s])=>s.isDirectory())
-		.map(([_,i])=>files[i])
-	return files
-		.filter(f=>!dirs.includes(f))
-		.map(f=>join(path,f))
-		.concat(
-			(await Promise.all(dirs.map(d=>recursiveSearch(join(path,d)))))
-				.reduce((a,c)=>a.concat(c),[])
-				.map(v=>v)
-		)
-}
-
-export type Fetcher = (origin:ParsingFile,token:GenericToken) => Maybe<ModDeclaration>
-
-function createFetcher(pfiles:ParsingFile[],ctx:CompileContext,store:ParseTreeStore): Fetcher {
-	const stdLib = StdLibrary.create(ctx)
-	return fetcher
-	function fetcher(origin:ParsingFile,token:GenericToken): Maybe<ModDeclaration> {
-		const maybe = new MaybeWrapper<ModDeclaration>()
-		let src = token.value.slice(1,-1)
-		// relative file import
-		if (src.startsWith('.')) {
-			let path = resolve(dirname(origin.fullPath),src+'.dpl')
-			let pf = pfiles.find(p=>p.fullPath == path)
-			if (pf instanceof ParsingFile) {
-				if (!parseFile(pf,ctx,fetcher,store).value) {
-					ctx.logger.addError(token.error('file has errors'))
-					return maybe.none()
-				}
-				return maybe.wrap(pf.module)
-			} else {
-				ctx.logger.addError(token.error('could not find source file'))
-				maybe.noWrap()
-			}
-		}
-		// std library import
-		let decl = stdLib.getDeclaration(token,ctx.logger)
-		if (!decl.value) {
-			ctx.logger.addError(token.error('could not find library'))
-			return maybe.none()
-		}
-		if (decl.value.decl.type != DeclarationType.MODULE) {
-			ctx.logger.addError(token.error('not a module'))
-			return maybe.none()
-		}
-		return maybe.wrap(decl.value.decl)
-	}		
 
 }

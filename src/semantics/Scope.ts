@@ -1,12 +1,14 @@
 
-import { SymbolTable } from "./SymbolTable";
+import { SymbolTable } from "./declarations/SymbolTable";
+import { HoistingMaster } from "./managers/HoistingMaster";
+import { Program } from "./managers/ProgramManager";
 
 export class Scope {
 
-	public static createRoot(name:string) {
+	public static createRoot(program: Program, name:string) {
 		return new Scope(
 			null,
-			SymbolTable.createRoot(),
+			SymbolTable.createRoot(program),
 			name
 		)
 	}
@@ -14,8 +16,12 @@ export class Scope {
 	protected constructor(
 		private readonly parent: Scope|null,
 		public readonly symbols: SymbolTable,
-		private readonly name: string
+		public readonly scopeName: string
 	) {}
+
+	branchWithNewSymbolTable(name:string, program: Program) {
+		return new Scope(this,SymbolTable.createRoot(program),name)
+	}
 
 	branch(name:string) {
 		return new Scope(this,this.symbols.branch(),name)
@@ -24,7 +30,7 @@ export class Scope {
 	nameAppend(name:string) {return this.getScopeNames().concat(name)}
 
 	getScopeNames(): string[] {
-		let names = [this.name]
+		let names = [this.scopeName]
 		if (this.parent) names = this.parent.getScopeNames().concat(names)
 		return names
 	}

@@ -6,7 +6,7 @@ import { CompileError } from "../toolbox/CompileErrors"
 import { ParseTree, PTKind, PTExpr, PTOpNode, ptExprToType, ptCanMut, PTCallNode, PTVarNode } from "./ParseTree"
 import { Logger } from "../toolbox/Logger"
 import { resolveStatic, resolveAccess } from "./resolveAccess"
-import { DeclarationType } from "./Declaration"
+import { DeclarationType } from "./declarations/Declaration"
 import { Type, isSubType } from "./types/Types"
 import { Scope } from "./Scope"
 
@@ -27,7 +27,7 @@ export function parseExpression(
 			switch (res.value.decl.type) {
 				case DeclarationType.VARIABLE:
 					return maybe.wrap({kind:PTKind.VARIABLE,decl:res.value.decl})
-				default: throw new Error('kiiill mmeeeee')
+				default: throw new Error('kiiill mmeeeee '+DeclarationType[res.value.decl.type])
 			}
 		}
 		

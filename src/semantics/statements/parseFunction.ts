@@ -1,7 +1,7 @@
 import { ASTFnNode } from "../../syntax/AST";
 import { PTFnNode, ParseTree, PTKind, ParseTreeStore } from "../ParseTree";
 import { MaybeWrapper, Maybe } from "../../toolbox/Maybe";
-import { FnDeclaration, DeclarationType, VarDeclaration } from "../Declaration";
+import { FnDeclaration, DeclarationType, VarDeclaration } from "../declarations/Declaration";
 import { tokenToType, Type, ValueType } from "../types/Types";
 import { Logger } from "../../toolbox/Logger";
 import { Scope } from "../Scope";
@@ -39,7 +39,7 @@ export function parseFunction(node:ASTFnNode,scope:Scope,store:ParseTreeStore,lo
 		namePath: scope.nameAppend(node.identifier.value)
 	}
 
-	store.setFn(fndecl,res.value)
+	store.addFn(fndecl,res.value)
 
 	return maybe.wrap(fndecl)
 

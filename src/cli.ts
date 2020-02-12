@@ -22,6 +22,25 @@ const argv = yargs
 		'Additionally, watch for source file changes, and recompile on any changes.'
 	)
 
+	/*.command('import', 'Import various things from a world', yargs => {
+		yargs
+
+			.demandCommand(1)
+
+			.command('structure [name]', 'Import structure', yargs => {
+				yargs
+					.positional('name', {
+						string: true,
+						description: 'Name including namespace'
+					})
+			},importStruct)
+
+			.option('world', {
+				string: true,
+				description: 'Save name to import from'
+			})
+	})*/
+
 	.command('init [path]', 'Initialize pack.json', yargs => {
 		yargs
 			.positional('path', {
@@ -159,3 +178,7 @@ async function initialize(path:string) {
 	await Datapack.initialize(path)
 	process.exit(0)
 }
+
+/*async function importStruct(argv:any) {
+	
+}*/

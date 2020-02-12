@@ -1,10 +1,10 @@
 import { createAbs } from "./math/abs";
 import { CompileContext } from "../toolbox/CompileContext";
-import { Declaration, ModDeclaration, DeclarationWrapper, DeclarationType } from "../semantics/Declaration";
+import { Declaration, ModDeclaration, DeclarationWrapper, DeclarationType } from "../semantics/declarations/Declaration";
 import { TokenI, TokenType } from "../lexing/Token";
 import { Maybe, MaybeWrapper } from "../toolbox/Maybe";
 import { createDouble } from "./math/double";
-import { SymbolTable, ReadOnlySymbolTable } from "../semantics/SymbolTable";
+import { SymbolTable, ReadOnlySymbolTable } from "../semantics/declarations/SymbolTable";
 
 type Lib = {[key:string]:(Lib|((ctx:CompileContext)=>Declaration))}
 
@@ -30,7 +30,7 @@ export class StdLibrary implements ReadOnlySymbolTable {
 	) {}
 
 	getDeclaration(name: TokenI): Maybe<DeclarationWrapper> {
-		const maybe = new MaybeWrapper<DeclarationWrapper>()
+		/*const maybe = new MaybeWrapper<DeclarationWrapper>()
 		let val
 		if (name.type == TokenType.PRIMITIVE)
 				val = name.value.slice(1,-1)
@@ -50,7 +50,8 @@ export class StdLibrary implements ReadOnlySymbolTable {
 				this.loaded.set(val,decl = {type:DeclarationType.MODULE,namePath:this.namePath,symbols:new StdLibrary(this.ctx,sub,this.namePath.concat(name.value))})
 			return maybe.wrap({token:name,decl})
 		}
-		return maybe.none()
+		return maybe.none()*/
+		throw new Error('no std yet')
 	}
 
 }

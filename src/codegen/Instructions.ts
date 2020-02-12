@@ -1,5 +1,5 @@
 
-import { FnDeclaration } from '../semantics/Declaration'
+import { FnDeclaration } from '../semantics/declarations/Declaration'
 import { FnFile } from './FnFile'
 import { CMDNode } from '../commands/CMDNode'
 import { ASTExpr } from '../syntax/AST'
@@ -39,7 +39,7 @@ export interface CMDInstr {
 	raw: string
 }
 
-export function instrsToCmds(output:OutputManager,useDebug:boolean,instrs:InstrWrapper,into:string[],getFn:(fnf:FnFile)=>string) {
+export function instrsToCmds(output:OutputManager,useDebug:boolean,instrs:InstrWrapper,into:string[]) {
 	let ic = 0
 	for (let i of instrs.interateInto(into)) {
 		switch (i.type) {
@@ -56,7 +56,7 @@ export function instrsToCmds(output:OutputManager,useDebug:boolean,instrs:InstrW
 				if (useDebug) {
 					// stack trace add
 				}
-				into.push(`function ${getFn(i.fn)}`)
+				into.push(`function ${i.fn.filePath}`)
 				if (useDebug) {
 					// stack trace remove
 				}

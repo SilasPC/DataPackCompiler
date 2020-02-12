@@ -1,7 +1,7 @@
 
 import { CompilerOptions } from "../toolbox/config"
 import { getObscureName, getQualifiedName } from "../toolbox/other"
-import { Declaration } from "../semantics/Declaration"
+import { Declaration } from "../semantics/declarations/Declaration"
 
 export interface Scoreboard {
 	selector: string

@@ -1,59 +1,49 @@
-import { ParsingFile } from "../toolbox/ParsingFile"
+
 import { CompileContext } from "../toolbox/CompileContext"
-import { Fetcher } from "../api/Compiler"
 import { Maybe, MaybeWrapper } from "../toolbox/Maybe"
-import { ASTNodeType, ASTModuleNode } from "../syntax/AST"
-import { PTModNode, PTKind, PTStatement, PTBody, ParseTreeStore } from "./ParseTree"
+import { ASTNodeType, ASTStaticDeclaration } from "../syntax/AST"
 import { exhaust } from "../toolbox/other"
 import { parseFunction } from "./statements/parseFunction"
-import { ModDeclaration, Declaration, DeclarationType } from "./Declaration"
+import { ModDeclaration, DeclarationType } from "./declarations/Declaration"
 import { parseDefine } from "./statements/parseDefine"
 import { parseStruct } from "./statements/parseStruct"
 import { Scope } from "./Scope"
+import { parseEvent } from "./statements/parseEvents"
+import { resolveAccess } from "./resolveAccess"
+import { parseBody } from "./parseBody"
+import { Program } from "./managers/ProgramManager"
 
-export function parseModule(mod:ASTModuleNode,scope:Scope,ctx:CompileContext,fetcher:Fetcher,store:ParseTreeStore): Maybe<ModDeclaration> {
-	const maybe = new MaybeWrapper<ModDeclaration>()
+export function parseModule(
+	mod: ModDeclaration,
+	body: readonly ASTStaticDeclaration[],
+	ctx: CompileContext,
+	program: Program
+): Maybe<true> {
+	const maybe = new MaybeWrapper<true>()
 	
-	for (let node of mod.body) {
-		let shouldExport = false
+	const scope = mod.scope
 
-		if (node.type == ASTNodeType.EXPORT) {
+	for (let node of body) {
+
+		let isPublic = false
+
+		if (node.type == ASTNodeType.PUBLIC) {
 			node = node.node
-			shouldExport = true
+			isPublic = true
 		}
 
 		switch (node.type) {
 
-			case ASTNodeType.IMPORT: {
-				/*let node0 = node
-				let fetched = false
-				let mod: ModDeclaration | null = null
-				if (Array.isArray(node.imports)) {
-					for (let t of node.imports) {
-						maybe.merge(scope.symbols.declareHoister(t,()=>{
-							const maybe = new MaybeWrapper<Declaration>()
-							if (fetched && !mod) return maybe.none()
-							if (!mod) {
-								fetched = true
-								let rmod = fetcher(pf,node0.source)
-								if (!rmod.value) return maybe.none()
-								mod = rmod.value
-							}
-							return mod.symbols.getDeclaration(t,ctx.logger).pick('decl')
-						},ctx.logger))
-					}
-				} else {
-					maybe.merge(scope.symbols.declareHoister(node.imports,()=>fetcher(pf,node0.source),ctx.logger))
-				}*/
-				console.log('wait import in mod')
+			case ASTNodeType.USE: {
+				let node0 = node
+				scope.symbols.declareHoister(node.accessors[node.accessors.length-1],()=>mod.fetchModule(node0.accessors,ctx.logger),ctx.logger)
 				break
 			}
 	
 			case ASTNodeType.MODULE: {
-				let node0 = node
-				maybe.merge(scope.symbols.declareHoister(node.identifier,()=>{
-					return parseModule(node0,scope.branch(node0.identifier.value),ctx,fetcher,store)
-				},ctx.logger))
+				let child = mod.branch(node.identifier,ctx.logger)
+				if (maybe.merge(child)) break
+				maybe.merge(parseModule(child.value,node.body,ctx,program))
 				break
 			}
 	
@@ -62,7 +52,7 @@ export function parseModule(mod:ASTModuleNode,scope:Scope,ctx:CompileContext,fet
 				maybe.merge(scope.symbols.declareHoister(node.identifier,()=>{
 					let res = parseDefine(node0,scope,ctx.logger)
 					if (res.value)
-						store.init.add(res.value.pt)
+						program.parseTree.init.add(res.value.pt)
 					return res.pick('decl')
 				},ctx.logger))
 				break
@@ -70,7 +60,7 @@ export function parseModule(mod:ASTModuleNode,scope:Scope,ctx:CompileContext,fet
 	
 			case ASTNodeType.FUNCTION: {
 				let node0 = node
-				maybe.merge(scope.symbols.declareHoister(node.identifier,()=>parseFunction(node0,scope,store,ctx.logger),ctx.logger))
+				maybe.merge(scope.symbols.declareHoister(node.identifier,()=>parseFunction(node0,scope,program.parseTree,ctx.logger),ctx.logger))
 				break
 			}
 	
@@ -84,9 +74,31 @@ export function parseModule(mod:ASTModuleNode,scope:Scope,ctx:CompileContext,fet
 				break
 			}
 
-			case ASTNodeType.EVENT:
-				console.log('wait event')
+			case ASTNodeType.EVENT: {
+				let node0 = node
+				scope.symbols.declareHoister(node.identifier,()=>parseEvent(node0,scope,ctx.logger,program),ctx.logger)
 				break
+			}
+
+			case ASTNodeType.ON: {
+				let node0 = node
+				program.defer(() => {
+					const maybe = new MaybeWrapper<true>()
+					let res = resolveAccess(node0.event,scope,ctx.logger)
+					if (!res.value) return maybe.none()
+					if (res.value.decl.type != DeclarationType.EVENT) {
+						ctx.logger.addError(node0.event.error('expected an event'))
+						return maybe.none()
+					}
+					if (node0.body) {
+						let body = parseBody(node0.body,scope.branch('event'),ctx.logger)
+						if (!body.value) return maybe.none()
+						program.parseTree.appendToEvent(res.value.decl,body.value)
+					}
+					return maybe.wrap(true)
+				})
+				break
+			}
 				
 			default:
 				return exhaust(node)
@@ -95,14 +107,6 @@ export function parseModule(mod:ASTModuleNode,scope:Scope,ctx:CompileContext,fet
 
 	}
 
-	maybe.merge(scope.symbols.flushHoisters())
-
-	const modDecl: ModDeclaration = {
-		type: DeclarationType.MODULE,
-		namePath: scope.nameAppend(mod.identifier.value),
-		symbols: scope.symbols
-	}
-
-	return maybe.wrap(modDecl)
+	return maybe.wrap(true)
 
 }

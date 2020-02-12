@@ -10,6 +10,7 @@ export class FnFile {
 	private headerComments: string[] = []
 
 	constructor(
+		public readonly filePath: string,
 		private readonly namePath: ReadonlyArray<string>
 	) {
 		this.stack = [this.instrBuffer = new InstrWrapper()]

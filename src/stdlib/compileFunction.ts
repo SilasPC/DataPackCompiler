@@ -1,8 +1,7 @@
 import { CompileContext } from "../toolbox/CompileContext";
-import { FnDeclaration, DeclarationType, ModDeclaration } from "../semantics/Declaration";
+import { FnDeclaration, DeclarationType, ModDeclaration } from "../semantics/declarations/Declaration";
 import { lexer } from "../lexing/lexer";
 import { fileSyntaxParser } from "../syntax/fileSyntaxParser";
-import { parseFile } from "../semantics/parseFile";
 import { MaybeWrapper } from "../toolbox/Maybe";
 import { ParsingFile } from "../toolbox/ParsingFile";
 import { parseFunction } from "../semantics/statements/parseFunction";

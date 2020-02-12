@@ -5,6 +5,7 @@ import { join } from "path";
 import { WeakCompilerOptions, compilerOptionDefaults } from "../toolbox/config";
 import { PackJSON, WeakPackJSON, compile, CompileResult } from './Compiler';
 import { Logger } from '../toolbox/Logger';
+import { loadFileTree } from '../toolbox/FileTree';
 
 export class Datapack {
 
@@ -56,9 +57,7 @@ export class Datapack {
 
 	async compile(cfgOverride:WeakCompilerOptions={}) {
 
-		const files = await recursiveSearch(join(this.packDir,this.packJson.srcDir))		
-
-		const srcFiles = files.filter(f=>f.endsWith('.dpl'))
+		const src = await loadFileTree(join(this.packDir,this.packJson.srcDir))
 
 		let cfg = Datapack.getDefaultConfig({
 			...this.packJson, // all normal options
@@ -75,7 +74,7 @@ export class Datapack {
 			logger.log(2,'inf',`${key} => ${val}`)
 		
 		try {
-			let res = await compile(logger,cfg,srcFiles)
+			let res = await compile(logger,cfg,src)
 			if (res.value) this.status = res.value
 			else this.status = 'fail'
 		} catch (e) {

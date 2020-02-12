@@ -8,7 +8,7 @@ import { ASTNode, ASTExpr } from "../syntax/AST"
 import { SheetSpecials } from "./sheetParser"
 import { exhaust } from "../toolbox/other"
 import { Maybe, MaybeWrapper } from "../toolbox/Maybe"
-import { readNumber, readSelector } from "./specialParsers"
+import { readNumber, readSelector, readId, readCoords, read2Coords } from "./specialParsers"
 import { CompileError } from "../toolbox/CompileErrors"
 import { ValueType, Type } from "../semantics/types/Types"
 
@@ -38,7 +38,7 @@ export class CMDNode {
 			return [{node:this,capture:cmd.substr(i,l-1),expr:null}]
 		}
 		let sub = this.findNext(token,j,ctx)
-		if (Array.isArray(sub)) return errMsgsToCompileError(token,i,sub)
+		if (Array.isArray(sub)) return errMsgsToCompileError(token,j,sub)
 		let res = sub.parseSyntax(token,j,ctx)
 		if (res instanceof CompileError) return res
 		return [{node:this,capture:cmd.substr(i,l-1),expr:null},...res]
@@ -54,7 +54,9 @@ export class CMDNode {
 			return ['match failed (matched too many)']
 		if (!s) {
 			// console.log('failed at',token.value.slice(j))
-			return trys.filter(t=>typeof t != 'number') as string[]
+			let errs = trys.filter(t=>typeof t != 'number') as string[]
+			if (errs.length == 0) return ['failed to match any']
+			return errs
 		}
 		return s
 	}
@@ -100,20 +102,22 @@ export class SemanticalCMDNode extends CMDNode {
 		}
 		let spec = this.cmpStr as SheetSpecials
 		switch (spec) {
-			case 'text':
-				return token.value.length - i
+			case 'id': return readId(token,i)
+			case 'text': return token.value.length - i
 			case 'int': return readNumber(token,true,true,true,i)
 			case 'uint': return readNumber(token,true,false,true,i)
 			case 'pint': return readNumber(token,true,false,false,i)
+			case 'float': return readNumber(token,false,true,true,i)
+			case 'ufloat': return readNumber(token,false,false,true,i)
 			case 'player': return readSelector(token,i,false,true)
 			case 'players': return readSelector(token,i,true,true)
 			case 'entity': return readSelector(token,i,false,false)
 			case 'entities': return readSelector(token,i,true,false)
-			case 'coords':
-			case 'coords2':
-			case 'float':
-			case 'ufloat':
-				return `not implemented sheet special '${spec}'`
+			case 'coords': return readCoords(token,i)
+			case 'coords2': return read2Coords(token,i)
+			case 'nbt':
+				console.log('sheet spec not yet: '+spec)
+				return token.value.length - i
 			default:
 				return exhaust(spec)
 		}
@@ -141,5 +145,5 @@ function errMsgsToCompileError(token:TokenI,i:number,errMsgs:string[]) {
 	if (errMsgs.length == 1) return token.errorAt(i,errMsgs[0])
 	let res = 'got multiple errors:'
 	for (let msg of errMsgs) res += '\n - ' + msg
-	return token.error(res)
+	return token.errorAt(i,res)
 }

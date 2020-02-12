@@ -59,20 +59,18 @@ export function lineSyntaxParser(iter:TokenIteratorI,ctx:CompileContext): null |
                 case 'fn':
                 case 'break':
                 case 'for':
-                case 'event':
+                case 'use':
                     return token.throwDebug('keyword not implemented')
                 case 'var':
-                case 'export':
                 case 'else':
-                case 'from':
-                case 'import':
-                case 'tick':
                 case 'class':
                 case 'mod':
                 case 'ref':
                 case 'recipe':
                 case 'struct':
                 case 'implements':
+                case 'on':
+                case 'event':
                     return token.throwDebug('keyword invalid here')
                 default:
                     return exhaust(token.value)
@@ -81,7 +79,6 @@ export function lineSyntaxParser(iter:TokenIteratorI,ctx:CompileContext): null |
         case TokenType.COMMAND:
             let res = ctx.syntaxSheet.readSyntax(iter.current(),ctx)
             if (res.value) return res.value
-            console.log(token.value)
             return null
         case TokenType.OPERATOR:
         case TokenType.PRIMITIVE:

@@ -18,6 +18,6 @@
     "targetVersion": "latest",
     "debugBuild": true
   },
-  "srcDir": "./",
+  "srcDir": "./src",
   "emitDir": "./"
 }

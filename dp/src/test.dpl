@@ -1,61 +1,22 @@
 
-import file from './test'
+use super::std
+// use subMod
 
-// on std::events::player_join {}
+event abc
+on abc {
+	/say abc fired
+}
 
-// on std::events::interval!(3) {;;;}
-
-/*fn getAllPlayers(): selector {
-	return @a[]
-}*/
-
-/*fn testRef(ref lol:int): void {
-	lol++
-}*/
-
-struct A {/*
-
-	val: int
-
-	test() {}
-
-*/}
-
+struct A {}
 struct B implements A {}
 
 //let lol = false
 
-fn x(): int {
-	//B()
-	//testRef(ref a)
-	a += b
-	//while (false) /say b
-	/*if (!lol) {
-		if (true) /say a
-		lol = a != b
-		/say say whaaat
-	} else /say oka
-	*/
-	//a.abs
-	file::a++
-	/execute as @a positioned <coords> align x facing entity @s feet run say hello!
-	/say hello
-	/say hello
-	//x()
-	file::yr++;
-	/say helloo
-	return file::a *
-		3
+fn x(): void {
+	let t = 0
+	t += (2+t) * t
+	/execute as @a positioned 1 2 3 align x facing entity @s feet run say hello!
+	y()
 }
 
-mod amod {
-	let abc = 0;
-}
-
-let a = b;
-const b = 2;
-let yr = 3//y()
-
-let xi: int = 1//x()
-
-fn y(): int {return 1}
+fn y(): void {}

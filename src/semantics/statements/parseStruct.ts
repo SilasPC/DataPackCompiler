@@ -1,7 +1,7 @@
 import { ASTStructNode } from "../../syntax/AST";
 import { Scope } from "../Scope";
 import { CompileContext } from "../../toolbox/CompileContext";
-import { Declaration, StructDeclaration, DeclarationType, DeclarationWrapper } from "../Declaration";
+import { Declaration, StructDeclaration, DeclarationType, DeclarationWrapper } from "../declarations/Declaration";
 import { Maybe, MaybeWrapper } from "../../toolbox/Maybe";
 import { Struct } from "../types/Struct";
 import { TokenI, GenericToken } from "../../lexing/Token";

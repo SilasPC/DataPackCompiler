@@ -1,7 +1,7 @@
 import { Type } from "./Types"
 import { Maybe, MaybeWrapper } from "../../toolbox/Maybe"
 import { CompileContext } from "../../toolbox/CompileContext"
-import { StructDeclaration } from "../Declaration"
+import { StructDeclaration } from "../declarations/Declaration"
 import { Errorable } from "../../toolbox/other"
 
 export class Struct {

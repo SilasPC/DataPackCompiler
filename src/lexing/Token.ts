@@ -72,8 +72,8 @@ export class Token {
     }
 
     errorAt(i:number,msg:string) {
-        let fi = this.line.startIndex + this.indexLine + i
-        let li = fi + this.value.length
+        let fi = this.indexStart + Math.min(i, this.value.length - 1)
+        let li = this.indexEnd
         return new CompileError(
             createErrorMessage(this.line.file,fi,li,msg),
             false

@@ -52,7 +52,7 @@ function astSourceMap(pfile:ParsingFile,fi:number,li:number) {
 }
 
 export enum ASTNodeType {
-    EXPORT,
+    PUBLIC,
     DEFINE,
     FUNCTION,
     INVOKATION,
@@ -68,19 +68,20 @@ export enum ASTNodeType {
     RETURN,
     MODULE,
     REFERENCE,
-    IMPORT,
+    USE,
     ACCESS,
     SELECTOR,
     RECIPE,
     STRUCT,
     WHILE,
-    EVENT
+    EVENT,
+    ON
 }
 
 export type ASTAccess = ASTAccessNode | ASTIdentifierNode
 export type ASTExpr = ASTAccess | ASTSelectorNode | ASTPrimitiveNode | ASTIdentifierNode | ASTOpNode | ASTListNode | ASTCallNode
 export type ASTStatement = ASTWhileNode | ASTExpr | ASTReturnNode | ASTLetNode | ASTIfNode | ASTCMDNode
-export type ASTStaticDeclaration = ASTEventNode | ASTRecipeNode | ASTLetNode | ASTModuleNode | ASTFnNode | ASTExportNode | ASTImportNode | ASTStructNode
+export type ASTStaticDeclaration = ASTEventNode | ASTOnNode | ASTRecipeNode | ASTLetNode | ASTModuleNode | ASTFnNode | ASTPublicNode | ASTUseNode | ASTStructNode
 export type ASTNode = ASTExpr | ASTStatement | ASTStaticDeclaration
 
 export type ASTAccessNode = ASTStaticAccessNode | ASTDynamicAccessNode
@@ -162,13 +163,13 @@ export class ASTSelectorNode extends ASTNodeBase {
     ){super(pf,indexStart,indexEnd)}
 }
 
-export class ASTExportNode extends ASTNodeBase {
-    public readonly type = ASTNodeType.EXPORT
+export class ASTPublicNode extends ASTNodeBase {
+    public readonly type = ASTNodeType.PUBLIC
     constructor(
         pf: ParsingFile,
         indexStart: number,
         indexEnd: number,
-        public readonly node: Exclude<ASTStaticDeclaration,ASTExportNode>
+        public readonly node: Exclude<ASTStaticDeclaration,ASTPublicNode>
     ){super(pf,indexStart,indexEnd)}
 }
 
@@ -243,7 +244,17 @@ export class ASTEventNode extends ASTNodeBase {
         pf: ParsingFile,
         indexStart: number,
         indexEnd: number,
-        public readonly identifier: ASTAccessNode | ASTIdentifierNode,
+        public readonly identifier: GenericToken
+    ){super(pf,indexStart,indexEnd)}
+}
+
+export class ASTOnNode extends ASTNodeBase {
+    public readonly type = ASTNodeType.ON
+    constructor(
+        pf: ParsingFile,
+        indexStart: number,
+        indexEnd: number,
+        public readonly event: ASTStaticAccessNode | ASTIdentifierNode,
         public readonly body: ASTStatement[]
     ){super(pf,indexStart,indexEnd)}
 }
@@ -324,14 +335,14 @@ export class ASTDynamicAccessNode extends ASTNodeBase {
     ){super(pf,indexStart,indexEnd)}
 }
 
-export class ASTImportNode extends ASTNodeBase {
-    public readonly type = ASTNodeType.IMPORT
+export class ASTUseNode extends ASTNodeBase {
+    public readonly type = ASTNodeType.USE
     constructor(
         pf: ParsingFile,
         indexStart: number,
         indexEnd: number,
-        public readonly imports: TokenI[]|TokenI,
-        public readonly source: GenericToken,
+        public readonly useToken: TokenI,
+        public readonly accessors: TokenI[]
     ){super(pf,indexStart,indexEnd)}
 }
 
