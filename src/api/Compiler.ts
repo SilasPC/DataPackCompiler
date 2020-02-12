@@ -1,5 +1,5 @@
 import { WeakCompilerOptions, CompilerOptions } from "../toolbox/config"
-import { resolve, dirname } from "path"
+import { resolve, dirname, join } from "path"
 import { CompileContext } from "../toolbox/CompileContext"
 import { SyntaxSheet } from "../commands/SyntaxSheet"
 import moment = require("moment")
@@ -28,6 +28,7 @@ import { ASTModuleNode } from "../syntax/AST"
 import { SymbolTable } from "../semantics/declarations/SymbolTable"
 import { Scope } from "../semantics/Scope"
 import { parseFileTree } from "../semantics/parseModuleTree"
+import { emitConvention } from "../toolbox/ConventionUtils"
 
 export const compilerVersion = '0.1.0'
 
@@ -60,10 +61,12 @@ export class CompileResult {
 
 		await fs.writeFile(emitDir+'/pack.mcmeta',JSON.stringify({
 			pack: {
+				pack_format: 1,
 				description: this.packJson.description
 			}
 		},null,2))
-		let ns = emitDir+'/data/tmp'
+		const dataNs = join(emitDir,'data')
+		const ns = emitDir+'/data/tmp'
 		await fs.mkdir(ns)
 		let fns = ns + '/functions'
 		await fs.mkdir(fns)
@@ -80,16 +83,17 @@ export class CompileResult {
 				)
 			)
 		)
-		ns = emitDir+'/data/minecraft'
-		await fs.mkdir(ns)
-		await fs.mkdir(ns+'/tags')
-		await fs.mkdir(ns+'/tags/functions')
-		await fs.writeFile(ns+'/tags/functions/tick.json',JSON.stringify({
+		const mcFnTags = join(emitDir,'data/minecraft/tags/functions')
+		await MKDIRP(mcFnTags)
+		await fs.writeFile(join(mcFnTags,'tick.json'),JSON.stringify({
 			values: []
 		}))
-		/*await fs.writeFile(ns+'/tags/functions/load.json',JSON.stringify({
-			values: ['tmp:'+this.ctx.loadFn.name]
-		}))*/
+		await fs.writeFile(join(mcFnTags,'load.json'),JSON.stringify({
+			values: []
+		}))
+
+		await emitConvention('B4liz0ng','Silas Pockendahl',this.packJson.name,'tmp','minecraft:book',this.packJson.description,dataNs)
+
 	}
 
 }

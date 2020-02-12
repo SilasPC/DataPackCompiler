@@ -1,14 +1,24 @@
 
 ### Maybe use this instead of pack.json
 
+[pack]
 name = "Wuuut"
 description = "Test pack"
-dependencies = []
+icon = "book"
 
+# ?
 srcDir = "./src"
 emitDir = "./"
 
+[author]
+name = "Silas Pockendahl"
+player = "B4liz0ng"
+
 [compilerOptions]
+
+# ?
+dependencies = []
+
 minimumVersion = "0.1"
 obscureNames = false
 obscureSeed = "" # not used

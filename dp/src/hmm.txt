@@ -1,4 +1,9 @@
 
+blocktag air [
+    minecraft:air,
+    minecraft:cave_air
+]
+
 recipe someRecipe {
 
 

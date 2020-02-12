@@ -2,6 +2,8 @@ import { FnFile } from "./FnFile";
 import { CompilerOptions } from "../toolbox/config";
 import { getObscureName, getQualifiedName } from "../toolbox/other";
 import { Declaration, FnDeclaration, EventDeclaration } from "../semantics/declarations/Declaration";
+import $ from 'js-itertools'
+import { IChainableIterable } from "js-itertools/lib/src/types";
 
 export class FnFileManager {
 
@@ -35,6 +37,6 @@ export class FnFileManager {
 		return fn
 	}
 
-	all() {return this.fns}
+	all() {return $(this.fns).filter(([n])=>typeof n == 'string') as IChainableIterable<[string,FnFile]>}
 
 }

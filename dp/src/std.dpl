@@ -5,6 +5,9 @@ mod std {
 
 		fn panic(): void {
 			/say weell shit
+			/say Datapack panicing
+			//datapack disable ...
+			/say WARNING: Datapack failed to panic. This is likely because the pack name was changed.
 		}
 
 	}

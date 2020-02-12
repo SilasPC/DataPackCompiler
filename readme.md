@@ -24,6 +24,7 @@ When/if finished, there will also be a bunch of cool features like
 - Extensive lazy loaded core library
 - Easy way to make custom blocks and items
 - Easy way to interface with players in general
+- Automatically follow datapack conventions (see [https://datapackcenter.com/pages/conventions/])
 
 ### Examples
 See /examples
