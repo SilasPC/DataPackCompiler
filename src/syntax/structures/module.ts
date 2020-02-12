@@ -1,14 +1,12 @@
 
 import { ASTModuleNode, ASTNodeType, ASTStaticDeclaration } from "../AST"
 import { TokenType, TokenI } from "../../lexing/Token"
-import { bodySyntaxParser } from "../bodySyntaxParser"
-import { getType, wrapExport } from "../helpers"
 import { TokenIteratorI } from "../../lexing/TokenIterator"
 import { CompileContext } from "../../toolbox/CompileContext"
-import { ParsingFile } from "../../toolbox/ParsingFile"
 import { parseFunction } from "./function"
 import { parseDeclaration } from "./declaration"
-import { keywords } from "../../lexing/values"
+import { parseEvent } from "./event"
+import { parseStruct } from "./struct"
 
 export function parseModule(iter:TokenIteratorI,ctx:CompileContext): ASTModuleNode {
     let keyword = iter.current()
@@ -16,12 +14,7 @@ export function parseModule(iter:TokenIteratorI,ctx:CompileContext): ASTModuleNo
     let identifier = iter.next().expectType(TokenType.SYMBOL)
     iter.next().expectType(TokenType.MARKER).expectValue('{')
     let body = parser(iter,ctx)
-    return {
-        type: ASTNodeType.MODULE,
-        body,
-        keyword,
-        identifier
-    }
+    return new ASTModuleNode(iter.file,keyword.indexStart,body[body.length-1].indexEnd,identifier,body)
 }
 
 function parser(iter: TokenIteratorI, ctx: CompileContext) {
@@ -30,17 +23,22 @@ function parser(iter: TokenIteratorI, ctx: CompileContext) {
         switch (token.type) {
             case TokenType.KEYWORD: {
                 switch (token.value) {
-                    case 'import':
-                    case 'export':
+                    case 'use':
                         return token.throwUnexpectedKeyWord()
-                    case 'namespace':
+                    case 'mod':
                         body.push(parseModule(iter,ctx))
                         break
                     case 'fn':
                         body.push(parseFunction(iter,ctx))
                         break
+                    case 'event':
+                        body.push(parseEvent(iter,ctx))
+                        break
                     case 'let':
                         body.push(parseDeclaration(iter,ctx))
+                        break
+                    case 'struct':
+                        body.push(parseStruct(iter,ctx))
                         break
                     default:
                         return token.throwUnexpectedKeyWord()

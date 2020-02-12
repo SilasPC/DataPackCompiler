@@ -1,3 +1,9 @@
+import { CompileError } from "./CompileErrors"
+
+export interface Errorable {
+	error(err:string): CompileError
+	warning(err:string): CompileError
+}
 
 export function assertDefined<T>(v:T|undefined): T {
 	if (v == undefined) throw new Error('Assertion failed')
@@ -19,7 +25,7 @@ export function getObscureName(vals:Collection<string>) {
 	}
 }
 
-export function getQualifiedName(names:string[],vals:Collection<string>,maxLength:number) {
+export function getQualifiedName(names:ReadonlyArray<string>,vals:Collection<string>,maxLength:number) {
 	let name = names.join('_')
 	if (name.length > maxLength) {
 		name = name.replace(/[aeyuio]/g,'')

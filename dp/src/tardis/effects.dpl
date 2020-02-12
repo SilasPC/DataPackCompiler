@@ -1,0 +1,16 @@
+
+fn land_particles(): void {
+    /particle dust 0.5 0.5 1 3 ~ ~1 ~ 1 1 1 0.5 30
+    /particle dust 0 0 1 3 ~1 ~1 ~ 0 0.7 0.5 0.1 10
+    /particle dust 0 0 1 3 ~-1 ~1 ~ 0 0.7 0.5 0.1 10
+    /particle dust 0 0 1 3 ~ ~1 ~1 0.5 0.7 0 0.1 10
+    /particle dust 0 0 1 3 ~ ~1 ~-1 0.5 0.7 0 0.1 10
+    /particle dust 0 0 1 3 ~ ~2 ~ 0.5 0.3 0.5 0.1 10
+}
+
+fn transition_sound(): void {
+    // change to @s, but need context to determine that @s is not an entity
+    /playsound block.beacon.activate ambient @p ~ ~ ~ 1 1
+    /playsound block.conduit.deactivate ambient @p ~ ~ ~ 1 0
+    /playsound entity.elder_guardian.curse ambient @p ~ ~ ~ 1 0
+}

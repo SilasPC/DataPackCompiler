@@ -1,0 +1,25 @@
+
+### Maybe use this instead of pack.json
+
+name = "Wuuut"
+description = "Test pack"
+dependencies = []
+
+srcDir = "./src"
+emitDir = "./"
+
+[compilerOptions]
+minimumVersion = "0.1"
+obscureNames = false
+obscureSeed = "" # not used
+noInference = true # should be used lol
+noImplicitCat = true
+ignoreUnreachable = true
+sourceMap = true
+emitComments = false # not used
+optimize = false # not used
+ignoreWarnings = false
+noUnused = false # not used
+verbosity = 0
+targetVersion = "latest"
+debugBuild = true

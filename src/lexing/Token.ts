@@ -49,36 +49,42 @@ export class Token {
         return new Token(line,index,type,value) as TokenI
     }
 
+    public readonly indexEnd: number
+    public readonly indexStart: number
+
     private constructor(
         public readonly line: SourceLine,
-        public readonly index: number,
+        public readonly indexLine: number,
         public readonly type: TokenType,
         public readonly value: string
-    ) {}
+    ) {
+        this.indexStart = indexLine + line.startIndex
+        this.indexEnd = this.indexStart + this.value.length
+    }
     
     error(msg:string): CompileError {
-        let fi = this.line.startIndex + this.index
+        let fi = this.line.startIndex + this.indexLine
         let li = fi + this.value.length
         return new CompileError(
-            createErrorMessage(this.line,this.line,fi,li,msg),
+            createErrorMessage(this.line.file,fi,li,msg),
             false
         )
     }
 
     errorAt(i:number,msg:string) {
-        let fi = this.line.startIndex + this.index + i
-        let li = fi + this.value.length
+        let fi = this.indexStart + Math.min(i, this.value.length - 1)
+        let li = this.indexEnd
         return new CompileError(
-            createErrorMessage(this.line,this.line,fi,li,msg),
+            createErrorMessage(this.line.file,fi,li,msg),
             false
         )
     }
 
     warning(msg:string): CompileError {
-        let fi = this.line.startIndex + this.index
+        let fi = this.line.startIndex + this.indexLine
         let li = fi + this.value.length
         return new CompileError(
-            createErrorMessage(this.line,this.line,fi,li,msg),
+            createErrorMessage(this.line.file,fi,li,msg),
             true
         )
     }

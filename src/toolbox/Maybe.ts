@@ -27,6 +27,16 @@ export class MaybeWrapper<T> {
 		return new MaybeClass<T>(v) as Maybe<T>
 	}
 
+	pass(m:Maybe<T>): Maybe<T> {
+		if (this.hasErrored) return this.none()
+		return m
+	}
+	
+	map<S,P>(m:Maybe<S>,f:(t:S)=>P): Maybe<P> {
+		if (m.value && !this.hasErrored) return new MaybeClass<P>(f(m.value)) as DefiniteMaybe<P>
+		return new MaybeClass<P>() as NoneMaybe<P>
+	}
+
 }
 
 interface DefiniteMaybe<T> extends MaybeClass<T> {value:T}

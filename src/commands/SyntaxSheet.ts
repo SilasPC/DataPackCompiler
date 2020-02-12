@@ -29,14 +29,10 @@ export class SyntaxSheet {
 		const maybe = new MaybeWrapper<ASTCMDNode>()
 		let res = this.root.syntaxParse(token,ctx)
 		if (res instanceof CompileError) {
-			ctx.addError(res)
+			ctx.logger.addError(res)
 			return maybe.none()
 		}
-		return maybe.wrap({
-			type: ASTNodeType.COMMAND,
-			token,
-			consume: res
-		})
+		return maybe.wrap(new ASTCMDNode(token.line.file,token.indexStart,token.indexEnd,token,res))
 	}
 
 	/*verifySemantics(token:Token,ctx:CompileContext,scope:Scope) {

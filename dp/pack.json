@@ -1,7 +1,9 @@
 {
   "name": "Test pack 2020 !!!",
   "description": "My precious compiler :DD",
+  "dependencies": [],
   "compilerOptions": {
+    "minimumVersion": "0.1",
     "obscureNames": false,
     "obscureSeed": "",
     "noInference": true,
@@ -13,9 +15,9 @@
     "ignoreWarnings": false,
     "noUnused": false,
     "verbosity": 0,
-    "targetVersion": "latest"
+    "targetVersion": "latest",
+    "debugBuild": true
   },
-  "srcDir": "./",
-  "emitDir": "./",
-  "debugMode": false
+  "srcDir": "./src",
+  "emitDir": "./"
 }

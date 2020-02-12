@@ -7,6 +7,7 @@
 - Actually add the check when invoking controlflow functions
 
 # FUTURE
+- Dependencies
 - Infer fn returns
 - Compile errors can ask for hints
 - Optimize away unused locals
@@ -16,7 +17,13 @@
 - Selectors
 - Event bindings
 - Macros
+- Operator overloading
 - Std functions
+- Directives:
+	- #[inline]
+	- #[tag=minecraft:tick]
+	- #[debug]
+	- ?
 
 # Look at
 - Recipies
@@ -24,6 +31,7 @@
 - Loot tables
 - Advancements
 - Tags
+- Storage
 - Sub tick timing
 
 # IDEAS
@@ -40,7 +48,16 @@
   may modify the variables in question
 
 # STD Lib:
-- Math
+- debug
+	- print
+	- trace
+	- panic
+	- counter
+- events
+	- interval
+	- tick
+	- load
+- math
 	- sqrt
 	- sqr
 	- trig funcs
@@ -50,9 +67,8 @@
 	- pow
 - Entity
 	- ?
-- Block
-	- Get ID
-	- ?
+- blocks
+	- getID
 - Item
 	- ?
 - Biome
@@ -64,7 +80,7 @@
 - Emit API documentation
 - Import structures (dpl import structure [save/structure])
 - Import from existing datapack in saves (dpl import datapack [save/dp])?
-- Move directly so save folder (dpl )
+- Move directly to save folder (dpl )
 - Packaging (dpl package | dpl install [save])
 - Pack repository (dpl require)
 

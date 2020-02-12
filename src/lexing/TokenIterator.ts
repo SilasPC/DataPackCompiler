@@ -4,6 +4,8 @@ import { TokenI } from "./Token";
 
 export interface TokenIteratorI {
 
+    file: ParsingFile
+
     current(): TokenI
     peek(): TokenI
     next(): TokenI
@@ -39,20 +41,14 @@ export class TokenIterator implements TokenIteratorI {
         let prev = this.prev()
         if (!prev) return 0
         let cur = this.current()
-        return (
-            cur.line.startIndex + cur.index +
-            - prev.line.startIndex - prev.index - prev.value.length
-        )
+        return cur.indexStart - prev.indexEnd
     }
 
     whitespaceAfter() {
         let next = this.peek()
         if (!next) return 0
         let cur = this.current()
-        return (
-            next.line.startIndex + next.index +
-            - cur.line.startIndex - cur.index - cur.value.length
-        )
+        return next.indexStart - cur.indexEnd
     }
 
     currentFollowsNewline() {
@@ -89,6 +85,7 @@ export class LiveIterator implements TokenIteratorI {
     private done = false
 
     constructor(
+        public readonly file: ParsingFile,
         private readonly generator: /*Generator<TokenI,void>*/ Generator
     ) {}
 
@@ -129,20 +126,14 @@ export class LiveIterator implements TokenIteratorI {
         let prev = this.prev()
         if (!prev) return 0
         let cur = this.current()
-        return (
-            cur.line.startIndex + cur.index +
-            - prev.line.startIndex - prev.index - prev.value.length
-        )
+        return cur.indexStart - prev.indexEnd
     }
 
     whitespaceAfter() {
         let next = this.peek()
         if (!next) return 0
         let cur = this.current()
-        return (
-            next.line.startIndex + next.index +
-            - cur.line.startIndex - cur.index - cur.value.length
-        )
+        return next.indexStart - cur.indexEnd
     }
 
     [Symbol.iterator]() {

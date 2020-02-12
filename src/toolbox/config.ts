@@ -1,6 +1,8 @@
+import { compilerVersion } from "../api/Compiler"
 
 export type CompilerOptions = Required<WeakCompilerOptions>
 export interface WeakCompilerOptions {
+	minimumVersion?: string
 	obscureNames?: boolean
 	obscureSeed?: string // unused
 	sourceMap?: boolean
@@ -14,11 +16,13 @@ export interface WeakCompilerOptions {
 	noImplicitCast?: boolean // unused
 	ignoreUnreachable?: boolean // unused
 	targetVersion?: string
+	debugBuild?: boolean // unused
 }
 
 export function compilerOptionDefaults(cfg?:WeakCompilerOptions): CompilerOptions {
 	if (!cfg) cfg = {}
 	return {
+		minimumVersion: compilerVersion,
 		obscureNames: false,
 		obscureSeed: '',
 		noInference: true,
@@ -32,6 +36,7 @@ export function compilerOptionDefaults(cfg?:WeakCompilerOptions): CompilerOption
 		verbosity: 0,
 		colorLog: true,
 		targetVersion: 'latest',
+		debugBuild: false,
 		...cfg
 	}
 }

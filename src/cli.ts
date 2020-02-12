@@ -1,15 +1,15 @@
 
 require('source-map-support').install()
-import { Datapack } from './codegen/Datapack'	
+import { Datapack } from './api/Datapack'	
 import yargs from 'yargs'
-import { WeakCompilerOptions } from './toolbox/config'
+import { compilerVersion } from './api/Compiler'
 
 const COMPILE_GROUP = 'Compilation overrides:'
 
 const argv = yargs
 
 	.scriptName('dpc')
-	.version('0.1')
+	.version(compilerVersion)
 	.epilogue('This compiler is a work in progress, expect bugs')
 	.demandCommand(1)
 	.alias('h','help')
@@ -21,6 +21,25 @@ const argv = yargs
 		'Compile source files from ./datapack into same directory with double verbosity.' +
 		'Additionally, watch for source file changes, and recompile on any changes.'
 	)
+
+	/*.command('import', 'Import various things from a world', yargs => {
+		yargs
+
+			.demandCommand(1)
+
+			.command('structure [name]', 'Import structure', yargs => {
+				yargs
+					.positional('name', {
+						string: true,
+						description: 'Name including namespace'
+					})
+			},importStruct)
+
+			.option('world', {
+				string: true,
+				description: 'Save name to import from'
+			})
+	})*/
 
 	.command('init [path]', 'Initialize pack.json', yargs => {
 		yargs
@@ -64,6 +83,13 @@ const argv = yargs
 		alias: 'v',
 		description: 'Increase verbosity',
 		count: true,
+		group: COMPILE_GROUP
+	})
+
+	.option('debug', {
+		alias: 'd',
+		description: 'Use debug build',
+		boolean: true,
 		group: COMPILE_GROUP
 	})
 
@@ -128,7 +154,8 @@ async function compile(argv:any): Promise<void> {
 				verbosity: argv.verbose ? argv.verbose as number : undefined,
 				colorLog: argv.color === false ? false : undefined,
 				optimize: argv.optimize === false ? false : undefined,
-				ignoreWarnings: argv.warn === false ? true : undefined
+				ignoreWarnings: argv.warn === false ? true : undefined,
+				debugBuild: argv.debug === true ? true : undefined
 			})
 			if (dp.canEmit() && argv.emit !== false) await dp.emit()
 			
@@ -151,3 +178,7 @@ async function initialize(path:string) {
 	await Datapack.initialize(path)
 	process.exit(0)
 }
+
+/*async function importStruct(argv:any) {
+	
+}*/

@@ -14,9 +14,6 @@ export function parseSelector(iter:TokenIteratorI,ctx:CompileContext): ASTSelect
 			throw new Error('selector syntax error')
 	}
 
-	return {
-		type: ASTNodeType.SELECTOR,
-		token
-	}
+	return new ASTSelectorNode(iter.file,token.indexStart,iter.current().indexEnd,token)
 
 }

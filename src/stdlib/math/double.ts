@@ -2,7 +2,7 @@ import { CompileContext } from "../../toolbox/CompileContext";
 import { lexer } from "../../lexing/lexer";
 import { ParsingFile } from "../../toolbox/ParsingFile";
 import { compileStdlibFunction } from "../compileFunction";
-import { ElementaryValueType } from "../../semantics/Types";
+import { Type } from "../../semantics/types/Types";
 
 const fn = `
 export fn double(num:int): int {
@@ -17,7 +17,7 @@ fn identity(): int {
 `
 
 export function createIdentity(ctx:CompileContext) {
-	return compileStdlibFunction(md,'identity',ctx,{elementary:true,type:ElementaryValueType.INT})
+	return compileStdlibFunction(md,'identity',ctx,{type:Type.INT})
 }
 
 export function createDouble(ctx:CompileContext) {

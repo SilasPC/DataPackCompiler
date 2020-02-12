@@ -1,11 +1,8 @@
 
 import { TokenI, TokenType } from "../lexing/Token";
-import { ASTNode, ASTNodeType, ASTIdentifierNode, ASTOpNode, ASTCallNode, ASTListNode, ASTExpr, ASTRefNode, ASTStaticAccessNode } from "./AST";
-import { TokenIterator, TokenIteratorI } from "../lexing/TokenIterator";
-import { CompilerOptions } from "../toolbox/config";
-import { exhaust } from "../toolbox/other";
+import { ASTNodeType, ASTIdentifierNode, ASTOpNode, ASTCallNode, ASTListNode, ASTExpr, ASTRefNode, ASTDynamicAccessNode, ASTStaticAccessNode, ASTPrimitiveNode } from "./AST";
+import { TokenIteratorI } from "../lexing/TokenIterator";
 import { CompileContext } from "../toolbox/CompileContext";
-import { access } from "fs";
 import { parseSelector } from "./structures/selector";
 
 enum OpType {
@@ -26,13 +23,22 @@ type Op = {
 
 type ExprReturn = {meta:{postfix:string[]},ast:ASTExpr}
 
-export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext,asi:boolean): ExprReturn {
+export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext,asi:boolean) {
+    return recurse(tokens,ctx,asi,false,true)
+}
+
+export function exprParseNoList(tokens:TokenIteratorI,ctx:CompileContext,asi:boolean) {
+    return recurse(tokens,ctx,asi,false,false)
+}
+
+function recurse(tokens:TokenIteratorI,ctx:CompileContext,asi:boolean,inFn:boolean,allowList:boolean): ExprReturn {
+
+    let pfile = tokens.file
 
     let ops: Op[] = []
     let que: ASTExpr[] = []
+    let queList = [que]
     let postfix: string[] = []
-
-    let fncalls: boolean[] = [] // store astnodes instead?
 
     let lastWasOperand = false
     for (let t of tokens) {
@@ -56,101 +62,58 @@ export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext,
                 switch (t.value) {
                     case '(':
                         let isFn = lastWasOperand
+                        pushOperator(opInfo(t,false),false)
                         if (isFn) {
                             let next = tokens.peek()
                             if (next.type == TokenType.MARKER && next.value == ')') {
                                 if (!que.length) t.throwDebug('no fn on queue?')
                                 let fn = que.pop() as ASTExpr
-                                if (fn.type != ASTNodeType.IDENTIFIER && fn.type != ASTNodeType.STATIC_ACCESS)
+                                if (fn.type != ASTNodeType.IDENTIFIER && fn.type != ASTNodeType.ACCESS)
                                     return t.throwDebug('not static fn')
-                                let invnode: ASTCallNode = {
-                                    type: ASTNodeType.INVOKATION,
-                                    function: fn,
-                                    parameters: {
-                                        type: ASTNodeType.LIST,
-                                        list: []
-                                    }
-                                }
-                                que.push(invnode)
+                                que.push(new ASTCallNode(pfile,fn.indexStart,next.indexEnd,fn,[]))
                                 postfix.push(',0','$')
                                 tokens.skip(1)
                                 lastWasOperand = true
                                 break
+                            } {
+                                let rec = recurse(tokens,ctx,asi,isFn,true)
+                                postfix.push(...rec.meta.postfix)
+                                if (!que.length) t.throwDebug('no fn on queue?')
+                                let fn = que.pop() as ASTExpr
+                                if (fn.type != ASTNodeType.IDENTIFIER && fn.type != ASTNodeType.ACCESS)
+                                    return t.throwDebug('not static fn: '+ASTNodeType[fn.type])
+                                lastWasOperand = true
+                                let argnode = rec.ast
+                                if (argnode.type != ASTNodeType.LIST)
+                                    throw new Error('should not happen')
+                                que.push(new ASTCallNode(pfile,fn.indexStart,t.indexEnd,fn,argnode.list))
+                                postfix.push('$')
+                                break
                             }
+                        } else {
+                            let rec = recurse(tokens,ctx,asi,isFn,true)
+                            postfix.push(...rec.meta.postfix)
+                            que.push(rec.ast)
+                            lastWasOperand = true
+                            break
                         }
-                        fncalls.push(isFn)
-                        pushOperator({
-                            token: t,
-                            op: t.value,
-                            precedency: 30 + (isFn?0:1), // does this make a difference?
-                            leftToRight: true,
-                            type: OpType.PREFIX, // make sure we don't expect an operator
-                            operands: 0,
-                            popable: false
-                        })
-                        if (isFn) pushOperator({
-                            token: t, // change this
-                            op: ',',
-                            precedency: 1,
-                            leftToRight: false, // this may break later
-                            type: OpType.INFIX,
-                            operands: 1,
-                            popable: true
-                        })
-                        lastWasOperand = false
                         break
                     case ')':
-                        if (!fncalls.length) 
-                            if (!asi||!tokens.currentFollowsNewline()) t.throwDebug('fncall mismatch')
-                            else {tokens.skip(-1);return finish()}
-                        if (!ops.length)
-                            if (!asi||!tokens.currentFollowsNewline()) t.throwDebug('not matched')
-                            else {tokens.skip(-1);return finish()}
-                        let openOp: Op
-                        do {
-                            openOp = ops.pop() as Op
-                            if (!openOp.popable) break
-                            applyOperator(openOp)
-                        } while (ops.length)
-                        if (openOp.op != '(') t.throwDebug('cuts off other paren thing')
-                        if (fncalls.pop()) {
-                            if (que.length<2) t.throwDebug('wth') // this doesn't work so well when there are no parameters xd
-                                                                  // note to self: make better comments
-                            let argnode = que.pop() as ASTExpr
-                            if (argnode.type != ASTNodeType.LIST) {
-                                let argAsList: ASTListNode = {
-                                    type: ASTNodeType.LIST,
-                                    list: [argnode]
-                                }
-                                argnode = argAsList
-                                postfix.push(',1')
-                            }
-                            let fn = que.pop() as ASTExpr
-                            if (fn.type != ASTNodeType.IDENTIFIER && fn.type != ASTNodeType.STATIC_ACCESS)
-                                return t.throwDebug('not static fn: '+ASTNodeType[fn.type])
-                            let invnode: ASTCallNode = {
-                                type: ASTNodeType.INVOKATION,
-                                function: fn,
-                                parameters: argnode as ASTListNode
-                            }
-                            que.push(invnode)
-                            postfix.push('$')
-                        }
-                        lastWasOperand = true
-                        break
+                        if (!lastWasOperand) t.throwDebug('unexpected')
+                        return finish()
                     case '::':
                     case '.':
                         pushOperator(opInfo(t,!lastWasOperand))
                         lastWasOperand = false
                         break
                     case ',':
+                        /*if (fncalls[fncalls.length-1])
+                            if (tokens.peek().value != 'ref')
+                                refs.push(false)*/
                         let coptopush = opInfo(t,false)
-                        pushOperator(coptopush,false)
-                        let cop = opTop()
-                        if (cop && cop.token.type == TokenType.MARKER && cop.op == ',')
-                            cop.operands++
-                        else
-                            ops.push(coptopush)
+                        pushOperator(coptopush,false) // reduce completely
+                        if (que.length == 0) t.throwDebug('unexpected') // double comma
+                        queList.push(que=[])
                         lastWasOperand = false
                         break
                     case ';':
@@ -178,8 +141,7 @@ export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext,
                 if (lastWasOperand)
                     if (!asi||!tokens.currentFollowsNewline()) t.throwDebug('unexpected operand')
                     else {tokens.skip(-1);return finish()}
-                let symnode: ASTIdentifierNode = {type:ASTNodeType.IDENTIFIER,identifier:t}
-                que.push(symnode)
+                que.push(new ASTIdentifierNode(pfile,t.indexStart,t.indexEnd,t))
                 postfix.push(t.value)
                 lastWasOperand = true
                 break
@@ -187,15 +149,7 @@ export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext,
                 if (lastWasOperand)
                     if (!asi||!tokens.currentFollowsNewline()) t.throwDebug('unexpected operand')
                     else {tokens.skip(-1);return finish()}
-                let node: ASTNode
-                if (t.value == 'false' || t.value == 'true') 
-                    node = {type:ASTNodeType.BOOLEAN,value:t}
-                else if (Number.isFinite(Number(t.value)))
-                    node = {type:ASTNodeType.NUMBER,value:t}
-                else if (t.value.startsWith('\''))
-                    node = {type:ASTNodeType.STRING,value:t}
-                else return t.throwDebug('could not determine ast type')
-                que.push(node)
+                que.push(new ASTPrimitiveNode(pfile,t.indexStart,t.indexEnd,t))
                 postfix.push(t.value)
                 lastWasOperand = true
                 break
@@ -203,8 +157,9 @@ export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext,
             case TokenType.KEYWORD: {
                 switch (t.value) {
                     case 'ref':
-                        pushOperator(opInfo(t,!lastWasOperand))
-                        lastWasOperand = false
+                        throw new Error('ref disabled')
+                        //if (lastWasOperand||!fncalls[fncalls.length-1]) t.throwDebug('unexpected keyword')
+                        // refs.push(true)
                         break
                     default:
                         if (!asi||!tokens.currentFollowsNewline())
@@ -230,9 +185,16 @@ export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext,
             if (!op.popable) op.token.throwDebug('possible parenthesis mismatch')
             applyOperator(op)
         }
+
+        if (queList.some(q=>q.length != 1))
+            throw new Error('hmm... exprs not reduced or empty')
     
-        if (que.length > 1) throw 'hmm'
-    
+        if (queList.length > 1 || inFn) {
+            if (!allowList) throw new Error('no list here thx')
+            postfix.push(`,${queList.length}`)
+            que = [new ASTListNode(pfile,queList[0][0].indexStart,queList[queList.length-1][0].indexEnd,queList.map(q=>q[0]))]
+        }
+
         return {ast:que[0],meta:{postfix}}
     }
 
@@ -244,7 +206,7 @@ export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext,
         while (ops.length) {
             let l = ops[ops.length-1]
             if (!l.popable) break
-            if (l.type == OpType.INFIX && op.type != OpType.INFIX) break
+            if (l.type == OpType.INFIX && op.type == OpType.PREFIX) break
             let d = op.precedency - l.precedency
             if (d > 0) break
             else if (d == 0) {
@@ -269,64 +231,38 @@ export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext,
     function applyOperator(op:Op): void {
         if (que.length < op.operands) throw new Error('operator expected more operands on queue than available')
         switch (op.token.type) {
-            case TokenType.KEYWORD: {
-                if (op.token.value != 'ref') op.token.throwDebug('non-ref keyword')
-                let ref = que.pop() as ASTExpr
-                if (ref.type != ASTNodeType.IDENTIFIER && ref.type != ASTNodeType.STATIC_ACCESS)
-                    return op.token.throwDebug('not static ref')
-                let node: ASTRefNode = {
-                    type: ASTNodeType.REFERENCE,
-                    keyword: op.token,
-                    ref
-                }
+            case TokenType.OPERATOR: {
+                let ops = que.splice(-op.operands,op.operands)
+                let node = new ASTOpNode(
+                    pfile,
+                    Math.min(ops[0].indexStart,op.token.indexStart),
+                    Math.max(ops[ops.length-1].indexEnd,op.token.indexEnd),
+                    op.token,
+                    ops
+                )
                 const map = {[OpType.POSTFIX]:':post',[OpType.PREFIX]:':pre',[OpType.INFIX]:''}
                 que.push(node)
                 postfix.push(op.op+map[op.type])
                 break
             }
-            case TokenType.OPERATOR:
-                let node: ASTOpNode = {
-                    type: ASTNodeType.OPERATION,
-                    operator: op.token,
-                    operands: que.splice(-op.operands,op.operands)
-                }
-                const map = {[OpType.POSTFIX]:':post',[OpType.PREFIX]:':pre',[OpType.INFIX]:''}
-                que.push(node)
-                postfix.push(op.op+map[op.type])
-                break
             case TokenType.MARKER:
                 switch (op.op) {
-                    case ',':
-                        let list: ASTListNode = {
-                            type: ASTNodeType.LIST,
-                            list: que.splice(-op.operands,op.operands)
-                        }
-                        que.push(list)
-                        postfix.push(','+op.operands)
-                        break
                     case '::': {
                         let [o0,o1] = que.splice(-2,2)
-                        if (o1.type != ASTNodeType.IDENTIFIER) return op.token.throwDebug('unexpected')
-                        if (o0.type != ASTNodeType.IDENTIFIER && o0.type != ASTNodeType.STATIC_ACCESS)
+                        if (o1.type != ASTNodeType.IDENTIFIER) return op.token.throwDebug('unexpected '+ASTNodeType[o1.type])
+                        if (o0.type != ASTNodeType.IDENTIFIER && (o0.type != ASTNodeType.ACCESS || o0.isStatic == false))
                             return op.token.throwDebug('unexpected')
-                        let node: ASTStaticAccessNode = {
-                            type: ASTNodeType.STATIC_ACCESS,
-                            access: o1.identifier,
-                            accessee: o0
-                        }
-                        que.push(node)
+                        que.push(new ASTStaticAccessNode(pfile,o0.indexStart,o1.indexEnd,o1.identifier,o0))
                         postfix.push(op.token.value)
                         break
                     }
-                    case '.':
-                        let node: ASTOpNode = {
-                            type: ASTNodeType.OPERATION,
-                            operator: op.token,
-                            operands: que.splice(-2,2)
-                        }
-                        que.push(node)
+                    case '.': {
+                        let [o0,o1] = que.splice(-2,2)
+                        if (o1.type != ASTNodeType.IDENTIFIER) return op.token.throwDebug('unexpected '+ASTNodeType[o1.type])
+                        que.push(new ASTDynamicAccessNode(pfile,o0.indexStart,o1.indexEnd,o1.identifier,o0))
                         postfix.push(op.token.value)
                         break
+                    }
                     default:
                         throw new Error('could not use marker value '+op.op)
                 }
@@ -363,6 +299,9 @@ function p(t:TokenI,prefix:boolean): [number,boolean,OpType] {
             return [21,true,OpType.INFIX]
         case '.':
             return [20,true,OpType.INFIX]
+
+        case '(':
+            return [20,true,OpType.POSTFIX]
 
         case '++':
         case '--':
@@ -406,9 +345,6 @@ function p(t:TokenI,prefix:boolean): [number,boolean,OpType] {
         case '/=':
         case '%=':
             return [3,false,OpType.INFIX]
-
-        case 'ref':
-            return [2,false,OpType.PREFIX]
 
         case ',':
             // right to left to avoid pop and apply

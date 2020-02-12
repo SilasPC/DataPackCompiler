@@ -7,6 +7,7 @@ import { parseDeclaration } from "./structures/declaration";
 import { TokenIteratorI, TokenIterator } from "../lexing/TokenIterator";
 import { exhaust } from "../toolbox/other";
 import { CompileContext } from "../toolbox/CompileContext";
+import { parseWhile } from "./structures/while";
 
 export function bodyOrLineSyntaxParser(iter:TokenIteratorI,ctx:CompileContext): ASTStatement[] {
     let next = iter.next()
@@ -47,32 +48,29 @@ export function lineSyntaxParser(iter:TokenIteratorI,ctx:CompileContext): null |
                         !peek ||
                         (peek.type == TokenType.MARKER && peek.value == ';')
                     )
-                        return {
-                            type: ASTNodeType.RETURN,
-                            keyword: token,
-                            node: null
-                        }
-                    else return {
-                        type: ASTNodeType.RETURN,
-                        keyword: token,
-                        node: expressionSyntaxParser(iter,ctx,true).ast
+                        return new ASTReturnNode(iter.file,token.indexStart,token.indexEnd,null)
+                    else {
+                        let res = expressionSyntaxParser(iter,ctx,true).ast
+                        return new ASTReturnNode(iter.file,token.indexStart,res.indexEnd,res)
                     }
                 }
+                case 'while':
+                    return parseWhile(iter,ctx)
                 case 'fn':
                 case 'break':
                 case 'for':
-                case 'event':
-                case 'while':
+                case 'use':
                     return token.throwDebug('keyword not implemented')
                 case 'var':
-                case 'export':
                 case 'else':
-                case 'from':
-                case 'import':
-                case 'tick':
                 case 'class':
-                case 'namespace':
+                case 'mod':
                 case 'ref':
+                case 'recipe':
+                case 'struct':
+                case 'implements':
+                case 'on':
+                case 'event':
                     return token.throwDebug('keyword invalid here')
                 default:
                     return exhaust(token.value)
@@ -81,7 +79,6 @@ export function lineSyntaxParser(iter:TokenIteratorI,ctx:CompileContext): null |
         case TokenType.COMMAND:
             let res = ctx.syntaxSheet.readSyntax(iter.current(),ctx)
             if (res.value) return res.value
-            console.log(token.value)
             return null
         case TokenType.OPERATOR:
         case TokenType.PRIMITIVE:

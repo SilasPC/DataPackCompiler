@@ -1,28 +1,22 @@
 
-import file from './test'
+use super::std
+// use subMod
 
-// on std::events::player_join {}
-
-// on std::events::every!(3) {;;;}
-
-/*fn getAllPlayers(): selector {
-	return @a[]
-}*/
-
-fn x(): int {
-	a += b
-	/execute as @a positioned <coords> align x facing entity @s feet run say hello!
-	/say hello
-	/say hello
-	// x()
-	file::b + 1;
-	/say helloo
-	return file::a *
-		3
+event abc
+on abc {
+	/say abc fired
 }
 
-let a = b;
-const b = 2;
-let yr = y()
+struct A {}
+struct B implements A {}
 
-fn y(): int {return 1}
+//let lol = false
+
+fn x(): void {
+	let t = 0
+	t += (2+t) * t
+	/execute as @a positioned 1 2 3 align x facing entity @s feet run say hello!
+	y()
+}
+
+fn y(): void {}

@@ -1,13 +1,12 @@
 import { CompileContext } from "../toolbox/CompileContext";
-import { FnDeclaration, DeclarationType, ModDeclaration } from "../semantics/Declaration";
+import { FnDeclaration, DeclarationType, ModDeclaration } from "../semantics/declarations/Declaration";
 import { lexer } from "../lexing/lexer";
 import { fileSyntaxParser } from "../syntax/fileSyntaxParser";
-import { semanticsParser } from "../semantics/semanticsParser";
 import { MaybeWrapper } from "../toolbox/Maybe";
 import { ParsingFile } from "../toolbox/ParsingFile";
 import { parseFunction } from "../semantics/statements/parseFunction";
 import { ASTNodeType } from "../syntax/AST";
-import { ValueType } from "../semantics/Types";
+import { ValueType } from "../semantics/types/Types";
 
 export function compileStdlibFunction(
 	fn:string,
@@ -20,16 +19,15 @@ export function compileStdlibFunction(
 	
 	lexer(pf,ctx)
 	fileSyntaxParser(pf,ctx)
-	let node = pf.getAST()[0]
-	if (node.type != ASTNodeType.FUNCTION)
-		throw new Error('expected function in stdlib compiler')
-	let decl = parseFunction(node,pf.scope,ctx,null)
+	//parseFile(pf,ctx,()=>{throw new Error('no fetch in stdlib')})
+	
+	throw new Error('wait std lib')
 
-	if (!decl.value || decl.value.type != DeclarationType.FUNCTION) {
+	/*if (!decl.value || decl.value.type != DeclarationType.FUNCTION) {
 		ctx.logErrors()
 		throw new Error(`failed to compile stdlib function '${fnName}'`)
 	}
 
-	return decl.value
+	return decl.value*/
 
 }

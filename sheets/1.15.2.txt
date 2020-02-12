@@ -25,28 +25,36 @@ clone <coords> <coords> <coords> [
   masked|replace [force|move|normal]
 
 :dataval
-  value <json>
+  value <nbt>
   from
     block <coords> <nbtpath>
     entity <entities> <nbtpath>
+
+:data_modify
+  append <:dataval>
+  insert after|before <uint> <:dataval>
+  merge <:dataval>
+  prepend <:dataval>
+  set <:dataval>
 
 data
   get
     block <coords> [<nbtpath>] [<float>]
     entity <entities> [<nbtpath>] [<float>]
+    storage <id> <nbtpath>
   merge
     block <coords> <nbt>
     entity <entities> <nbt>
+    storage <id> <nbtpath>
   remove
     block <coords> <nbtpath>
     entity <entities> <nbtpath>
+    storage <id> <nbtpath>
   modify
-    block <coords> <nbtpath>
-      append <:dataval>
-      insert after|before <uint> <:dataval>
-      merge <:dataval>
-      prepend <:dataval>
-      set <:dataval>
+    block <coords> <nbtpath> <:data_modify>
+    entity <entities> <nbtpath> <:data_modify>
+    storage <id> <nbtpath> <:data_modify>
+      
 
 datapack
   enable <id> [
@@ -88,6 +96,7 @@ enchant <player> <id> [uint]
     data
       block <coords> <nbtpath> <:exe>
       entity <entities> <nbtpath> <:exe>
+      storage <id> <nbtpath> <:exe>
     entity <entities> <:exe>
     score <entities> <name>
       <|<=|=|>|>= <entities> <name> <:exe>
@@ -96,6 +105,7 @@ enchant <player> <id> [uint]
       score <entities> <name> <:exe>
       block <coords> <nbtpath> byte|double|float|int|long|short <float> <:exe>
       entity <entities> <nbtpath> byte|double|float|int|long|short <float> <:exe>
+      storage <id> <nbtpath> byte|double|float|int|long|short <float> <:exe>
       bossbar <id> value|max <:exe>
   run <:>
 
@@ -152,7 +162,7 @@ me <text>
 
 msg|w|tell <players> <text>
 
-particle <id> [<coords>] [<coords>] [<ufloat>] [<pint>] [force|normal]
+particle <id> <coords> <float> [<coords>] [<coords>] [<ufloat>] [<uint>] [force|normal]
 
 playsound <id> [ambient|block|hostile|master|music|neutral|player|record|voice|weather] [<players>] [<coords>] [<ufloat>] [<ufloat>]
 
@@ -200,7 +210,7 @@ spectate [<entity>]
 
 #stopsound
 
-#summon
+summon <id> [<coords>] [<nbt>]
 
 tag <entities>
   add|remove <text>

@@ -1,39 +1,43 @@
+import { ASTLetNode } from "../../syntax/AST"
+import { Logger } from "../../toolbox/Logger"
 import { MaybeWrapper, Maybe } from "../../toolbox/Maybe"
-import { Declaration, DeclarationType } from "../Declaration"
-import { exprParser } from "../expressionParser"
-import { ValueType, tokenToType, ElementaryValueType, hasSharedType } from "../Types"
-import { copyESR, getESRType } from "../ESR"
-import { ASTLetNode, astSourceMap } from "../../syntax/AST"
+import { parseExpression } from "../expressionParser"
+import { ValueType, tokenToType, Type, isSubType } from "../types/Types"
+import { ptExprToType, PTExpr } from "../ParseTree"
+import { Declaration, VarDeclaration, DeclarationType } from "../declarations/Declaration"
 import { Scope } from "../Scope"
-import { CompileContext } from "../../toolbox/CompileContext"
-import { Instruction } from "../../codegen/Instructions"
 
-export function parseDefine(node: ASTLetNode,scope:Scope,ctx:CompileContext): Maybe<Declaration> {
-	const maybe = new MaybeWrapper<Declaration>()
 
-	let esr0 = exprParser(node.initial,scope,ctx,false)
+export function parseDefine(node: ASTLetNode, scope:Scope, log:Logger): Maybe<{pt:PTExpr,decl:VarDeclaration}> {
+	const maybe = new MaybeWrapper<{pt:PTExpr,decl:VarDeclaration}>()
+
+	let pt = parseExpression(node.initial,scope,log)
 
 	let type: ValueType | null = null
 	if (node.typeToken) {
 		type = tokenToType(node.typeToken,scope.symbols)
-		if (type.elementary && type.type == ElementaryValueType.VOID) {
-			ctx.addError(node.typeToken.error(`Cannot declare a variable of type 'void'`))
+		if (type.type == Type.VOID) {
+			log.addError(node.typeToken.error(`Cannot declare a variable of type 'void'`))
 			return maybe.none()
 		}
-		if (!type.elementary) node.typeToken.throwDebug('no non-elemn rn k')
 	}
 
-	if (maybe.merge(esr0)) return maybe.none()
-	let res = copyESR(esr0.value,ctx,scope,node.identifier.value,{tmp:false,mutable:!node.const,const:false})
-	let esr = res.esr
-	scope.push(res.copyInstr)
-
-	if (!type) type = getESRType(esr0.value)
-	if (!hasSharedType(getESRType(esr),type)) {
-		ctx.addError(node.identifier.error('type mismatch'))
+	if (maybe.merge(pt)) return maybe.none()
+	
+	let ptType = ptExprToType(pt.value)
+	if (!type) type = ptType
+	if (!isSubType(type,ptType)) {
+		log.addError(node.identifier.error('type mismatch'))
 		return maybe.none()
 	}
 
-	return maybe.wrap({type:DeclarationType.VARIABLE,varType:type,esr})
+	const decl: VarDeclaration = {
+		type: DeclarationType.VARIABLE,
+		varType: type,
+		mutable: !node.isConst,
+		namePath: scope.nameAppend(node.identifier.value)
+	}
+
+	return maybe.wrap({decl,pt:pt.value})
 	
 }

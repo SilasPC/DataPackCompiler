@@ -10,7 +10,7 @@ import { operators, keywords, markers, types } from './values'
 
 const comments = "//|/\\*|\\*/"
 const primitives = "\\d+(?:\\.\\d+)?|true|false|'[^']*'"
-const symbol = "[a-zA-Z][a-zA-Z0-9]*"
+const symbol = "[a-zA-Z_][a-zA-Z0-9_]*"
 const cmd = '/\\w.*?(?=\r?\n)'
 const selector = '@\\w|@(?=\\[)'
 
@@ -56,8 +56,8 @@ export function lexer(pfile:ParsingFile,ctx:CompileContext): void {
 
 }
 
-export function inlineLiveLexer(token:TokenI,offset:number) {
-    return new LiveIterator(inlineLexer(token.line,token.index+offset))
+export function inlineLiveLexer(pfile:ParsingFile,token:TokenI,offset:number) {
+    return new LiveIterator(pfile,inlineLexer(token.line,token.indexLine+offset))
 }
 
 function* inlineLexer(line:SourceLine,offset:number)/*: Generator<Token,void>*/ {
@@ -88,11 +88,13 @@ function* baseLex(pfile:ParsingFile,source:string)/*: Generator<Token,void>*/ {
     let linesRaw = source.split('\n')
 
     let line = new SourceLine(null,pfile,0,linesRaw[0],1)
+    pfile.addLine(line)
     let lineComment = false, inlineComment = false
     for (let {group,value,index} of regexLexer(source)) {
         if (group == 'nwl') {
             let oldLine = line
             line = new SourceLine(line,pfile,index+1,linesRaw[line.nr],line.nr+1)
+            pfile.addLine(line)
             oldLine.next = line
             lineComment = false
             continue
