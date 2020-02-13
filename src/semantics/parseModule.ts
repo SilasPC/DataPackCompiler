@@ -7,7 +7,6 @@ import { parseFunction } from "./statements/parseFunction"
 import { ModDeclaration, DeclarationType } from "./declarations/Declaration"
 import { parseDefine } from "./statements/parseDefine"
 import { parseStruct } from "./statements/parseStruct"
-import { Scope } from "./Scope"
 import { parseEvent } from "./statements/parseEvents"
 import { resolveAccess } from "./resolveAccess"
 import { parseBody } from "./parseBody"
@@ -41,7 +40,7 @@ export function parseModule(
 			}
 	
 			case ASTNodeType.MODULE: {
-				let child = mod.branch(node.identifier,ctx.logger)
+				let child = mod.branch(node.identifier,ctx.logger,program)
 				if (maybe.merge(child)) break
 				maybe.merge(parseModule(child.value,node.body,ctx,program))
 				break
@@ -60,7 +59,7 @@ export function parseModule(
 	
 			case ASTNodeType.FUNCTION: {
 				let node0 = node
-				maybe.merge(scope.symbols.declareHoister(node.identifier,()=>parseFunction(node0,scope,program.parseTree,ctx.logger),ctx.logger))
+				maybe.merge(scope.symbols.declareHoister(node.identifier,()=>parseFunction(node0,scope,program.parseTree,ctx.logger,ctx.options),ctx.logger))
 				break
 			}
 	
@@ -91,7 +90,7 @@ export function parseModule(
 						return maybe.none()
 					}
 					if (node0.body) {
-						let body = parseBody(node0.body,scope.branch('event'),ctx.logger)
+						let body = parseBody(node0.body,scope.branch('event'),ctx.logger,ctx.options)
 						if (!body.value) return maybe.none()
 						program.parseTree.appendToEvent(res.value.decl,body.value)
 					}

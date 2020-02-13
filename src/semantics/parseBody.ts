@@ -5,20 +5,22 @@ import { parseDefine } from "./statements/parseDefine"
 import { Logger } from "../toolbox/Logger"
 import { parseExpression } from "./expressionParser"
 import { Scope } from "./Scope"
-import { PTStatement, ptExprToType, PTKind, PTCmdNode, PTBody } from "./ParseTree"
-import { isSubType, Type } from "./types/Types"
+import { PTStatement, ptExprToType, PTKind, PTCmdNode, PTBody, PTReturn } from "./ParseTree"
+import { isSubType, Type, ValueType } from "./types/Types"
 import { parseWhile } from "./statements/parseWhile"
 import { CommentInterspercer } from "../toolbox/CommentInterspercer"
+import { CompilerOptions } from "../toolbox/config"
 
-export function parseBody(nodes:ASTStatement[],scope:Scope,log:Logger): Maybe<PTBody> {
+export function parseBody(nodes:ASTStatement[],scope:Scope,log:Logger,cfg:CompilerOptions): Maybe<PTBody> {
 	let maybe = new MaybeWrapper<PTBody>()
-	let diedAt: ASTNode | null = null
+
+	let returnedAt: ASTNode | null = null
 
 	let body: PTBody = new CommentInterspercer()
 
 	for (let node of nodes) {
 
-		body.addComments(...node.sourceMap())
+		if (cfg.sourceMap) body.addComments(...node.sourceMap())
 
 		switch (node.type) {
 			case ASTNodeType.COMMAND: {
@@ -58,42 +60,43 @@ export function parseBody(nodes:ASTStatement[],scope:Scope,log:Logger): Maybe<PT
 				break
 			}
 			case ASTNodeType.RETURN: {
-				/*let fnscope = scope.getSuperByType('FN')
+				let fnscope = scope.lastFnScope()
+				let ret = node.node ? parseExpression(node.node,scope,log) : null
 				if (!fnscope) {
 					log.addError(node.error('return must be contained in fn scope'))
 					maybe.noWrap()
+					break
+				} else {
+					if (!returnedAt) returnedAt = node
 				}
-				let esr: ESR
-				if (!node.node) esr = {type:ESRType.VOID,const:false,tmp:false,mutable:false}
-				else {
-					let x = exprParser(node.node,scope,log,evalOnly())
-					if (maybe.merge(x)) continue
-					esr = x.value
-				}
-				if (!fnscope) continue
-				let fnret = fnscope.getReturnVar()
-				if (!fnret) {
-					// do not use copy instr, that is added further down
-					let copyRes = copyESR(esr,log,fnscope.nameAppend('return'),{tmp:false,const:false,mutable:false})
-					fnscope.setReturnVar(copyRes.esr)
-					fnret = copyRes.esr
-				}
-				
-				if (!isSubType(getESRType(esr),getESRType(fnret))) {
-					log.addError(node.error('return must match fn return type'))
+				if (ret&&!ret.value) {
 					maybe.noWrap()
-					continue
+					break
+				}
+				let pt: PTReturn
+				if (ret) {
+					pt = {
+						kind: PTKind.RETURN,
+						expr: ret.value,
+						fn: null,
+						type: ptExprToType(ret.value)
+					}
+				} else {
+					pt = {
+						kind: PTKind.RETURN,
+						expr: null,
+						fn: null,
+						type: {type:Type.VOID}
+					}
 				}
 
-				// return instructions
-				if (!evalOnly()) {
-					if (esr.type != ESRType.VOID)
-						scope.push(...assignESR(esr,fnret))
-					scope.breakScopes(fnscope)
-					diedAt = node
+				if (!isSubType(fnscope.declaration.returns,pt.type)) {
+					log.addError(node.error('return must match fn return type'))
+					maybe.noWrap()
+					break
 				}
-				*/
-				console.log('skipped returns')
+
+				body.add(pt)
 				break
 			}
 			case ASTNodeType.CONDITIONAL: {
@@ -104,8 +107,8 @@ export function parseBody(nodes:ASTStatement[],scope:Scope,log:Logger): Maybe<PT
 						maybe.noWrap()
 					}
 				}
-				let p = parseBody(node.primaryBranch,scope.branch('if'),log)
-				let s = parseBody(node.secondaryBranch,scope.branch('else'),log)
+				let p = parseBody(node.primaryBranch,scope.branch('if'),log,cfg)
+				let s = parseBody(node.secondaryBranch,scope.branch('else'),log,cfg)
 				if (!p.value || !s.value) {
 					maybe.noWrap()
 					continue
@@ -129,7 +132,7 @@ export function parseBody(nodes:ASTStatement[],scope:Scope,log:Logger): Maybe<PT
 			}
 
 			case ASTNodeType.WHILE: {
-				let res = parseWhile(node,scope,log)
+				let res = parseWhile(node,scope,log,cfg)
 				if (maybe.merge(res)) continue
 				body.add(res.value)
 				break
@@ -145,8 +148,8 @@ export function parseBody(nodes:ASTStatement[],scope:Scope,log:Logger): Maybe<PT
 		}
 	}
 
-	if (diedAt) {
-		let dead = nodes.slice(nodes.indexOf(diedAt)+1)
+	if (returnedAt) {
+		let dead = nodes.slice(nodes.indexOf(returnedAt)+1)
 		if (dead.length > 0)
 			log.addError(astArrErr(dead,'dead code detected',true))
 	}

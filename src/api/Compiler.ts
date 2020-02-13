@@ -1,4 +1,3 @@
-import { WeakCompilerOptions, CompilerOptions } from "../toolbox/config"
 import { resolve, dirname, join } from "path"
 import { CompileContext } from "../toolbox/CompileContext"
 import { SyntaxSheet } from "../commands/SyntaxSheet"
@@ -6,29 +5,19 @@ import moment = require("moment")
 import 'moment-duration-format'
 import { lexer } from "../lexing/lexer"
 import { fileSyntaxParser } from "../syntax/fileSyntaxParser"
-import { ParseTreeStore } from "../semantics/ParseTree"
-import { OutputManager } from "../codegen/OutputManager"
+import { OutputManager } from "../codegen/managers/OutputManager"
 import { generate } from "../codegen/generate"
 import { promises as fs, Stats } from 'fs'
-import { ParsingFile } from "../toolbox/ParsingFile"
-import { GenericToken } from "../lexing/Token"
 import { Maybe, MaybeWrapper } from "../toolbox/Maybe"
-import { ModDeclaration, DeclarationType } from "../semantics/declarations/Declaration"
-import { StdLibrary } from "../stdlib/StdLibrary"
 import { MKDIRP, RIMRAF } from "../toolbox/fsHelpers"
 import $ from 'js-itertools'
 import { instrsToCmds } from "../codegen/Instructions"
-import { FnFile } from "../codegen/FnFile"
 import { Logger } from "../toolbox/Logger"
-import { HoistingMaster, UnreadableHoistingMaster } from "../semantics/managers/HoistingMaster"
-import { FileTree, loadFileTree, allParsingFiles } from "../toolbox/FileTree"
-import { ProgramManager, Program } from "../semantics/managers/ProgramManager"
-import { parseModule } from "../semantics/parseModule"
-import { ASTModuleNode } from "../syntax/AST"
-import { SymbolTable } from "../semantics/declarations/SymbolTable"
-import { Scope } from "../semantics/Scope"
+import { FileTree, allParsingFiles } from "../toolbox/FileTree"
+import { ProgramManager } from "../semantics/managers/ProgramManager"
 import { parseFileTree } from "../semantics/parseModuleTree"
 import { emitConvention } from "../toolbox/ConventionUtils"
+import { Config } from "./Configuration"
 
 export const compilerVersion = '0.1.0'
 
@@ -49,11 +38,13 @@ export function checkVersion(ver:string,min:string) {
 export class CompileResult {
 
 	constructor(
-		private readonly packJson: PackJSON,
+		private readonly cfg: Config,
 		private readonly output: OutputManager
 	) {}
 
-	async emit(emitDir:string) {
+	async emit(emitDir:string,log:Logger) {
+
+		log.logGroup(2,'inf','Emitting')
 
 		// I hate fs right now. Hence the caps.
 		await MKDIRP(emitDir+'/data')
@@ -62,11 +53,11 @@ export class CompileResult {
 		await fs.writeFile(emitDir+'/pack.mcmeta',JSON.stringify({
 			pack: {
 				pack_format: 1,
-				description: this.packJson.description
+				description: this.cfg.pack.description
 			}
 		},null,2))
 		const dataNs = join(emitDir,'data')
-		const ns = emitDir+'/data/tmp'
+		const ns = emitDir+'/data/'+this.cfg.pack.namespace
 		await fs.mkdir(ns)
 		let fns = ns + '/functions'
 		await fs.mkdir(fns)
@@ -75,8 +66,9 @@ export class CompileResult {
 				([name,fnf]) => fs.writeFile(
 					fns+'/'+name+'.mcfunction',
 					instrsToCmds(
+						this.cfg,
 						this.output,
-						this.packJson.compilerOptions.debugBuild,
+						this.cfg.compilation.debugBuild,
 						fnf.mergeBuffers((namePath:string[])=>this.output.functions.createFn(namePath)),
 						fnf.getHeader()
 					).join('\n')
@@ -92,32 +84,20 @@ export class CompileResult {
 			values: []
 		}))
 
-		await emitConvention('B4liz0ng','Silas Pockendahl',this.packJson.name,'tmp','minecraft:book',this.packJson.description,dataNs)
+		await emitConvention(this.cfg,dataNs)
 
 	}
 
 }
 
-export interface WeakPackJSON {
-	name?: string
-	description?: string
-	srcDir?: string
-	emitDir?: string
-	compilerOptions?: WeakCompilerOptions
-}
-
-export interface PackJSON extends Required<WeakPackJSON> {
-	compilerOptions: CompilerOptions
-}
-
-export async function compile(logger:Logger,cfg:PackJSON,src:FileTree): Promise<Maybe<CompileResult>> {
+export async function compile(logger:Logger,cfg:Config,src:FileTree): Promise<Maybe<CompileResult>> {
 
 	const maybe = new MaybeWrapper<CompileResult>()
 
 	const ctx = new CompileContext(
 		logger,
-		cfg.compilerOptions,
-		await SyntaxSheet.load(cfg.compilerOptions.targetVersion)
+		cfg.compilation,
+		await SyntaxSheet.load(cfg.compilation.targetVersion)
 	)
 
 	if (!checkVersion(compilerVersion,ctx.options.minimumVersion)) {
@@ -159,7 +139,7 @@ export async function compile(logger:Logger,cfg:PackJSON,src:FileTree): Promise<
 	else
 		logger.log(1,'err',`Semantical analysis failed`)
 
-	const output = new OutputManager(cfg.compilerOptions)
+	const output = new OutputManager(cfg)
 	if (!gotErrors) {
 
 		generate(programManager.parseTree,output)

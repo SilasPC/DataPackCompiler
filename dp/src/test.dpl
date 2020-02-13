@@ -10,13 +10,20 @@ on abc {
 struct A {}
 struct B implements A {}
 
-//let lol = false
 
-fn x(): void {
+fn x(): bool {
 	let t = 0
 	t += (2+t) * t
 	/execute as @a positioned 1 2 3 align x facing entity @s feet run say hello!
 	y()
+	let lol = 1 > 2
+	let lol2 = y()
+	if (lol) {
+		/say hello
+	}
+	return lol2
 }
 
-fn y(): void {}
+fn y(): bool {
+	return 1 != 2
+}

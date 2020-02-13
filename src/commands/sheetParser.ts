@@ -8,7 +8,7 @@ export function fromString(string:string): RootCMDNode {
 	let root = new RootCMDNode('',false,[])
 	let def: Def = new Map([['',[root]]])
 	let lines = transformString(string)
-	if (lines.some(l=>l.l.startsWith('@include'))) throw new Error('no includes in string sheet')
+	if (lines.some(l=>l.l.trim().startsWith('@'))) throw new Error('no directives in string sheet')
 	root.children.push(...parseTree(buildTree(transformString(string)),[def]))
 	return root
 }
@@ -31,7 +31,13 @@ function transformString(source:string): IndexedLines {
 	return source
 		.replace(/\r/g,'')
 		.split('\n')
-		.flatMap((l,i)=>!l.startsWith('#')&&l.trim().length?[{l,i}]:[] as {l:string,i:number}[])
+		.flatMap((l,i)=>{
+			let trimmed = l.trim()
+			if (!trimmed.startsWith('#') && trimmed.length > 0) {
+				return [{l,i}] as {l:string,i:number}[]
+			}
+			return []
+		})
 }
 
 async function readSheet(file:string): Promise<IndexedLines> {
@@ -56,6 +62,14 @@ async function readSheet(file:string): Promise<IndexedLines> {
 	for (let [index,ins] of includes.reverse()) {
 		if (!lines[index].l.startsWith('@include')) throw new Error('include error?')
 		lines.splice(index,1,...ins)
+	}
+
+	for (let i = lines.length - 1; i >= 0; i--) {
+		let line = lines[i]
+		if (line.l.trim().startsWith('@warn')) {
+			console.warn(`Syntax sheet warning (${file} : ${line.i+1}): ${line.l.trim().slice(6)}`)
+			lines.splice(i,1)
+		}
 	}
 
 	return lines

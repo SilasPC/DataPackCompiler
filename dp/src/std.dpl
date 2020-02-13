@@ -6,6 +6,10 @@ mod std {
 		fn panic(): void {
 			/say weell shit
 			/say Datapack panicing
+
+			// print stack trace
+			//tellraw @a [{"text":"","color":"red","bold":true},{"nbt":"stack","storage":"tmp:std","interpret":true},{"text":" Datapack panicking"}]
+
 			//datapack disable ...
 			/say WARNING: Datapack failed to panic. This is likely because the pack name was changed.
 		}

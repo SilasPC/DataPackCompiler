@@ -1,12 +1,10 @@
 
-import { FnDeclaration } from '../semantics/declarations/Declaration'
 import { FnFile } from './FnFile'
-import { CMDNode } from '../commands/CMDNode'
-import { ASTExpr } from '../syntax/AST'
-import { Scoreboard } from './ScoreboardManager'
+import { Scoreboard } from './managers/ScoreboardManager'
 import { exhaust } from '../toolbox/other'
 import { InstrWrapper } from './InstrWrapper'
-import { OutputManager } from './OutputManager'
+import { OutputManager } from './managers/OutputManager'
+import { Config } from '../api/Configuration'
 
 export type Instruction = INT_OP | CMDInstr | INVOKE | LOCAL_INVOKE
 
@@ -39,7 +37,7 @@ export interface CMDInstr {
 	raw: string
 }
 
-export function instrsToCmds(output:OutputManager,useDebug:boolean,instrs:InstrWrapper,into:string[]) {
+export function instrsToCmds(cfg:Config,output:OutputManager,useDebug:boolean,instrs:InstrWrapper,into:string[]) {
 	let ic = 0
 	for (let i of instrs.interateInto(into)) {
 		switch (i.type) {
@@ -55,10 +53,14 @@ export function instrsToCmds(output:OutputManager,useDebug:boolean,instrs:InstrW
 			case InstrType.INVOKE:
 				if (useDebug) {
 					// stack trace add
+					into.push(`data modify storage ${cfg.pack.namespace}:std stack append value "${i.fn.namePath.join('::')} => "`)
+					ic++
 				}
 				into.push(`function ${i.fn.filePath}`)
 				if (useDebug) {
 					// stack trace remove
+					into.push(`data remove storage ${cfg.pack.namespace}:std stack[-1]`)
+					ic++
 				}
 				ic++
 				break

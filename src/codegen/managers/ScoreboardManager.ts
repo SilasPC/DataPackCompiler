@@ -1,7 +1,8 @@
 
-import { CompilerOptions } from "../toolbox/config"
-import { getObscureName, getQualifiedName } from "../toolbox/other"
-import { Declaration } from "../semantics/declarations/Declaration"
+import { CompilerOptions } from "../../toolbox/config"
+import { getObscureName, getQualifiedName } from "../../toolbox/other"
+import { Declaration } from "../../semantics/declarations/Declaration"
+import { Config } from "../../api/Configuration"
 
 export interface Scoreboard {
 	selector: string
@@ -20,17 +21,17 @@ export class ScoreboardManager {
 	private readonly scoreboardNames = new Set<string>()
 
 	constructor(
-		private readonly options: CompilerOptions
+		private readonly cfg: Config
 	) {
 		[this.globalStatic, this.globalConst] =
-			options.obscureNames ?
+			cfg.compilation.obscureNames ?
 				[this.generateObscure(),this.generateObscure()] :
 				[this.generateName(['globals']),this.generateName(['constants'])]
 		this.scoreboardNames.add(this.globalConst).add(this.globalStatic)
 	}
 
 	getScoreboard(names:ReadonlyArray<string>): string {
-		let ret = this.options.obscureNames ?
+		let ret = this.cfg.compilation.obscureNames ?
 					getObscureName(this.scoreboardNames) :
 					getQualifiedName(names,this.scoreboardNames,16)
 		this.scoreboardNames.add(ret)
@@ -48,7 +49,7 @@ export class ScoreboardManager {
 		let ret = {
 			scoreboard: this.globalStatic,
 			selector:
-				this.options.obscureNames ?
+				this.cfg.compilation.obscureNames ?
 					this.generateObscure() :
 					this.generateName(names)
 		}
@@ -63,7 +64,7 @@ export class ScoreboardManager {
 		let score = {
 			scoreboard: this.globalConst,
 			selector:
-				this.options.obscureNames ?
+				this.cfg.compilation.obscureNames ?
 					this.generateObscure() :
 					n.toString()
 		}

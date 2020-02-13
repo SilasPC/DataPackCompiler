@@ -2,11 +2,11 @@ import { compilerVersion } from "../api/Compiler"
 
 export type CompilerOptions = Required<WeakCompilerOptions>
 export interface WeakCompilerOptions {
+	sourceDir?: string
+	emitDir?: string
 	minimumVersion?: string
 	obscureNames?: boolean
-	obscureSeed?: string // unused
 	sourceMap?: boolean
-	emitComments?: boolean // unused
 	optimize?: boolean
 	noUnused?: boolean
 	ignoreWarnings?: boolean
@@ -22,14 +22,14 @@ export interface WeakCompilerOptions {
 export function compilerOptionDefaults(cfg?:WeakCompilerOptions): CompilerOptions {
 	if (!cfg) cfg = {}
 	return {
+		sourceDir: './src',
+		emitDir: './',
 		minimumVersion: compilerVersion,
 		obscureNames: false,
-		obscureSeed: '',
 		noInference: true,
 		noImplicitCast: true,
 		ignoreUnreachable: true,
 		sourceMap: false,
-		emitComments: false,
 		optimize: false,
 		noUnused: false,
 		ignoreWarnings: false,

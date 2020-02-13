@@ -1,6 +1,7 @@
 import { ScoreboardManager, Scoreboard } from './ScoreboardManager';
-import { CompilerOptions } from '../toolbox/config';
+import { CompilerOptions } from '../../toolbox/config';
 import { FnFileManager } from './FnFileManager';
+import { Config } from '../../api/Configuration';
 
 export class OutputManager {
 
@@ -8,10 +9,10 @@ export class OutputManager {
 	public readonly functions: FnFileManager
 	
 	constructor(
-		private readonly options: CompilerOptions
+		cfg: Config
 	) {
-		this.scoreboards = new ScoreboardManager(options)
-		this.functions = new FnFileManager(options)
+		this.scoreboards = new ScoreboardManager(cfg)
+		this.functions = new FnFileManager(cfg)
 	}
 
 	private instrCounter?: Scoreboard

@@ -1,4 +1,10 @@
 
+enum Hello {
+    WORLD,
+    GALAXY,
+    UNIVERSE
+}
+
 blocktag air [
     minecraft:air,
     minecraft:cave_air

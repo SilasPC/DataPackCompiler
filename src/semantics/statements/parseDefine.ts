@@ -3,7 +3,7 @@ import { Logger } from "../../toolbox/Logger"
 import { MaybeWrapper, Maybe } from "../../toolbox/Maybe"
 import { parseExpression } from "../expressionParser"
 import { ValueType, tokenToType, Type, isSubType } from "../types/Types"
-import { ptExprToType, PTExpr } from "../ParseTree"
+import { ptExprToType, PTExpr, PTOpNode, PTKind } from "../ParseTree"
 import { Declaration, VarDeclaration, DeclarationType } from "../declarations/Declaration"
 import { Scope } from "../Scope"
 
@@ -38,6 +38,17 @@ export function parseDefine(node: ASTLetNode, scope:Scope, log:Logger): Maybe<{p
 		namePath: scope.nameAppend(node.identifier.value)
 	}
 
-	return maybe.wrap({decl,pt:pt.value})
+	const setPt: PTOpNode = {
+		kind: PTKind.OPERATOR,
+		op: '=',
+		type: ptExprToType(pt.value),
+		vals: [
+			{kind:PTKind.VARIABLE,decl},
+			pt.value
+		],
+		scopeNames: scope.getScopeNames()
+	}
+
+	return maybe.wrap({decl,pt:setPt})
 	
 }

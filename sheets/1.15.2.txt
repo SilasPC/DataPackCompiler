@@ -10,7 +10,7 @@ bossbar
   list
   remove <id>
   set <id>
-    color <color>
+    color blue|green|pink|purple|red|white|yellow
     max <pint>
     name <id>
     players <entities>
@@ -141,15 +141,13 @@ kill [<entities>]
 
 list [uuids]
 
-# add possibilities here
-locate
+locate Buried_Treasure|Desert_Pyramid|EndCity|Fortress|Igloo|Jungle_Pyramid|Mansion|Mineshaft|Monument|Ocean_Ruin|Pillager_Outpost|Shipwreck|Stronghold|Swamp_Hut|Village
 
 :lootarg
   fish <id> <coords> [<id>]
   kill <entity>
   loot <id>
   mine <coords> [<id>]
-
 
 loot
   give <players> <:lootarg>
@@ -172,7 +170,10 @@ recipe give|take <players> *|<id>
 
 reload
 
-#replaceitem
+replaceitem
+                # VV this really is a slot, no namespaces
+  block <coords> <id> <id> <id> [<pint>]
+  entity <entities> <id> <id> [<pint>]
 
 say <text>
 
@@ -200,15 +201,16 @@ scoreboard
     operation *|<entities> <id> +=|-=|*=|/=|%=|=|<|>|>< *|<entities> <id>
 
 
-#setblock
+setblock <coords> <id> [destroy|keep|replace]
 
 setworldspawn [<coords>]
 
 spectate [<entity>]
 
-#spreadplayers
+#    needs range 1.0..            VVVVVV
+spreadplayers <coords2> <ufloat> <ufloat> true|false <entities>
 
-#stopsound
+stopsound <players> [*|ambient|block|hostile|master|music|neutral|player|record|voice|weather] [<id>]
 
 summon <id> [<coords>] [<nbt>]
 
@@ -216,22 +218,55 @@ tag <entities>
   add|remove <text>
   list
 
-#team
+team
+  add <id> [<json>]
+  remove|empty <id>
+  join <id> [<entities>]
+  leave [<entities>]
+  list [<id>]
+  modify <id>
+    collisionRule always|never|pushOtherTeams|pushOwnTeam
+    color reset|aqua|black|blue|dark_aqua|dark_blue|dark_gray|dark_green|dark_purple|dark_red|gold|grey|green|light_purple|red|white|yellow
+    deathMessageVisibility always|never|hideForOtherTeams|hideForOwnTeam
+    displayname <json>
+    friendlyFire true|false
+    nameTagVisibility always|never|hideForOtherTeams|hideForOwnTeam
+    prefix <json>
+    seeFriendlyInvisibles true|false
+    suffix <json>
 
-#teammsg|tm
+teammsg|tm <text>
 
-#teleport|tp
+teleport|tp
+  <entity>|<coords>
+  <entities> <entity>|<coords>
+  
 
-#tellraw
+tellraw <players> <json>
 
-#time
+time
+  @warn time set and add not supported yet
+  set|add <text>
+  query day|daytime|gametime
 
-#title
+title
+  actionbar|title|subtitle <json>
+  clear|reset
+  times <uint> <uint> <uint>
 
-#trigger
+trigger <id> add|set <int>
 
-#weather
+weather clear|rain|thunder [<pint>]
 
-#worldborder
+worldborder
+  get
+  set|add <float> [<uint>]
+  center <coords2>
+  damage amount|buffer <ufloat>
+  warning
+    time|distance <uint>
 
-#experience|xp
+experience|xp
+  set <players> <pint> [levels|points]
+  add <players> <int> [levels|points]
+  query [<player>]

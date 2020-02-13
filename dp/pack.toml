@@ -1,35 +1,27 @@
-
-### Maybe use this instead of pack.json
-
 [pack]
-name = "Wuuut"
-description = "Test pack"
-icon = "book"
-
-# ?
-srcDir = "./src"
-emitDir = "./"
+longName = 'My datapack'
+name = 'datapack'
+description = 'My compiled datapack'
+namespace = 'pack'
+icon = 'minecraft:chest'
 
 [author]
-name = "Silas Pockendahl"
-player = "B4liz0ng"
+name = 'Silas Pockendahl'
+player = 'B4liz0ng'
 
-[compilerOptions]
-
-# ?
-dependencies = []
-
-minimumVersion = "0.1"
+[compilation]
+sourceDir = './src'
+emitDir = './'
+minimumVersion = '0.1.0'
 obscureNames = false
-obscureSeed = "" # not used
-noInference = true # should be used lol
-noImplicitCat = true
+noInference = false
+noImplicitCast = true
 ignoreUnreachable = true
 sourceMap = true
-emitComments = false # not used
-optimize = false # not used
+optimize = true
+noUnused = false
 ignoreWarnings = false
-noUnused = false # not used
-verbosity = 0
-targetVersion = "latest"
+verbosity = 3
+colorLog = true
+targetVersion = 'latest'
 debugBuild = true

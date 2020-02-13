@@ -7,13 +7,14 @@ import { ptExprToType, PTExpr, PTWhileNode, PTKind } from "../ParseTree"
 import { Declaration, VarDeclaration, DeclarationType } from "../declarations/Declaration"
 import { Scope } from "../Scope"
 import { parseBody } from "../parseBody"
+import { CompilerOptions } from "../../toolbox/config"
 
 
-export function parseWhile(node: ASTWhileNode, scope:Scope, log:Logger): Maybe<PTWhileNode> {
+export function parseWhile(node: ASTWhileNode, scope:Scope, log:Logger, cfg: CompilerOptions): Maybe<PTWhileNode> {
 	const maybe = new MaybeWrapper<PTWhileNode>()
 
 	let pt = parseExpression(node.clause,scope,log)
-	let body = parseBody(node.body,scope.branch('while'),log)
+	let body = parseBody(node.body,scope.branch('while'),log,cfg)
 
 	if (!pt.value || !body.value) return maybe.none()
 

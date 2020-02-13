@@ -3,33 +3,29 @@ import { join } from "path";
 import { promises as fs } from 'fs'
 
 import fetch from 'node-fetch'
+import { Config } from "../api/Configuration";
 
 export async function emitConvention(
-    playerName:string,
-    author:string,
-    datapackName:string,
-    datapackNameSpace:string,
-    datapackIcon: string,
-    datapackDescription:string,
+    cfg: Config,
     dataFolder:string
 ) {
 
     let globalNs = join(dataFolder,'global/advancements')
-    let packNs = join(dataFolder,datapackNameSpace,'advancements')
+    let packNs = join(dataFolder,cfg.pack.namespace,'advancements')
 
     await MKDIRP(globalNs)
     await MKDIRP(packNs)
 
     await fs.writeFile(join(globalNs,'root.json'),root)
-    await fs.writeFile(join(globalNs,datapackNameSpace+'.json'),await authorCreate(playerName))
-    await fs.writeFile(join(packNs,'_pack.json'),packCreate(datapackName,datapackIcon,datapackNameSpace,datapackDescription))
+    await fs.writeFile(join(globalNs,cfg.pack.namespace+'.json'),await authorCreate(cfg.author.name,cfg.author.player))
+    await fs.writeFile(join(packNs,'_pack.json'),packCreate(cfg.pack.longName,cfg.pack.icon,cfg.pack.namespace,cfg.pack.description))
 
 }
 
-function packCreate(packName:string,item:string,namespace:string,description:string) {
+function packCreate(title:string,item:string,namespace:string,description:string) {
     return JSON.stringify({
         display: {
-          title: packName,
+          title,
           description,
           icon: {
             item
@@ -57,10 +53,10 @@ async function getIcon(player:string) {
     return `{SkullOwner:{Name:"${player}",Properties:{textures:[${data.properties.map((p:any)=>`{Value:"${p.value}"}`).join(',')}]}}}`
 }
 
-async function authorCreate(player:string) {
+async function authorCreate(name:string,player:string) {
     return JSON.stringify({
         display: {
-            title: player,
+            title: name,
             description: '',
             icon: {
                 item: 'minecraft:player_head',

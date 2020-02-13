@@ -38,18 +38,14 @@ export function lineSyntaxParser(iter:TokenIteratorI,ctx:CompileContext): null |
                 case 'let': return parseDeclaration(iter,ctx)
                 case 'if':  return parseConditional(iter,ctx)
                 case 'return': {
-                    // Later on, the expression parser must return a void type instead
-                    // This should happen, as it should be able to parse everything
-                    // using the shunting-yard algorithm
-                    // That is a bit ambitious, but it sounds quite neat :D
-                    // That also makes all this redundant anyways
                     let peek = iter.peek()
-                    if (
-                        !peek ||
-                        (peek.type == TokenType.MARKER && peek.value == ';')
-                    )
+                    if ( // this is not so great
+                        iter.newLineFollows() ||
+                        peek.value == ';'
+                    ) {
+                        if (peek.value == ';') iter.skip(1)
                         return new ASTReturnNode(iter.file,token.indexStart,token.indexEnd,null)
-                    else {
+                    } else {
                         let res = expressionSyntaxParser(iter,ctx,true).ast
                         return new ASTReturnNode(iter.file,token.indexStart,res.indexEnd,res)
                     }

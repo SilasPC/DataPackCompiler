@@ -4,7 +4,7 @@ import { TokenI } from "../../lexing/Token";
 import { ReadOnlySymbolTable, SymbolTable } from "./SymbolTable";
 import { Struct } from "../types/Struct";
 import { Program } from "../managers/ProgramManager";
-import { Scope } from "../Scope";
+import { Scope, ModScope } from "../Scope";
 import { Maybe, MaybeWrapper } from "../../toolbox/Maybe";
 import { Logger } from "../../toolbox/Logger";
 
@@ -38,7 +38,7 @@ export interface RecipeDeclaration {
 export class ModDeclaration {
 
 	public static createRoot(program:Program) {
-		return new ModDeclaration(null,Scope.createRoot(program,'pack'))
+		return new ModDeclaration(null,ModScope.createRoot(program,'pack'))
 	}
 
 	public readonly type = DeclarationType.MODULE
@@ -49,7 +49,7 @@ export class ModDeclaration {
 
 	private constructor (
 		public readonly parent: ModDeclaration | null,
-		public readonly scope: Scope
+		public readonly scope: ModScope
 	) {
 		this.symbols = scope.symbols
 		this.namePath = scope.getScopeNames()
@@ -80,16 +80,16 @@ export class ModDeclaration {
         return maybe.wrap(mod)
 	}
 
-	branchUnsafe(name:string): ModDeclaration {
-		let mod = new ModDeclaration(this,this.scope.branch(name))
+	branchUnsafe(name:string,program:Program): ModDeclaration {
+		let mod = new ModDeclaration(this,this.scope.branchToMod(name,program))
 		if (this.children.has(name)) throw new Error('module already exists')
 		this.children.set(name,mod)
 		return mod
 	}
 
-	branch(name:TokenI,log:Logger): Maybe<ModDeclaration> {
+	branch(name:TokenI,log:Logger,program:Program): Maybe<ModDeclaration> {
 		const maybe = new MaybeWrapper<ModDeclaration>()
-		let mod = new ModDeclaration(this,this.scope.branch(name.value))
+		let mod = new ModDeclaration(this,this.scope.branchToMod(name.value,program))
 		if (this.children.has(name.value)) {
 			log.addError(name.error('module already exists'))
 			return maybe.none()

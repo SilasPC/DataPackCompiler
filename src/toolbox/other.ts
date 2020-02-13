@@ -39,3 +39,10 @@ export function getQualifiedName(names:ReadonlyArray<string>,vals:Collection<str
 		if (!vals.has(name2)) return name2
 	}
 }
+
+export function purgeNullishKeys<P,T extends P>(obj:T): P {
+	obj = {...obj}
+	for (let key in obj)
+		if ([null,undefined].includes(obj[key] as any)) delete obj[key]
+	return obj
+}

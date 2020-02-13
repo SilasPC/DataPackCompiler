@@ -1,43 +1,62 @@
-import { ASTFnNode } from "../../syntax/AST";
-import { PTFnNode, ParseTree, PTKind, ParseTreeStore } from "../ParseTree";
+import { ASTFnNode, ASTNode, ASTNodeType, astArrErr } from "../../syntax/AST";
+import { PTFnNode, ParseTree, PTKind, ParseTreeStore, PTBody, PTCmdNode, ptExprToType } from "../ParseTree";
 import { MaybeWrapper, Maybe } from "../../toolbox/Maybe";
-import { FnDeclaration, DeclarationType, VarDeclaration } from "../declarations/Declaration";
-import { tokenToType, Type, ValueType } from "../types/Types";
+import { FnDeclaration, DeclarationType, VarDeclaration, Declaration } from "../declarations/Declaration";
+import { tokenToType, Type, ValueType, isSubType } from "../types/Types";
 import { Logger } from "../../toolbox/Logger";
-import { Scope } from "../Scope";
+import { Scope, FnScope, ModScope } from "../Scope";
 import { parseBody } from "../parseBody";
+import { CommentInterspercer } from "../../toolbox/CommentInterspercer";
+import { parseExpression } from "../expressionParser";
+import { parseDefine } from "./parseDefine";
+import { exhaust } from "../../toolbox/other";
+import { parseWhile } from "./parseWhile";
+import { TokenI } from "../../lexing/Token";
+import { CompilerOptions } from "../../toolbox/config";
 
-export function parseFunction(node:ASTFnNode,scope:Scope,store:ParseTreeStore,log:Logger): Maybe<FnDeclaration> {
+export function parseFunction(node:ASTFnNode,modScope:ModScope,store:ParseTreeStore,log:Logger,cfg:CompilerOptions): Maybe<FnDeclaration> {
 	const maybe = new MaybeWrapper<FnDeclaration>()
 
-	const branch = scope.branch(node.identifier.value)
+	if (!node.returnType) {
+		log.addError(node.identifier.error('no fn infer'))
+		return maybe.none()
+	}
 
-	if (!node.returnType) throw new Error('no fn infer')
+	let type = tokenToType(node.returnType,modScope.symbols)
+
+	let namePath: readonly string[] = modScope.nameAppend(node.identifier.value)
 
 	const parameters: FnDeclaration['parameters'] = []
+	const paramDecls: [TokenI,Declaration][] = []
 
 	for (let param of node.parameters) {
-		let type = tokenToType(param.type,scope.symbols)
+		let type = tokenToType(param.type,modScope.symbols)
 		let decl: VarDeclaration = {
 			type: DeclarationType.VARIABLE,
 			varType: type,
 			mutable: false, // controls parameter mutability
-			namePath: branch.nameAppend(param.symbol.value)
+			namePath: namePath.concat(param.symbol.value)
 		}
 		parameters.push({type,isRef:param.ref})
-		maybe.merge(branch.symbols.declareDirect(param.symbol,decl,log))
+		paramDecls.push([param.symbol,decl])
 	}
 
-	let res = parseBody(node.body,branch,log)
-	if (!res.value) return maybe.none()
-	
 	const fndecl: FnDeclaration = {
 		type: DeclarationType.FUNCTION,
-		returns: tokenToType(node.returnType,scope.symbols),
+		returns: type,
 		parameters,
 		thisBinding: {type:Type.VOID},
-		namePath: scope.nameAppend(node.identifier.value)
+		namePath
 	}
+
+	const scope = modScope.branchToFn(node.identifier.value,fndecl)
+
+	for (let [t,d] of paramDecls)
+		maybe.merge(scope.symbols.declareDirect(t,d,log))
+
+	let res = parseBody(node.body,scope,log,cfg)
+	if (!res.value) return maybe.none()
+
 
 	store.addFn(fndecl,res.value)
 

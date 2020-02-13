@@ -7,6 +7,8 @@
 - Actually add the check when invoking controlflow functions
 
 # FUTURE
+- Enums
+- Blocktags
 - Dependencies
 - Infer fn returns
 - Compile errors can ask for hints
@@ -21,8 +23,11 @@
 - Std functions
 - Directives:
 	- #[inline]
-	- #[tag=minecraft:tick]
+	- #[tick]
+	- #[load]
 	- #[debug]
+	- #[fail_hard]
+	- #[fail_soft] (for debugging)
 	- ?
 
 # Look at

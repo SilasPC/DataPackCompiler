@@ -57,7 +57,7 @@ export function ptCanMut(pt:PTExpr) {
 export type PTStatic = PTFnNode | PTModNode | PTEventNode
 export type PTExpr = PTVarNode | PTPrimitiveNode | PTCallNode | PTOpNode
 export type ParseTree = PTStatic | PTExpr
-export type PTStatement = PTExpr | PTCmdNode | PTIfNode | PTWhileNode
+export type PTStatement = PTExpr | PTCmdNode | PTIfNode | PTWhileNode | PTReturn
 
 export enum PTKind {
 	FUNCTION,
@@ -69,13 +69,21 @@ export enum PTKind {
 	COMMAND,
 	CONDITIONAL,
 	WHILE,
-	EVENT
+	EVENT,
+	RETURN
 }
 
 export type PTBody = CommentInterspercer<PTStatement>
 
 export interface PTEventNode {
 	kind: PTKind.EVENT
+}
+
+export interface PTReturn {
+	kind: PTKind.RETURN
+	fn: FnDeclaration | null
+	expr: PTExpr | null
+	type: ValueType
 }
 
 export interface PTIfNode {

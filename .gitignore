@@ -4,8 +4,7 @@
 
 out
 trash
-dp/data
-dp/pack.mcmeta
+dp/datapack
 .vscode/**/*
 .datapack
 src_old

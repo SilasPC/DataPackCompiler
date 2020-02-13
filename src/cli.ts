@@ -41,7 +41,7 @@ const argv = yargs
 			})
 	})*/
 
-	.command('init [path]', 'Initialize pack.json', yargs => {
+	.command('init [path]', 'Initialize pack.toml', yargs => {
 		yargs
 			.positional('path', {
 				description: 'Folder to intialize in',
@@ -54,7 +54,7 @@ const argv = yargs
 	.command(['compile [path]','$0'], 'Compile datapack', yargs => {
 		yargs
 			.positional('path', {
-				description: 'Path to folder containing \'pack.json\'',
+				description: 'Path to folder containing \'pack.toml\'',
 				default: './',
 				type: 'string'
 			})
@@ -83,6 +83,12 @@ const argv = yargs
 		alias: 'v',
 		description: 'Increase verbosity',
 		count: true,
+		group: COMPILE_GROUP
+	})
+	
+	.option('silent', {
+		description: 'Run silently (no output)',
+		boolean: true,
 		group: COMPILE_GROUP
 	})
 
@@ -127,12 +133,14 @@ async function compile(argv:any): Promise<void> {
 	try {
 		datapack = await Datapack.load(argv.path)
 	} catch (err) {
-		if (err instanceof Error) {
-			if (argv.trace)
-				console.trace(err)
-			else
-				console.error(err.message)
-		} else console.error(err)
+		if (!argv.silent) {
+			if (err instanceof Error) {
+				if (argv.trace)
+					console.trace(err)
+				else
+					console.error(err.message)
+			} else console.error(err)
+		}
 	}
 
 	if (datapack == null) return process.exit(1)
@@ -151,7 +159,7 @@ async function compile(argv:any): Promise<void> {
 
 			await dp.compile({
 				targetVersion: argv['target-version'] as string|undefined,
-				verbosity: argv.verbose ? argv.verbose as number : undefined,
+				verbosity: argv.silent ? -1 : (argv.verbose ? argv.verbose as number : undefined),
 				colorLog: argv.color === false ? false : undefined,
 				optimize: argv.optimize === false ? false : undefined,
 				ignoreWarnings: argv.warn === false ? true : undefined,
@@ -160,12 +168,14 @@ async function compile(argv:any): Promise<void> {
 			if (dp.canEmit() && argv.emit !== false) await dp.emit()
 			
 		} catch (err) {
-			if (err instanceof Error) {
-				if (argv.trace)
-					console.trace(err)
-				else
-					console.error(err.message)
-			} else console.error(err)
+			if (!argv.silent) {
+				if (err instanceof Error) {
+					if (argv.trace)
+						console.trace(err)
+					else
+						console.error(err.message)
+				} else console.error(err)
+			}
 			return 1
 		}
 		return 0

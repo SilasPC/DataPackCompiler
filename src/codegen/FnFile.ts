@@ -1,7 +1,7 @@
 
 import { Instruction, InstrType } from "./Instructions"
 import { InstrWrapper } from "./InstrWrapper"
-import { OutputManager } from "./OutputManager"
+import { OutputManager } from "./managers/OutputManager"
 
 export class FnFile {
 
@@ -11,7 +11,7 @@ export class FnFile {
 
 	constructor(
 		public readonly filePath: string,
-		private readonly namePath: ReadonlyArray<string>
+		public readonly namePath: ReadonlyArray<string>
 	) {
 		this.stack = [this.instrBuffer = new InstrWrapper()]
 	}
