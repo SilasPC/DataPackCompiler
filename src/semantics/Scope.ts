@@ -38,7 +38,7 @@ export class ModScope extends Scope {
 	public static createRoot(program: Program, name:string) {
 		return new ModScope(
 			null,
-			SymbolTable.createRoot(program),
+			SymbolTable.createRoot(program.hoisting),
 			name
 		)
 	}
@@ -46,7 +46,7 @@ export class ModScope extends Scope {
 	constructor(parent:Scope|null,symbols:SymbolTable,scopeName:string) {super(parent,symbols,scopeName)}
 
 	branchToMod(name:string, program: Program) {
-		return new ModScope(this,SymbolTable.createRoot(program),name)
+		return new ModScope(this,SymbolTable.createRoot(program.hoisting),name)
 	}
 	
 	branchToFn(name:string,decl:FnDeclaration) {

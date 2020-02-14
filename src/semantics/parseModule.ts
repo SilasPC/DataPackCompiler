@@ -1,8 +1,8 @@
 
 import { CompileContext } from "../toolbox/CompileContext"
 import { Maybe, MaybeWrapper } from "../toolbox/Maybe"
-import { ASTNodeType, ASTStaticDeclaration, ASTStaticBody } from "../syntax/AST"
-import { exhaust, checkDebugIgnore } from "../toolbox/other"
+import { ASTNodeType, ASTStaticBody } from "../syntax/AST"
+import { exhaust } from "../toolbox/other"
 import { parseFunction } from "./statements/parseFunction"
 import { ModDeclaration, DeclarationType } from "./declarations/Declaration"
 import { parseDefine } from "./statements/parseDefine"
@@ -11,6 +11,7 @@ import { parseEvent } from "./statements/parseEvents"
 import { resolveAccess } from "./resolveAccess"
 import { parseBody } from "./parseBody"
 import { Program } from "./managers/ProgramManager"
+import { listDirectives, checkDebugIgnore } from "./directives"
 
 export function parseModule(
 	mod: ModDeclaration,
@@ -22,29 +23,12 @@ export function parseModule(
 	
 	const scope = mod.scope
 
-	for (let [dirs,node] of body.iterate()) {
+	for (let [dirTokens,node] of body.iterate()) {
 
+		let dirs = listDirectives(dirTokens,ctx.logger)
 		if (checkDebugIgnore(dirs,ctx.options.debugBuild)) continue
 
 		let isPublic = false
-
-		for (let dir of dirs) {
-			let val = dir.value.slice(2,-1).trim()
-			switch (val) {
-				case 'debug':
-					break
-				case 'todo':
-				case 'inline':
-				case 'tick':
-				case 'load':
-					ctx.logger.addWarning(dir.error('directive not implemented'))
-					break
-				default:
-					ctx.logger.addError(dir.error('unknown directive'))
-					maybe.noWrap()
-			}
-			
-		}
 
 		if (node.type == ASTNodeType.PUBLIC) {
 			node = node.node
@@ -71,7 +55,7 @@ export function parseModule(
 				maybe.merge(scope.symbols.declareHoister(node.identifier,()=>{
 					let res = parseDefine(node0,scope,ctx.logger)
 					if (res.value)
-						program.parseTree.init.add(res.value.pt)
+						program.fnStore.init.add(res.value.pt)
 					return res.pick('decl')
 				},ctx.logger))
 				break
@@ -79,7 +63,7 @@ export function parseModule(
 	
 			case ASTNodeType.FUNCTION: {
 				let node0 = node
-				maybe.merge(scope.symbols.declareHoister(node.identifier,()=>parseFunction(dirs,node0,scope,program.parseTree,ctx.logger,ctx.options),ctx.logger))
+				maybe.merge(scope.symbols.declareHoister(node.identifier,()=>parseFunction(dirs,node0,scope,program.fnStore,ctx.logger,ctx.options),ctx.logger))
 				break
 			}
 	
@@ -95,14 +79,36 @@ export function parseModule(
 
 			case ASTNodeType.EVENT: {
 				let node0 = node
-				scope.symbols.declareHoister(node.identifier,()=>parseEvent(node0,scope,ctx.logger,program),ctx.logger)
+				scope.symbols.declareHoister(node.identifier,()=>parseEvent(dirs,node0,scope,ctx.logger,program),ctx.logger)
 				break
 			}
 
 			case ASTNodeType.ON: {
 				let node0 = node
-				program.defer(() => {
+				program.hoisting.defer(() => {
 					const maybe = new MaybeWrapper<true>()
+
+					/*for (let dir of dirs) {
+						let val = dir.value.slice(2,-1).trim()
+						switch (val) {
+							case 'debug':
+								break
+							case 'tick':
+							case 'load':
+							case 'inline':
+								ctx.logger.addError(dir.error('not available for event binding'))
+								maybe.noWrap()
+								break
+							case 'todo':
+								ctx.logger.addWarning(dir.error('event binding not fully implemented'))
+								break
+							default:
+								ctx.logger.addError(dir.error('unknown directive'))
+								maybe.noWrap()
+								break
+						}
+					}*/
+
 					let res = resolveAccess(node0.event,scope,ctx.logger)
 					if (!res.value) return maybe.none()
 					if (res.value.decl.type != DeclarationType.EVENT) {
@@ -112,7 +118,7 @@ export function parseModule(
 					if (node0.body) {
 						let body = parseBody(node0.body,scope.branch('event'),ctx.logger,ctx.options)
 						if (!body.value) return maybe.none()
-						program.parseTree.appendToEvent(res.value.decl,body.value)
+						program.fnStore.appendToEvent(res.value.decl,body.value)
 					}
 					return maybe.wrap(true)
 				})

@@ -9,6 +9,7 @@ import { parseEvent } from "./event"
 import { parseStruct } from "./struct"
 import { wrapPublic } from "../helpers"
 import { Interspercer } from "../../toolbox/Interspercer"
+import { parseOnEvent } from "./onEvent"
 
 export function parseModule(iter:TokenIteratorI,ctx:CompileContext): ASTModuleNode {
     let keyword = iter.current()
@@ -34,6 +35,10 @@ function parser(iter: TokenIteratorI, ctx: CompileContext) {
         switch (token.type) {
             case TokenType.KEYWORD: {
                 switch (token.value) {
+                    case 'on':
+                        if (isPub) token.throwUnexpectedKeyWord()
+                        body.add(parseOnEvent(iter,ctx))
+                        break
                     case 'pub':
                         if (isPub) token.throwUnexpectedKeyWord()
                         isPub = token

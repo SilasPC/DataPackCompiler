@@ -1,21 +1,22 @@
 
-import { FnDeclaration, DeclarationType, fnSignature } from "../semantics/declarations/Declaration";
+import { fnSignature } from "../semantics/declarations/Declaration";
 import { exhaust } from "../toolbox/other";
-import { InstrType, INT_OP } from "./Instructions";
+import { InstrType } from "./Instructions";
 import { FnFile } from "./FnFile";
 import { OutputManager } from "./managers/OutputManager";
-import { PTExpr, PTKind, PTOpNode, PTBody, ParseTreeStore, ptCanMut } from "../semantics/ParseTree";
+import { PTExpr, PTKind, PTOpNode, PTBody } from "../semantics/ParseTree";
 import { Type } from "../semantics/types/Types";
 import { Scoreboard } from "./managers/ScoreboardManager";
+import { ProgramManager } from "../semantics/managers/ProgramManager";
 
-export function generate(store:ParseTreeStore,om:OutputManager) {
+export function generate(program: ProgramManager, om: OutputManager) {
 
 	const init = om.functions.createFn(['std','init'])
 	init.setHeader([`Datapack initialization`])
-	generateBody(init,store.init,om)
+	generateBody(init,program.fnStore.init,om)
 
 	// functions
-	for (let [decl,body] of store.fnEntries()) {
+	for (let [decl,body] of program.fnStore.fnEntries()) {
 		let typename = decl.thisBinding.type == Type.VOID ? 'Function' : 'Method'
 		let fnf = om.functions.byDeclaration(decl)
 		fnf.setHeader([
@@ -26,7 +27,7 @@ export function generate(store:ParseTreeStore,om:OutputManager) {
 	}
 
 	// events
-	for (let [decl,bodies] of store.eventEntries()) {
+	for (let [decl,bodies] of program.fnStore.eventEntries()) {
 		let fnf = om.functions.byDeclaration(decl)
 		fnf.setHeader([
 			`Event definition`
@@ -34,6 +35,10 @@ export function generate(store:ParseTreeStore,om:OutputManager) {
 		for (let body of bodies)
 			generateBody(fnf,body,om)
 	}
+
+	// standard tags
+	;[...program.tickEvents].map(x=>om.functions.byDeclaration(x)).forEach(x=>om.tags.tick.add(x))
+	;[...program.loadEvents].map(x=>om.functions.byDeclaration(x)).forEach(x=>om.tags.load.add(x))
 
 }
 

@@ -21,11 +21,9 @@ fn x(): bool {
 		/say hello
 	}*/
 	return lol2
-	return lol
 }
 
 #[todo]
-#[debug]
 fn y(): bool {
 	return 1 != 2
 }

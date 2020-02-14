@@ -1,26 +1,29 @@
 
 import { HoistingMaster, UnreadableHoistingMaster } from "./HoistingMaster";
-import { ParseTreeStore } from "../ParseTree";
-import { Logger } from "../../toolbox/Logger";
-import { ModDeclaration } from "../declarations/Declaration";
-import { Maybe, MaybeWrapper } from "../../toolbox/Maybe";
-import { TokenI } from "../../lexing/Token";
-import { Scope } from "../Scope";
+import { ModDeclaration, EventDeclaration } from "../declarations/Declaration";
+import { FunctionStore } from "./FunctionStore";
 
-export interface Program extends UnreadableHoistingMaster {
-    readonly parseTree: ParseTreeStore
+export interface Program {
+    readonly fnStore: FunctionStore
+    readonly hoisting: UnreadableHoistingMaster
+    setEventToTick(e:EventDeclaration): void
+    setEventToLoad(e:EventDeclaration): void
 }
 
-export class ProgramManager extends HoistingMaster implements Program {
+export class ProgramManager implements Program {
 
-    public readonly parseTree = new ParseTreeStore()
+    public readonly fnStore = new FunctionStore()
+    public readonly rootModule: ModDeclaration = ModDeclaration.createRoot(this)
+    public readonly hoisting = new HoistingMaster()
 
-    public readonly rootModule: ModDeclaration
-    
-    constructor(
-    ) {
-        super()
-        this.rootModule = ModDeclaration.createRoot(this)
+    public readonly tickEvents = new Set<EventDeclaration>()
+    public readonly loadEvents = new Set<EventDeclaration>()
+
+    setEventToTick(e:EventDeclaration) {
+        this.tickEvents.add(e)
+    }
+    setEventToLoad(e:EventDeclaration) {
+        this.loadEvents.add(e)
     }
 
 }

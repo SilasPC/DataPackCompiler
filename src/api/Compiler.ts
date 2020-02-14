@@ -78,13 +78,15 @@ export class CompileResult {
 		const mcFnTags = join(emitDir,'data/minecraft/tags/functions')
 		await MKDIRP(mcFnTags)
 		await fs.writeFile(join(mcFnTags,'tick.json'),JSON.stringify({
-			values: []
+			values: [...this.output.tags.tick].map(fnf=>fnf.mcPath)
 		}))
 		await fs.writeFile(join(mcFnTags,'load.json'),JSON.stringify({
-			values: []
+			values: [...this.output.tags.load].map(fnf=>fnf.mcPath)
 		}))
 
 		await emitConvention(this.cfg,dataNs)
+
+		log.log(2,'inf','Success')
 
 	}
 
@@ -124,14 +126,14 @@ export async function compile(logger:Logger,cfg:Config,src:FileTree): Promise<Ma
 
 	parseFileTree(src,programManager,ctx)
 
-	if (!programManager.flushDefered().value)
+	if (!programManager.hoisting.flushDefered().value)
 		gotErrors = true
 
 	/*for (let h of programManager.getUnreferenced()) {
 		logger.addError(h.getToken().warning('Never referenced'))
 	}*/
 
-	if (!programManager.flushAll(logger).value)
+	if (!programManager.hoisting.flushAll(logger).value)
 		gotErrors = true
 
 	if (!gotErrors)
@@ -142,7 +144,7 @@ export async function compile(logger:Logger,cfg:Config,src:FileTree): Promise<Ma
 	const output = new OutputManager(cfg)
 	if (!gotErrors) {
 
-		generate(programManager.parseTree,output)
+		generate(programManager,output)
 		logger.log(1,'inf',`Generation complete`)
 
 		logger.log(0,'wrn',`No verifier function yet`)
@@ -153,14 +155,14 @@ export async function compile(logger:Logger,cfg:Config,src:FileTree): Promise<Ma
 
 	}
 
-	if (logger.hasErrors()) {
-		logger.logErrors()
-		logger.log(0,'err',`Raised ${logger.getErrorCount()} error${logger.getErrorCount()>1?'s':''}`)
-	}
-
 	if (logger.hasWarnings()) {
 		logger.logWarns()
 		logger.log(0,'wrn',`Raised ${logger.getWarningCount()} warning${logger.getWarningCount()>1?'s':''}`)
+	}
+
+	if (logger.hasErrors()) {
+		logger.logErrors()
+		logger.log(0,'err',`Raised ${logger.getErrorCount()} error${logger.getErrorCount()>1?'s':''}`)
 	}
 
 	if (logger.hasErrors())

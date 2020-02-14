@@ -98,9 +98,9 @@ export class Interspercer<T,P> {
 	*iterate()/*: Generator<[P[],T]>*/ {
 		for (let [i,val] of this.data.entries()) {
 			if (this.subData.has(i))
-				yield [this.subData.get(i) as P[],val] as [P[],T]
+				yield [this.subData.get(i) as P[],val] as [readonly P[],T]
 			else
-				yield [[],val] as [P[],T]
+				yield [[],val] as [readonly P[],T]
 		}
 	}
 

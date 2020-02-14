@@ -53,7 +53,8 @@ export function fileSyntaxParser(pfile: ParsingFile, ctx: CompileContext): void 
                         pfile.ast.add(wrapPublic(parseEvent(iter,ctx),isPub))
                         break
                     case 'on':
-                        pfile.ast.add(wrapPublic(parseOnEvent(iter,ctx),isPub))
+                        if (isPub) token.throwUnexpectedKeyWord()
+                        pfile.ast.add(parseOnEvent(iter,ctx))
                         break
                     default:
                         return token.throwUnexpectedKeyWord()

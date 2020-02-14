@@ -1,5 +1,4 @@
 import { ASTFnNode } from "../../syntax/AST";
-import { ParseTreeStore } from "../ParseTree";
 import { MaybeWrapper, Maybe } from "../../toolbox/Maybe";
 import { FnDeclaration, DeclarationType, VarDeclaration, Declaration } from "../declarations/Declaration";
 import { tokenToType, Type } from "../types/Types";
@@ -8,30 +7,28 @@ import { ModScope } from "../Scope";
 import { parseBody } from "../parseBody";
 import { TokenI, DirectiveToken } from "../../lexing/Token";
 import { CompilerOptions } from "../../toolbox/config";
+import { FunctionStore } from "../managers/FunctionStore";
+import { DirectiveList } from "../directives";
+import { exhaust } from "../../toolbox/other";
 
-export function parseFunction(dirs:DirectiveToken[],node:ASTFnNode,modScope:ModScope,store:ParseTreeStore,log:Logger,cfg:CompilerOptions): Maybe<FnDeclaration> {
+export function parseFunction(dirs: DirectiveList,node:ASTFnNode,modScope:ModScope,store:FunctionStore,log:Logger,cfg:CompilerOptions): Maybe<FnDeclaration> {
 	const maybe = new MaybeWrapper<FnDeclaration>()
 
-	for (let dir of dirs) {
-		let val = dir.value.slice(2,-1).trim()
-		switch (val) {
-			case 'debug':
-				break
+	for (let {value, token} of dirs) {
+		switch (value) {
+			case 'debug': break
 			case 'todo':
-				log.addWarning(dir.error('function not fully implemented'))
+				log.addWarning(token.error('function not fully implemented'))
 				break
 			case 'tick':
 			case 'load':
-				log.addError(dir.error('not available for functions'))
+				log.addError(token.error('not available for functions'))
 				maybe.noWrap()
 				break
 			case 'inline':
-				log.addWarning(dir.error('inline not supported yet'))
+				log.addWarning(token.error('inline not supported yet'))
 				break
-			default:
-				log.addError(dir.error('unknown directive'))
-				maybe.noWrap()
-				break
+			default: return exhaust(value)
 		}
 	}
 

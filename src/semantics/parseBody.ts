@@ -1,15 +1,16 @@
-import { ASTStatement, ASTNode, ASTNodeType, astArrErr, ASTWhileNode, ASTBody } from "../syntax/AST"
+import { ASTNode, ASTNodeType, astArrErr, ASTWhileNode, ASTBody } from "../syntax/AST"
 import { Maybe, MaybeWrapper } from "../toolbox/Maybe"
-import { exhaust, checkDebugIgnore } from "../toolbox/other"
+import { exhaust } from "../toolbox/other"
 import { parseDefine } from "./statements/parseDefine"
 import { Logger } from "../toolbox/Logger"
 import { parseExpression } from "./expressionParser"
 import { Scope } from "./Scope"
-import { PTStatement, ptExprToType, PTKind, PTCmdNode, PTBody, PTReturn } from "./ParseTree"
-import { isSubType, Type, ValueType } from "./types/Types"
+import { ptExprToType, PTKind, PTCmdNode, PTBody, PTReturn } from "./ParseTree"
+import { isSubType, Type } from "./types/Types"
 import { parseWhile } from "./statements/parseWhile"
 import { CompilerOptions } from "../toolbox/config"
 import { Interspercer } from "../toolbox/Interspercer"
+import { listDirectives, checkDebugIgnore } from "./directives"
 
 export function parseBody(nodes:ASTBody,scope:Scope,log:Logger,cfg:CompilerOptions): Maybe<PTBody> {
 	let maybe = new MaybeWrapper<PTBody>()
@@ -18,11 +19,12 @@ export function parseBody(nodes:ASTBody,scope:Scope,log:Logger,cfg:CompilerOptio
 
 	let body: PTBody = new Interspercer()
 
-	for (let [dirs,node] of nodes.iterate()) {
-
+	for (let [dirTokens,node] of nodes.iterate()) {
+		
+		let dirs = listDirectives(dirTokens,log)
 		if (checkDebugIgnore(dirs,cfg.debugBuild)) continue
 
-		for (let dir of dirs) {
+		/*for (let dir of dirs) {
 			let val = dir.value.slice(2,-1).trim()
 			switch (val) {
 				case 'debug':
@@ -32,7 +34,7 @@ export function parseBody(nodes:ASTBody,scope:Scope,log:Logger,cfg:CompilerOptio
 					maybe.noWrap()
 			}
 			
-		}
+		}*/
 
 		if (cfg.sourceMap && !returnedAt) body.addSubData(...node.sourceMap())
 

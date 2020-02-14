@@ -1,32 +1,10 @@
-import { VarDeclaration, FnDeclaration, ModDeclaration, EventDeclaration } from "./declarations/Declaration";
+import { VarDeclaration, FnDeclaration, ModDeclaration } from "./declarations/Declaration";
 import { Primitive, primToType } from "./types/PrimitiveValue";
 import { Operator } from "../lexing/values";
 import { ValueType } from "./types/Types";
 import { exhaust } from "../toolbox/other";
 import { CMDNode } from "../commands/CMDNode";
 import { Interspercer } from "../toolbox/Interspercer";
-
-export class ParseTreeStore {
-
-	public readonly init: PTBody = new Interspercer<PTStatement,string>()
-	private readonly fns = new Map<FnDeclaration,PTBody>()
-	private readonly events = new Map<EventDeclaration,PTBody[]>()
-
-	addFn(decl:FnDeclaration,body:PTBody) {
-		if (this.fns.has(decl)) throw new Error('tried resetting fn decl body')
-		this.fns.set(decl,body)
-	}
-
-	appendToEvent(decl:EventDeclaration,body:PTBody) {
-		if (this.events.has(decl)) (this.events.get(decl) as PTBody[]).push(body)
-		else this.events.set(decl,[body])
-	}
-
-	fnEntries() {return this.fns.entries()}
-
-	eventEntries() {return this.events.entries()}
-
-}
 
 export function ptExprToType(pt:PTExpr): ValueType {
 	switch (pt.kind) {

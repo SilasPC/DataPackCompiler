@@ -2,17 +2,20 @@ import { ScoreboardManager, Scoreboard } from './ScoreboardManager';
 import { CompilerOptions } from '../../toolbox/config';
 import { FnFileManager } from './FnFileManager';
 import { Config } from '../../api/Configuration';
+import { TagManager } from './TagManager';
 
 export class OutputManager {
 
 	public readonly scoreboards: ScoreboardManager
 	public readonly functions: FnFileManager
+	public readonly tags: TagManager
 	
 	constructor(
 		cfg: Config
 	) {
 		this.scoreboards = new ScoreboardManager(cfg)
 		this.functions = new FnFileManager(cfg)
+		this.tags = new TagManager()
 	}
 
 	private instrCounter?: Scoreboard

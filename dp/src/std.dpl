@@ -1,62 +1,63 @@
 
-pub mod std {
+pub mod events {
 
-	pub mod events {
+	#[tick]
+	event tick
 
-		#[tick]
-		event tick
-
-		#[load]
-		event load
-
-	}
+	#[load]
+	event load
 
 	#[debug]
-	pub mod debug {
-
-		pub fn panic(): void {
-			
-			trace()
-
-			// temp, need to have some compile hook to get datapack name
-			/datapack disable datapack
-
-			/say WARNING: Datapack failed to panic. This is likely because the pack name was changed after emission.
-
-		}
-
-		#[inline]
-		pub fn trace(): void {
-			/tellraw @a [{"text":"","color":"red","bold":true},{"nbt":"stack","storage":"tmp:std","interpret":true},{"text":" Datapack panicking"}]
-		}
-
+	on load {
+		/tellraw @a "Datapack loaded!"
 	}
 
-	mod math {
+}
 
-		struct Vec3 {/*
-			pub x: int
-			pub y: int
-			pub z: int
+#[debug]
+pub mod debug {
 
-			pub add(vec:Vec3): Vec3 {
-				return Vec3(
-					this.x + vec.x,
-					this.y + vec.y,
-					this.z + vec.z
-				)
-			}
-
-			pub dot(vec:Vec3): int {
-				return this.x * vec.x + this.y * vec.y + this.z * vec.z
-			}
-
-		*/}
-
-		fn add(a:int,b:int): int {
-			return a + b
-		}
+	pub fn panic(): void {
 		
+		trace()
+
+		// temp, need to have some compile hook to get datapack name
+		/datapack disable datapack
+
+		/say WARNING: Datapack failed to panic. This is likely because the pack name was changed after emission.
+
 	}
 
+	#[inline]
+	pub fn trace(): void {
+		/tellraw @a [{"text":"","color":"red","bold":true},{"nbt":"stack","storage":"tmp:std","interpret":true},{"text":" Datapack panicking"}]
+	}
+
+}
+
+mod math {
+
+	struct Vec3 {/*
+		pub x: int
+		pub y: int
+		pub z: int
+
+		pub add(vec:Vec3): Vec3 {
+			return Vec3(
+				this.x + vec.x,
+				this.y + vec.y,
+				this.z + vec.z
+			)
+		}
+
+		pub dot(vec:Vec3): int {
+			return this.x * vec.x + this.y * vec.y + this.z * vec.z
+		}
+
+	*/}
+
+	fn add(a:int,b:int): int {
+		return a + b
+	}
+	
 }

@@ -74,8 +74,6 @@ export class Datapack {
 
 		let emitDir = join(this.packDir,this.cfg.compilation.emitDir,this.cfg.pack.name)
 		await this.status.emit(emitDir,this.log)
-
-		this.log.logGroup(2,'inf','Success')
 	}
 
 }

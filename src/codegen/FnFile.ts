@@ -11,7 +11,7 @@ export class FnFile {
 	private headerComments: string[] = []
 
 	constructor(
-		public readonly filePath: string,
+		public readonly mcPath: string,
 		public readonly namePath: ReadonlyArray<string>
 	) {
 		this.stack = [this.instrBuffer = new InstrWrapper()]

@@ -50,7 +50,7 @@ export function instrsToCmds(cfg:Config,output:OutputManager,useDebug:boolean,in
 				ic++
 				break
 			case InstrType.LOCAL_INVOKE:
-				into.push(`function ${i.fn.filePath}`)
+				into.push(`function ${i.fn.mcPath}`)
 				ic++
 				break
 			case InstrType.INVOKE:
@@ -59,7 +59,7 @@ export function instrsToCmds(cfg:Config,output:OutputManager,useDebug:boolean,in
 					into.push(`data modify storage ${cfg.pack.namespace}:std stack append value "${i.fn.namePath.join('::')} => "`)
 					ic++
 				}
-				into.push(`function ${i.fn.filePath}`)
+				into.push(`function ${i.fn.mcPath}`)
 				if (useDebug) {
 					// stack trace remove
 					into.push(`data remove storage ${cfg.pack.namespace}:std stack[-1]`)

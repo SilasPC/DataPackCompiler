@@ -1,5 +1,6 @@
 import { CompileError } from "./CompileErrors"
 import { DirectiveToken } from "../lexing/Token"
+import { Logger } from "./Logger"
 
 export interface Errorable {
 	error(err:string): CompileError
@@ -16,14 +17,6 @@ export function exhaust(v:never): never {
 
 interface Collection<T> {
 	has(v:T): boolean
-}
-
-export function checkDebugIgnore(dirs:DirectiveToken[],debugBuild:boolean) {
-	for (let dir of dirs) {
-		let val = dir.value.slice(2,-1).trim()
-		if (val == 'debug' && !debugBuild) return true
-	}
-	return false
 }
 
 export function getObscureName(vals:Collection<string>) {
