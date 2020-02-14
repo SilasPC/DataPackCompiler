@@ -44,14 +44,14 @@ With some domain specific features and limitations of course.
 Eventually the CLI will ship as an install script.
 
 #### Initializing source folder
-Use `_dpc init [src path]`
+Use `dpc init [src path]`
 
 `[src path]` defaults to current directory.
 
-This generates a pack.json at specified path,
+This generates a pack.toml at specified path,
 which is a configuration file for the pack and compiler.
 
 #### Compiling
 Use `dpc compile [src path]` or simply `dpc [src_path]`
 
-A number of flags can be used to overwrite compiler settings in pack.json. See `dpc --help`
+A number of flags can be used to overwrite compilation settings in pack.toml. See `dpc --help`
