@@ -1,0 +1,37 @@
+
+// A module is a collection of related code
+// For instance a math module:
+mod maths {
+
+    // Notice: 'pub' is short for 'public', which is an access modifier
+    // Code outside this module can access this fn with maths::addAndScale(...)
+    pub fn addAndScale(a:int,b:int,c:int): int {
+        return scale(add(a,b),c)
+    }
+
+    // This function cannot be accessed from outside this module
+    fn add(a:int,b:int): int {
+        return a + b
+    }
+
+    // Etc.
+    fn scale(a:int,b:int): int {
+        return a * b
+    }
+
+}
+
+// Note: the module system also makes use of directory structure
+// Files are just modules, and so are folders.
+// The following is therefore legal:
+
+pub some_func(): void {}
+
+// This function will be available outside of this file.
+// Note0 however, that the 'maths' module is NOT.
+// To ensure that, just use the access modifier again:
+
+pub some_other_module {}
+
+// This module will be available outside of this file.
+// The same idea applies to all module declarations.

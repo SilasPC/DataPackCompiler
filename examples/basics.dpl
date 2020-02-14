@@ -8,9 +8,14 @@ fn test(x:int): int {
 let var: int = 2 * 20
 
 // A function that calls another function
-fn invokeTest(): void {
+fn invoke_test(): void {
 	// Declaring a local variable and invoking with an integer directly:
 	let x: int = test(10)
 	// Invoking with the local variable
 	x = test(x)
+}
+
+// A function that returns a bool (short for boolean)
+fn is_dpl_cool(): bool {
+	return 321 > 123
 }

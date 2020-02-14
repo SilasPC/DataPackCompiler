@@ -1,0 +1,23 @@
+
+// The following event binding is only evaluated in debug mode (debugBuild = true)
+#[debug]
+on std::events::load {
+    // ...
+}
+
+// The following function always raises a compilation warning:
+#[todo]
+fn unfinished_function(): void {}
+
+// The following event runs every tick:
+#[tick]
+event some_event
+
+// The following event runs every load (minecraft:load):
+#[load]
+event some_other_event
+
+// The following function is inserted in-line every invokation,
+// instead of having a seperate function. Use cases are sparse.
+#[inline]
+fn an_inline_function(): void {}

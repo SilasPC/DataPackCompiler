@@ -5,7 +5,7 @@ let a = a + 2
 // The following also gives a circular dependency error:
 let x = x()
 
-fn valueOfX(): int {
+fn value_of_x(): int {
 	return x
 }
 
