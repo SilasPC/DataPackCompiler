@@ -16,7 +16,7 @@ export function parseFileTree(ft:FileTree,program:ProgramManager,ctx:CompileCont
 		let self: ModDeclaration = parent.branchUnsafe(name,program)
 
 		if (ft.self) {
-			let res = parseModule(self,ft.self.getAST(),ctx,program)
+			let res = parseModule(self,ft.self.ast,ctx,program)
 			// if (!res.value) throw new Error('no soft handling now')
 		}
 

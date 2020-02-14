@@ -8,6 +8,7 @@ import { Declaration, VarDeclaration, DeclarationType } from "../declarations/De
 import { Scope } from "../Scope"
 import { parseBody } from "../parseBody"
 import { CompilerOptions } from "../../toolbox/config"
+import { DirectiveToken } from "../../lexing/Token"
 
 
 export function parseWhile(node: ASTWhileNode, scope:Scope, log:Logger, cfg: CompilerOptions): Maybe<PTWhileNode> {

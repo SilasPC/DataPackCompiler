@@ -1,5 +1,5 @@
 
-import { ASTModuleNode, ASTNodeType, ASTStaticDeclaration } from "../AST"
+import { ASTModuleNode, ASTNodeType, ASTStaticDeclaration, ASTStaticBody } from "../AST"
 import { TokenType, TokenI, DirectiveToken } from "../../lexing/Token"
 import { TokenIteratorI } from "../../lexing/TokenIterator"
 import { CompileContext } from "../../toolbox/CompileContext"
@@ -8,31 +8,28 @@ import { parseDeclaration } from "./declaration"
 import { parseEvent } from "./event"
 import { parseStruct } from "./struct"
 import { wrapPublic } from "../helpers"
+import { Interspercer } from "../../toolbox/Interspercer"
 
-export function parseModule(dirs:DirectiveToken[],iter:TokenIteratorI,ctx:CompileContext): ASTModuleNode {
+export function parseModule(iter:TokenIteratorI,ctx:CompileContext): ASTModuleNode {
     let keyword = iter.current()
     if (keyword.type != TokenType.KEYWORD) throw new Error('token typing error')
     let identifier = iter.next().expectType(TokenType.SYMBOL)
     iter.next().expectType(TokenType.MARKER).expectValue('{')
     let body = parser(iter,ctx)
-    return new ASTModuleNode(iter.file,keyword.indexStart,body[body.length-1].indexEnd,dirs,identifier,body)
+    return new ASTModuleNode(iter.file,keyword.indexStart,iter.current().indexEnd,identifier,body)
 }
 
 function parser(iter: TokenIteratorI, ctx: CompileContext) {
-    let body: ASTStaticDeclaration[] = []
+
+    let body: ASTStaticBody = new Interspercer()
     let isPub: TokenI | null = null
-    let dirs: DirectiveToken[] = []
-    let clearDirs = false
+    
     for (let token of iter) {
 
-        if (clearDirs) {
-            dirs = []
-            clearDirs = false
-        }
         if (token.type == TokenType.DIRECTIVE) {
-            dirs.push(token)
+            body.addSubData(token)
             continue
-        } else clearDirs = true
+        }
 
         switch (token.type) {
             case TokenType.KEYWORD: {
@@ -42,23 +39,23 @@ function parser(iter: TokenIteratorI, ctx: CompileContext) {
                         isPub = token
                         break
                     case 'mod':
-                        body.push(wrapPublic(parseModule(dirs,iter,ctx),isPub))
+                        body.add(wrapPublic(parseModule(iter,ctx),isPub))
                         isPub = null
                         break
                     case 'fn':
-                        body.push(wrapPublic(parseFunction(dirs,iter,ctx),isPub))
+                        body.add(wrapPublic(parseFunction(iter,ctx),isPub))
                         isPub = null
                         break
                     case 'event':
-                        body.push(wrapPublic(parseEvent(dirs,iter,ctx),isPub))
+                        body.add(wrapPublic(parseEvent(iter,ctx),isPub))
                         isPub = null
                         break
                     case 'let':
-                        body.push(wrapPublic(parseDeclaration(dirs,iter,ctx),isPub))
+                        body.add(wrapPublic(parseDeclaration(iter,ctx),isPub))
                         isPub = null
                         break
                     case 'struct':
-                        body.push(wrapPublic(parseStruct(dirs,iter,ctx),isPub))
+                        body.add(wrapPublic(parseStruct(iter,ctx),isPub))
                         isPub = null
                         break
                     default:

@@ -6,7 +6,7 @@ import { getType } from "../helpers"
 import { TokenIteratorI } from "../../lexing/TokenIterator"
 import { CompileContext } from "../../toolbox/CompileContext"
 
-export function parseFunction(dirs:DirectiveToken[],iter:TokenIteratorI,ctx:CompileContext): ASTFnNode {
+export function parseFunction(iter:TokenIteratorI,ctx:CompileContext): ASTFnNode {
     let fnToken = iter.current() as KeywordToken
     let fnSymbol = iter.next().expectType(TokenType.SYMBOL) as GenericToken
     let parameters: {symbol:TokenI,type:TokenI,ref:boolean}[] = []
@@ -31,5 +31,5 @@ export function parseFunction(dirs:DirectiveToken[],iter:TokenIteratorI,ctx:Comp
     let returnType = getType(iter)
     iter.next().expectType(TokenType.MARKER).expectValue('{')
     let body = bodySyntaxParser(iter,ctx)
-    return new ASTFnNode(iter.file,fnToken.indexStart,iter.current().indexEnd,dirs,fnSymbol,parameters,returnType,body)
+    return new ASTFnNode(iter.file,fnToken.indexStart,iter.current().indexEnd,fnSymbol,parameters,returnType,body)
 }

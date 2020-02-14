@@ -14,18 +14,13 @@ import { parseOnEvent } from "./structures/onEvent";
 export function fileSyntaxParser(pfile: ParsingFile, ctx: CompileContext): void {
     const iter = pfile.getTokenIterator()
     let isPub: TokenI | null = null
-    let dirs: DirectiveToken[] = []
-    let clearDirs = false
+
     for (let token of iter) {
 
-        if (clearDirs) {
-            dirs = []
-            clearDirs = false
-        }
         if (token.type == TokenType.DIRECTIVE) {
-            dirs.push(token)
+            pfile.ast.addSubData(token)
             continue
-        } else clearDirs = true
+        }
 
         switch (token.type) {
             case TokenType.KEYWORD: {
@@ -35,30 +30,30 @@ export function fileSyntaxParser(pfile: ParsingFile, ctx: CompileContext): void 
                         isPub = token
                         break
                     case 'use':
-                        pfile.addASTNode(wrapPublic(parseUse(iter,ctx),isPub))
+                        pfile.ast.add(wrapPublic(parseUse(iter,ctx),isPub))
                         isPub = null
                         break
                     case 'mod':
-                        pfile.addASTNode(wrapPublic(parseModule(dirs,iter,ctx),isPub))
+                        pfile.ast.add(wrapPublic(parseModule(iter,ctx),isPub))
                         isPub = null
                         break
                     case 'fn':
-                        pfile.addASTNode(wrapPublic(parseFunction(dirs,iter,ctx),isPub))
+                        pfile.ast.add(wrapPublic(parseFunction(iter,ctx),isPub))
                         isPub = null
                         break
                     case 'const':
                     case 'let':
-                        pfile.addASTNode(wrapPublic(parseDeclaration(dirs,iter,ctx),isPub))
+                        pfile.ast.add(wrapPublic(parseDeclaration(iter,ctx),isPub))
                         isPub = null
                         break
                     case 'struct':
-                        pfile.addASTNode(wrapPublic(parseStruct(dirs,iter,ctx),isPub))
+                        pfile.ast.add(wrapPublic(parseStruct(iter,ctx),isPub))
                         break
                     case 'event':
-                        pfile.addASTNode(wrapPublic(parseEvent(dirs,iter,ctx),isPub))
+                        pfile.ast.add(wrapPublic(parseEvent(iter,ctx),isPub))
                         break
                     case 'on':
-                        pfile.addASTNode(wrapPublic(parseOnEvent(iter,ctx),isPub))
+                        pfile.ast.add(wrapPublic(parseOnEvent(iter,ctx),isPub))
                         break
                     default:
                         return token.throwUnexpectedKeyWord()
@@ -68,10 +63,6 @@ export function fileSyntaxParser(pfile: ParsingFile, ctx: CompileContext): void 
             default:
                 return token.throwDebug('only expected keywords in root scope')
         }
-    }
-
-    if (!clearDirs && dirs.length) {
-        throw new Error('trailing directives in file')
     }
 
     if (isPub) pfile.throwUnexpectedEOF();

@@ -1,8 +1,7 @@
 import { Instruction } from "./Instructions";
-import $ from "js-itertools";
-import { CommentInterspercer } from "../toolbox/CommentInterspercer";
+import { Interspercer } from "../toolbox/Interspercer";
 
-export class InstrWrapper extends CommentInterspercer<Instruction> {
+export class InstrWrapper extends Interspercer<Instruction,string> {
 
 	clone(): InstrWrapper {return new InstrWrapper().insert(0,this)}
 

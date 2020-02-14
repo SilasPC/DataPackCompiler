@@ -1,8 +1,8 @@
 
 import { CompileContext } from "../toolbox/CompileContext"
 import { Maybe, MaybeWrapper } from "../toolbox/Maybe"
-import { ASTNodeType, ASTStaticDeclaration } from "../syntax/AST"
-import { exhaust } from "../toolbox/other"
+import { ASTNodeType, ASTStaticDeclaration, ASTStaticBody } from "../syntax/AST"
+import { exhaust, checkDebugIgnore } from "../toolbox/other"
 import { parseFunction } from "./statements/parseFunction"
 import { ModDeclaration, DeclarationType } from "./declarations/Declaration"
 import { parseDefine } from "./statements/parseDefine"
@@ -14,7 +14,7 @@ import { Program } from "./managers/ProgramManager"
 
 export function parseModule(
 	mod: ModDeclaration,
-	body: readonly ASTStaticDeclaration[],
+	body: ASTStaticBody,
 	ctx: CompileContext,
 	program: Program
 ): Maybe<true> {
@@ -22,9 +22,29 @@ export function parseModule(
 	
 	const scope = mod.scope
 
-	for (let node of body) {
+	for (let [dirs,node] of body.iterate()) {
+
+		if (checkDebugIgnore(dirs,ctx.options.debugBuild)) continue
 
 		let isPublic = false
+
+		for (let dir of dirs) {
+			let val = dir.value.slice(2,-1).trim()
+			switch (val) {
+				case 'debug':
+					break
+				case 'todo':
+				case 'inline':
+				case 'tick':
+				case 'load':
+					ctx.logger.addWarning(dir.error('directive not implemented'))
+					break
+				default:
+					ctx.logger.addError(dir.error('unknown directive'))
+					maybe.noWrap()
+			}
+			
+		}
 
 		if (node.type == ASTNodeType.PUBLIC) {
 			node = node.node
@@ -59,7 +79,7 @@ export function parseModule(
 	
 			case ASTNodeType.FUNCTION: {
 				let node0 = node
-				maybe.merge(scope.symbols.declareHoister(node.identifier,()=>parseFunction(node0,scope,program.parseTree,ctx.logger,ctx.options),ctx.logger))
+				maybe.merge(scope.symbols.declareHoister(node.identifier,()=>parseFunction(dirs,node0,scope,program.parseTree,ctx.logger,ctx.options),ctx.logger))
 				break
 			}
 	
@@ -105,6 +125,10 @@ export function parseModule(
 		}
 
 	}
+
+	const trailingDirective = body.getTrailingSubData()
+	if (trailingDirective.length)
+		ctx.logger.addWarning(trailingDirective[0].error('trailing directive(s)'))
 
 	return maybe.wrap(true)
 

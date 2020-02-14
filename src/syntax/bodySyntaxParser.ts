@@ -1,6 +1,6 @@
 
 import { TokenType, TokenI, DirectiveToken } from "../lexing/Token";
-import { ASTNode, ASTNodeType, ASTReturnNode, ASTStatement } from "./AST";
+import { ASTNode, ASTNodeType, ASTReturnNode, ASTStatement, ASTBody } from "./AST";
 import { expressionSyntaxParser } from "./expressionSyntaxParser";
 import { parseConditional } from "./structures/conditional";
 import { parseDeclaration } from "./structures/declaration";
@@ -8,49 +8,45 @@ import { TokenIteratorI, TokenIterator } from "../lexing/TokenIterator";
 import { exhaust } from "../toolbox/other";
 import { CompileContext } from "../toolbox/CompileContext";
 import { parseWhile } from "./structures/while";
+import { Interspercer } from "../toolbox/Interspercer";
 
-export function bodyOrLineSyntaxParser(iter:TokenIteratorI,ctx:CompileContext): ASTStatement[] {
+export function bodyOrLineSyntaxParser(iter:TokenIteratorI,ctx:CompileContext): ASTBody {
     let next = iter.next()
     if (next && next.type == TokenType.MARKER && iter.current().value == '{')
         return bodySyntaxParser(iter,ctx)
-    let res = lineSyntaxParser([],iter,ctx)
-    if (res) return [res]
-    return []
+    let res = lineSyntaxParser(iter,ctx)
+    let body: ASTBody = new Interspercer()
+    if (res) return body.add(res)
+    return body
 }
 
-export function bodySyntaxParser(iter:TokenIteratorI,ctx:CompileContext): ASTStatement[] {
-    let body: ASTStatement[] = []
+export function bodySyntaxParser(iter:TokenIteratorI,ctx:CompileContext): ASTBody {
     
-    let dirs: DirectiveToken[] = []
-    let clearDirs = false
+    let body: ASTBody = new Interspercer()
 
     for (let token of iter) {
 
-        if (clearDirs) {
-            dirs = []
-            clearDirs = false
-        }
         if (token.type == TokenType.DIRECTIVE) {
-            dirs.push(token)
+            body.addSubData(token)
             continue
-        } else clearDirs = true
+        }
 
         if (token.type == TokenType.MARKER && token.value == '}') return body
-        let res = lineSyntaxParser(dirs,iter,ctx)
-        if (res) body.push(res)
+        let res = lineSyntaxParser(iter,ctx)
+        if (res) body.add(res)
 
     }
     throw new Error('body ran out, end of file')
 }
 
-export function lineSyntaxParser(dirs:DirectiveToken[],iter:TokenIteratorI,ctx:CompileContext): null | ASTStatement {
+export function lineSyntaxParser(iter:TokenIteratorI,ctx:CompileContext): null | ASTStatement {
     const token = iter.current()
     switch (token.type) {
         case TokenType.KEYWORD: {
             switch (token.value) {
                 case 'const':
-                case 'let': return parseDeclaration(dirs,iter,ctx)
-                case 'if':  return parseConditional(dirs,iter,ctx)
+                case 'let': return parseDeclaration(iter,ctx)
+                case 'if':  return parseConditional(iter,ctx)
                 case 'return': {
                     let peek = iter.peek()
                     if ( // this is not so great
@@ -58,14 +54,14 @@ export function lineSyntaxParser(dirs:DirectiveToken[],iter:TokenIteratorI,ctx:C
                         peek.value == ';'
                     ) {
                         if (peek.value == ';') iter.skip(1)
-                        return new ASTReturnNode(iter.file,token.indexStart,token.indexEnd,dirs,null)
+                        return new ASTReturnNode(iter.file,token.indexStart,token.indexEnd,null)
                     } else {
                         let res = expressionSyntaxParser(iter,true).ast
-                        return new ASTReturnNode(iter.file,token.indexStart,res.indexEnd,dirs,res)
+                        return new ASTReturnNode(iter.file,token.indexStart,res.indexEnd,res)
                     }
                 }
                 case 'while':
-                    return parseWhile(dirs,iter,ctx)
+                    return parseWhile(iter,ctx)
                 case 'fn':
                 case 'break':
                 case 'for':
@@ -88,7 +84,7 @@ export function lineSyntaxParser(dirs:DirectiveToken[],iter:TokenIteratorI,ctx:C
             }
         }
         case TokenType.COMMAND:
-            let res = ctx.syntaxSheet.readSyntax(dirs,iter.current(),ctx)
+            let res = ctx.syntaxSheet.readSyntax(iter.current(),ctx)
             if (res.value) return res.value
             return null
         case TokenType.OPERATOR:

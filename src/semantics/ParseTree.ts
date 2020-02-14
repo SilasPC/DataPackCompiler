@@ -4,11 +4,11 @@ import { Operator } from "../lexing/values";
 import { ValueType } from "./types/Types";
 import { exhaust } from "../toolbox/other";
 import { CMDNode } from "../commands/CMDNode";
-import { CommentInterspercer } from "../toolbox/CommentInterspercer";
+import { Interspercer } from "../toolbox/Interspercer";
 
 export class ParseTreeStore {
 
-	public readonly init: PTBody = new CommentInterspercer<PTStatement>()
+	public readonly init: PTBody = new Interspercer<PTStatement,string>()
 	private readonly fns = new Map<FnDeclaration,PTBody>()
 	private readonly events = new Map<EventDeclaration,PTBody[]>()
 
@@ -73,7 +73,7 @@ export enum PTKind {
 	RETURN
 }
 
-export type PTBody = CommentInterspercer<PTStatement>
+export type PTBody = Interspercer<PTStatement,string>
 
 export interface PTEventNode {
 	kind: PTKind.EVENT

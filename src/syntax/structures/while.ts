@@ -6,7 +6,7 @@ import { bodyOrLineSyntaxParser } from "../bodySyntaxParser"
 import { TokenIteratorI } from "../../lexing/TokenIterator"
 import { CompileContext } from "../../toolbox/CompileContext"
 
-export function parseWhile(dirs:DirectiveToken[],iter:TokenIteratorI,ctx:CompileContext): ASTWhileNode {
+export function parseWhile(iter:TokenIteratorI,ctx:CompileContext): ASTWhileNode {
 
     let whileToken = iter.current() as KeywordToken
     iter.next().expectType(TokenType.MARKER).expectValue('(')
@@ -14,8 +14,6 @@ export function parseWhile(dirs:DirectiveToken[],iter:TokenIteratorI,ctx:Compile
     iter.skip(-1).next().expectType(TokenType.MARKER).expectValue(')')
     let body = bodyOrLineSyntaxParser(iter,ctx)
 
-    let last = body[body.length-1]
-
-    return new ASTWhileNode(iter.file,whileToken.indexStart,last.indexEnd,dirs,expression,body)
+    return new ASTWhileNode(iter.file,whileToken.indexStart,iter.current().indexEnd,expression,body)
 
 }

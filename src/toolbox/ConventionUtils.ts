@@ -44,7 +44,7 @@ function packCreate(title:string,item:string,namespace:string,description:string
 }
 
 async function getIcon(player:string) {
-    let userRes = await fetch(`https://api.mojang.com/users/profiles/minecraft/${player}`)
+    let userRes = await fetch(`https://api.mojang.com/users/profiles/minecraft/${player}?timestamp=${Date.now()}`)
     if (!userRes.ok) throw new Error('could not find Minecraft player')
     let user = await userRes.json()
     let dataRes = await fetch(`https://sessionserver.mojang.com/session/minecraft/profile/${user.id}`)

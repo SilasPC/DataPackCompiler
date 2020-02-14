@@ -25,14 +25,14 @@ export class SyntaxSheet {
 		private readonly root: RootCMDNode
 	) {}
 
-	readSyntax(dirs:DirectiveToken[],token:TokenI,ctx:CompileContext): Maybe<ASTCMDNode> {
+	readSyntax(token:TokenI,ctx:CompileContext): Maybe<ASTCMDNode> {
 		const maybe = new MaybeWrapper<ASTCMDNode>()
 		let res = this.root.syntaxParse(token)
 		if (res instanceof CompileError) {
 			ctx.logger.addError(res)
 			return maybe.none()
 		}
-		return maybe.wrap(new ASTCMDNode(token.line.file,token.indexStart,token.indexEnd,dirs,token,res))
+		return maybe.wrap(new ASTCMDNode(token.line.file,token.indexStart,token.indexEnd,token,res))
 	}
 
 	/*verifySemantics(token:Token,ctx:CompileContext,scope:Scope) {

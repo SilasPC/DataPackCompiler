@@ -1,12 +1,13 @@
 
 import { TokenI } from "../lexing/Token";
-import { ASTStaticDeclaration } from "../syntax/AST";
+import { ASTStaticDeclaration, ASTStaticBody } from "../syntax/AST";
 import { promises as fs } from "fs";
 import { resolve, relative, basename } from 'path'
 import { TokenIterator } from "../lexing/TokenIterator";
 import { ModDeclaration, DeclarationType } from "../semantics/declarations/Declaration";
 import { Scope } from "../semantics/Scope";
 import { SourceLine } from "../lexing/SourceLine";
+import { Interspercer } from "./Interspercer";
 
 export class ParsingFile {
 
@@ -47,9 +48,7 @@ export class ParsingFile {
     addToken(t:TokenI) {this.tokens.push(t)}
     getTokenIterator() {return new TokenIterator(this,this.tokens)}
 
-    private readonly ast: ASTStaticDeclaration[] = []
-    addASTNode(n:ASTStaticDeclaration) {this.ast.push(n)}
-    getAST(): ReadonlyArray<ASTStaticDeclaration> {return this.ast}
+    public readonly ast: ASTStaticBody = new Interspercer()
 
     /*private pt: PTStatic[] = []
     addPT(pt:PTStatic) {this.pt.push(pt)}

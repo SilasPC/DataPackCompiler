@@ -12,6 +12,7 @@
 - Use Result<T,P> instead
   - Specifically for declarations, allows to possibly return a type even thought there is an error
   - Result must then hold a set of errors as well, which will be passed on
+- Defered for semantical check of unreferenced hoisters
 
 # FUTURE
 - Enums

@@ -10,7 +10,7 @@ export function parseOnEvent(iter:TokenIteratorI,ctx:CompileContext): ASTOnNode 
     let onToken = iter.current() as KeywordToken
     let identifier = iter.next().expectType(TokenType.SYMBOL) as GenericToken
     iter.next().expectValue('{')
-    let body: ASTStatement[] = bodySyntaxParser(iter,ctx)
+    let body = bodySyntaxParser(iter,ctx)
     return new ASTOnNode(iter.file,onToken.indexStart,iter.current().indexEnd,
         new ASTIdentifierNode(iter.file,identifier.indexStart,identifier.indexEnd,identifier)
     ,body)

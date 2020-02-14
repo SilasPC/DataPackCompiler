@@ -6,15 +6,17 @@ import { tokenToType, Type } from "../types/Types";
 import { Logger } from "../../toolbox/Logger";
 import { ModScope } from "../Scope";
 import { parseBody } from "../parseBody";
-import { TokenI } from "../../lexing/Token";
+import { TokenI, DirectiveToken } from "../../lexing/Token";
 import { CompilerOptions } from "../../toolbox/config";
 
-export function parseFunction(node:ASTFnNode,modScope:ModScope,store:ParseTreeStore,log:Logger,cfg:CompilerOptions): Maybe<FnDeclaration> {
+export function parseFunction(dirs:DirectiveToken[],node:ASTFnNode,modScope:ModScope,store:ParseTreeStore,log:Logger,cfg:CompilerOptions): Maybe<FnDeclaration> {
 	const maybe = new MaybeWrapper<FnDeclaration>()
 
-	for (let dir of node.directives) {
+	for (let dir of dirs) {
 		let val = dir.value.slice(2,-1).trim()
 		switch (val) {
+			case 'debug':
+				break
 			case 'todo':
 				log.addWarning(dir.error('function not fully implemented'))
 				break
@@ -25,9 +27,6 @@ export function parseFunction(node:ASTFnNode,modScope:ModScope,store:ParseTreeSt
 				break
 			case 'inline':
 				log.addWarning(dir.error('inline not supported yet'))
-				break
-			case 'debug':
-				log.addError(dir.error('debug not supported yet'))
 				break
 			default:
 				log.addError(dir.error('unknown directive'))

@@ -58,7 +58,7 @@ export class FnFile {
 	}
 
 	public addComments(...cmts:string[]) {
-		this.instrBuffer.addComments(...cmts)
+		this.instrBuffer.addSubData(...cmts)
 	}
 
 }

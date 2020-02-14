@@ -1,11 +1,10 @@
-import { ASTEventNode, ASTNodeType } from "../../syntax/AST"
+import { ASTEventNode } from "../../syntax/AST"
 import { Scope } from "../Scope"
 import { Logger } from "../../toolbox/Logger"
 import { Maybe, MaybeWrapper } from "../../toolbox/Maybe"
-import { PTKind, PTEventNode } from "../ParseTree"
 import { EventDeclaration, DeclarationType } from "../declarations/Declaration"
 import { Program } from "../managers/ProgramManager"
-import { CommentInterspercer } from "../../toolbox/CommentInterspercer"
+import { Interspercer } from "../../toolbox/Interspercer"
 
 export function parseEvent(node: ASTEventNode, scope:Scope, log:Logger, program: Program): Maybe<EventDeclaration> {
 	const maybe = new MaybeWrapper<EventDeclaration>()
@@ -15,7 +14,7 @@ export function parseEvent(node: ASTEventNode, scope:Scope, log:Logger, program:
         namePath: scope.nameAppend(node.identifier.value)
 	}
 
-	program.parseTree.appendToEvent(decl,new CommentInterspercer())
+	program.parseTree.appendToEvent(decl,new Interspercer())
 
 	return maybe.wrap(decl)
 	

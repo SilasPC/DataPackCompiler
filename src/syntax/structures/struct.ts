@@ -4,7 +4,7 @@ import { TokenIteratorI } from "../../lexing/TokenIterator"
 import { CompileContext } from "../../toolbox/CompileContext"
 import { TokenType, GenericToken, DirectiveToken } from "../../lexing/Token"
 
-export function parseStruct(dirs:DirectiveToken[],iter:TokenIteratorI,ctx:CompileContext): ASTStructNode {
+export function parseStruct(iter:TokenIteratorI,ctx:CompileContext): ASTStructNode {
     let i = iter.current().indexStart
     let id = iter.next()
     let parents: GenericToken[] = []
@@ -22,5 +22,5 @@ export function parseStruct(dirs:DirectiveToken[],iter:TokenIteratorI,ctx:Compil
     }
     iter.next().expectValue('{')
     iter.next().expectValue('}')
-    return new ASTStructNode(iter.file,i,id.indexEnd,dirs,id,parents)
+    return new ASTStructNode(iter.file,i,id.indexEnd,id,parents)
 }

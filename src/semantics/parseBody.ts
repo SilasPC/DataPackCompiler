@@ -1,6 +1,6 @@
-import { ASTStatement, ASTNode, ASTNodeType, astArrErr, ASTWhileNode } from "../syntax/AST"
+import { ASTStatement, ASTNode, ASTNodeType, astArrErr, ASTWhileNode, ASTBody } from "../syntax/AST"
 import { Maybe, MaybeWrapper } from "../toolbox/Maybe"
-import { exhaust } from "../toolbox/other"
+import { exhaust, checkDebugIgnore } from "../toolbox/other"
 import { parseDefine } from "./statements/parseDefine"
 import { Logger } from "../toolbox/Logger"
 import { parseExpression } from "./expressionParser"
@@ -8,19 +8,33 @@ import { Scope } from "./Scope"
 import { PTStatement, ptExprToType, PTKind, PTCmdNode, PTBody, PTReturn } from "./ParseTree"
 import { isSubType, Type, ValueType } from "./types/Types"
 import { parseWhile } from "./statements/parseWhile"
-import { CommentInterspercer } from "../toolbox/CommentInterspercer"
 import { CompilerOptions } from "../toolbox/config"
+import { Interspercer } from "../toolbox/Interspercer"
 
-export function parseBody(nodes:ASTStatement[],scope:Scope,log:Logger,cfg:CompilerOptions): Maybe<PTBody> {
+export function parseBody(nodes:ASTBody,scope:Scope,log:Logger,cfg:CompilerOptions): Maybe<PTBody> {
 	let maybe = new MaybeWrapper<PTBody>()
 
 	let returnedAt: ASTNode | null = null
 
-	let body: PTBody = new CommentInterspercer()
+	let body: PTBody = new Interspercer()
 
-	for (let node of nodes) {
+	for (let [dirs,node] of nodes.iterate()) {
 
-		if (cfg.sourceMap) body.addComments(...node.sourceMap())
+		if (checkDebugIgnore(dirs,cfg.debugBuild)) continue
+
+		for (let dir of dirs) {
+			let val = dir.value.slice(2,-1).trim()
+			switch (val) {
+				case 'debug':
+					break
+				default:
+					log.addError(dir.error('unknown directive'))
+					maybe.noWrap()
+			}
+			
+		}
+
+		if (cfg.sourceMap) body.addSubData(...node.sourceMap())
 
 		switch (node.type) {
 			case ASTNodeType.COMMAND: {
@@ -152,7 +166,7 @@ export function parseBody(nodes:ASTStatement[],scope:Scope,log:Logger,cfg:Compil
 	}
 
 	if (returnedAt) {
-		let dead = nodes.slice(nodes.indexOf(returnedAt)+1)
+		let dead = nodes.getData().slice(nodes.getData().indexOf(returnedAt)+1)
 		if (dead.length > 0)
 			log.addWarning(astArrErr(dead,'dead code detected'))
 	}
