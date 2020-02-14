@@ -193,9 +193,10 @@ const validSpecials = [
 	'text',
 	'id',
 	'nbt',
+	'nbtpath',
 	'json'
 ]
-export type SheetSpecials = 'json' | 'nbt' | 'id' | 'player' | 'players' | 'entity' | 'entities' | 'pint' | 'uint' | 'int' | 'coords' | 'coords2' | 'float' | 'ufloat' | 'text'
+export type SheetSpecials = 'nbtpath' | 'json' | 'nbt' | 'id' | 'player' | 'players' | 'entity' | 'entities' | 'pint' | 'uint' | 'int' | 'coords' | 'coords2' | 'float' | 'ufloat' | 'text'
 
 function parseSpecial(sub:string,children:Tree,findDef:(str:string)=>CMDNode[]|undefined): {spec?:string,nodes?:CMDNode[],sub?:string} {
 	if (sub.startsWith('<') && sub.endsWith('>')) {

@@ -1,6 +1,5 @@
 import { MaybeWrapper, Maybe } from "../../toolbox/Maybe"
 import { DeclarationWrapper, Declaration } from "../declarations/Declaration"
-import { log } from "console"
 import { Logger } from "../../toolbox/Logger"
 import { TokenI } from "../../lexing/Token"
 import $ from 'js-itertools'
@@ -10,6 +9,13 @@ export type HoisterFn = () => Maybe<Declaration>
 export interface HoisterI extends Hoister {}
 
 class Hoister {
+
+    public static invalidUnhoisted(token: TokenI) {
+        let h = new Hoister(()=>{throw new Error('no hoister')},token)
+        h.hoisted = true
+        h.failed = true
+        return h
+    }
 
     public static unhoisted(token: TokenI, decl: DeclarationWrapper) {
         let h = new Hoister(()=>{throw new Error('no hoister')},token)
@@ -72,6 +78,7 @@ export interface UnreadableHoistingMaster {
     defer(fn:()=>Maybe<true>): void
     addHoister(token:TokenI, fn:HoisterFn): Hoister
     addPrehoisted(token: TokenI, decl: DeclarationWrapper): Hoister
+    addPreHoistedInvalid(token:TokenI): Hoister
 }
 
 export class HoistingMaster implements UnreadableHoistingMaster {
@@ -82,6 +89,12 @@ export class HoistingMaster implements UnreadableHoistingMaster {
     private hoisters = new Set<Hoister>()
     addHoister(token:TokenI, fn:HoisterFn) {
         let h = new Hoister(fn, token)
+        this.hoisters.add(h)
+        return h
+    }
+
+    addPreHoistedInvalid(token:TokenI) {
+        let h = Hoister.invalidUnhoisted(token)
         this.hoisters.add(h)
         return h
     }

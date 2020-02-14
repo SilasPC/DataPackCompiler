@@ -1,6 +1,15 @@
 import { TokenI } from "../lexing/Token"
 import { parseJSONInline } from "../toolbox/other"
 
+const nbtRgx = /[a-zA-Z0-9](\.[a-zA-Z0-9]+|\[-?\d+\])*(?<sep> |$)?/g
+export function readNbtPath(token:TokenI,i:number): number | string {
+	nbtRgx.lastIndex = 0
+	let res = nbtRgx.exec(token.value.slice(i))
+	if (!res) return 'expected nbt path'
+	if (!res.groups) return 'expected seperator'
+	return res[0].length
+}
+
 const sepRgx = /(?<sep> |$)?/g
 export function readJSON(token:TokenI,i:number): number | string {
 	let res = parseJSONInline(token.value.slice(i))

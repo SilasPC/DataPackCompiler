@@ -1,21 +1,40 @@
-import { ASTFnNode, ASTNode, ASTNodeType, astArrErr } from "../../syntax/AST";
-import { PTFnNode, ParseTree, PTKind, ParseTreeStore, PTBody, PTCmdNode, ptExprToType } from "../ParseTree";
+import { ASTFnNode } from "../../syntax/AST";
+import { ParseTreeStore } from "../ParseTree";
 import { MaybeWrapper, Maybe } from "../../toolbox/Maybe";
 import { FnDeclaration, DeclarationType, VarDeclaration, Declaration } from "../declarations/Declaration";
-import { tokenToType, Type, ValueType, isSubType } from "../types/Types";
+import { tokenToType, Type } from "../types/Types";
 import { Logger } from "../../toolbox/Logger";
-import { Scope, FnScope, ModScope } from "../Scope";
+import { ModScope } from "../Scope";
 import { parseBody } from "../parseBody";
-import { CommentInterspercer } from "../../toolbox/CommentInterspercer";
-import { parseExpression } from "../expressionParser";
-import { parseDefine } from "./parseDefine";
-import { exhaust } from "../../toolbox/other";
-import { parseWhile } from "./parseWhile";
 import { TokenI } from "../../lexing/Token";
 import { CompilerOptions } from "../../toolbox/config";
 
 export function parseFunction(node:ASTFnNode,modScope:ModScope,store:ParseTreeStore,log:Logger,cfg:CompilerOptions): Maybe<FnDeclaration> {
 	const maybe = new MaybeWrapper<FnDeclaration>()
+
+	for (let dir of node.directives) {
+		let val = dir.value.slice(2,-1).trim()
+		switch (val) {
+			case 'todo':
+				log.addWarning(dir.error('function not fully implemented'))
+				break
+			case 'tick':
+			case 'load':
+				log.addError(dir.error('not available for functions'))
+				maybe.noWrap()
+				break
+			case 'inline':
+				log.addWarning(dir.error('inline not supported yet'))
+				break
+			case 'debug':
+				log.addError(dir.error('debug not supported yet'))
+				break
+			default:
+				log.addError(dir.error('unknown directive'))
+				maybe.noWrap()
+				break
+		}
+	}
 
 	if (!node.returnType) {
 		log.addError(node.identifier.error('no fn infer'))

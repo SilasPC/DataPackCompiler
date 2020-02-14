@@ -2,7 +2,6 @@ import { CompileError } from "./CompileErrors"
 
 export interface Errorable {
 	error(err:string): CompileError
-	warning(err:string): CompileError
 }
 
 export function assertDefined<T>(v:T|undefined): T {

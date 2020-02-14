@@ -52,6 +52,20 @@ export class SymbolTable implements ReadOnlySymbolTable {
         return maybe.pass(hoister.evaluate(log))
     }
 
+    declareInvalidDirect(id:TokenI,log:Logger): Maybe<true> {
+        const maybe = new MaybeWrapper<true>()
+        if (reservedSymbols.includes(id.value)) {
+            log.addError(id.error('reserved identifier'))
+            return maybe.none()
+        }
+        if (this.getInternal(id.value)) {
+            log.addError(id.error('duplicate declaration'))
+            return maybe.none()
+        }
+        this.declarations.set(id.value,this.master.addPreHoistedInvalid(id))
+        return maybe.wrap(true)
+    }
+
     declareDirect(id:TokenI,decl:Declaration,log:Logger): Maybe<true> {
         const maybe = new MaybeWrapper<true>()
         if (reservedSymbols.includes(id.value)) {

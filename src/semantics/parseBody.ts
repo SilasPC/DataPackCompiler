@@ -125,8 +125,11 @@ export function parseBody(nodes:ASTStatement[],scope:Scope,log:Logger,cfg:Compil
 			}
 			case ASTNodeType.DEFINE: {
 				let res = parseDefine(node,scope,log)
-				if (maybe.merge(res)) continue
-				scope.symbols.declareDirect(node.identifier,res.value.decl,log)
+				if (maybe.merge(res)) {
+					scope.symbols.declareInvalidDirect(node.identifier,log)
+					continue
+				}
+				maybe.merge(scope.symbols.declareDirect(node.identifier,res.value.decl,log))
 				body.add(res.value.pt)
 				break
 			}
@@ -151,7 +154,7 @@ export function parseBody(nodes:ASTStatement[],scope:Scope,log:Logger,cfg:Compil
 	if (returnedAt) {
 		let dead = nodes.slice(nodes.indexOf(returnedAt)+1)
 		if (dead.length > 0)
-			log.addError(astArrErr(dead,'dead code detected',true))
+			log.addWarning(astArrErr(dead,'dead code detected'))
 	}
 
 	return maybe.wrap(body)

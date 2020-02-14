@@ -1,14 +1,10 @@
 import { expressionSyntaxParser } from "../syntax/expressionSyntaxParser"
 import { inlineLiveLexer } from "../lexing/lexer"
 import { TokenI, TokenType } from "../lexing/Token"
-import { CompileContext } from "../toolbox/CompileContext"
-import { Scope } from "../semantics/Scope"
-import { parseExpression } from "../semantics/expressionParser"
 import { ASTNode, ASTExpr } from "../syntax/AST"
 import { SheetSpecials } from "./sheetParser"
 import { exhaust } from "../toolbox/other"
-import { Maybe, MaybeWrapper } from "../toolbox/Maybe"
-import { readNumber, readSelector, readId, readCoords, read2Coords, readJSON } from "./specialParsers"
+import { readNumber, readSelector, readId, readCoords, read2Coords, readJSON, readNbtPath } from "./specialParsers"
 import { CompileError } from "../toolbox/CompileErrors"
 import { ValueType, Type } from "../semantics/types/Types"
 
@@ -116,6 +112,7 @@ export class SemanticalCMDNode extends CMDNode {
 			case 'coords': return readCoords(token,i)
 			case 'coords2': return read2Coords(token,i)
 			case 'json': return readJSON(token,i)
+			case 'nbtpath': return readNbtPath(token,i)
 			case 'nbt':
 				console.log('sheet spec not yet: '+spec)
 				return token.value.length - i

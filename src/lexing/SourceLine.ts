@@ -1,5 +1,5 @@
 import { ParsingFile } from "../toolbox/ParsingFile"
-import { createErrorMessage } from "../toolbox/CompileErrors"
+import { SourceCodeError } from "../toolbox/CompileErrors"
 
 export class SourceLine {
 
@@ -18,12 +18,12 @@ export class SourceLine {
 	}
 
 	fatal(e:string,index:number,length:number): never {
-			throw new Error(createErrorMessage(
+			throw new SourceCodeError(
 					this.file,
 					this.startIndex + index,
 					this.startIndex + index + length,
 					e
-			))
+			)
 	}
 
 }

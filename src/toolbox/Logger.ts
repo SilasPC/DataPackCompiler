@@ -42,9 +42,12 @@ export class Logger {
 	private readonly errs = new Set<CompileError>()
 	private readonly wrns = new Set<CompileError>()
 
+	addWarning(wrn:CompileError) {
+		this.wrns.add(wrn)
+	}
+
 	addError(err:CompileError) {
-		if (err.warnOnly) this.wrns.add(err)
-		else this.errs.add(err)
+		this.errs.add(err)
 	}
 
 	hasErrors() {return this.errs.size > 0}

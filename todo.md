@@ -5,6 +5,13 @@
 	- Version control
 	- Extend | destroy from older versions
 - Actually add the check when invoking controlflow functions
+- Syntax reading, add structure for automatic semicolon insertion
+- Language Sever
+- Directive semantical parsing
+- Fix module system
+- Use Result<T,P> instead
+  - Specifically for declarations, allows to possibly return a type even thought there is an error
+  - Result must then hold a set of errors as well, which will be passed on
 
 # FUTURE
 - Enums
@@ -12,12 +19,10 @@
 - Dependencies
 - Infer fn returns
 - Compile errors can ask for hints
-- Optimize away unused locals
 - Use: noInference, noUnused
 - Command interpolation
 - Functional approach like (-123).abs()
 - Selectors
-- Event bindings
 - Macros
 - Operator overloading
 - Std functions

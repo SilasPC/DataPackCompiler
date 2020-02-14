@@ -3,12 +3,14 @@ import { TokenI, OpToken, GenericToken, DirectiveToken } from "../lexing/Token";
 import { SourceLine } from "../lexing/SourceLine";
 import { CMDNode } from "../commands/CMDNode";
 import { ParsingFile } from "../toolbox/ParsingFile";
-import { CompileError, createErrorMessage } from "../toolbox/CompileErrors";
+import { SourceCodeError } from "../toolbox/CompileErrors";
 
-export function astArrErr(nodes:ASTNode[],err:string,warnOnly:boolean) {
-    return new CompileError(
-        createErrorMessage(nodes[0].pfile,nodes[0].indexStart,nodes[nodes.length-1].indexEnd,err),
-        warnOnly
+export function astArrErr(nodes:ASTNode[],err:string) {
+    return new SourceCodeError(
+        nodes[0].pfile,
+        nodes[0].indexStart,
+        nodes[nodes.length-1].indexEnd,
+        err
     )
 }
 
@@ -94,8 +96,7 @@ class ASTNodeBase {
         public readonly indexEnd: number
     ){}
 
-    error(err:string) {return new CompileError(createErrorMessage(this.pfile,this.indexStart,this.indexEnd,err),false)}
-    warning(err:string) {return new CompileError(createErrorMessage(this.pfile,this.indexStart,this.indexEnd,err),true)}
+    error(err:string) {return new SourceCodeError(this.pfile,this.indexStart,this.indexEnd,err)}
 
     sourceMap() {return astSourceMap(this.pfile,this.indexStart,this.indexEnd)}
 

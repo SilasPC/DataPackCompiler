@@ -11,7 +11,7 @@ struct A {}
 struct B implements A {}
 
 fn x(): bool {
-	let t = 0
+	let t: bool = 0
 	t += (2+t) * t
 	/execute as @a positioned 1 2 3 align x facing entity @s feet run say hello!
 	y()

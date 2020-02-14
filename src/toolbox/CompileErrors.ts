@@ -6,12 +6,7 @@ import { ParsingFile } from "./ParsingFile"
 export class CompileError extends Error {
 
 	constructor(
-		/*public readonly pfile: ParsingFile,
-		public readonly indexStart: number,
-		public readonly indexEnd: number,
-		public readonly msg: string*/
-		private readonly errorString: string,
-		public readonly warnOnly: boolean
+		private readonly errorString: string
 	) {
 		super(errorString)
 	}
@@ -22,7 +17,27 @@ export class CompileError extends Error {
 
 }
 
-export function createErrorMessage(pfile:ParsingFile,fi:number,li:number,err:string) {
+export class SourceCodeError extends CompileError {
+
+	private readonly errString: string
+
+	constructor(
+		pfile: ParsingFile,
+		indexStart: number,
+		indexEnd: number,
+		msg: string
+	) {
+		super(msg)
+		this.errString = createErrorMessage(pfile,indexStart,indexEnd,msg)
+	}
+
+	getErrorString() {
+		return this.errString
+	}
+}
+
+
+function createErrorMessage(pfile:ParsingFile,fi:number,li:number,err:string) {
 
 	let fl = pfile.getLineFromIndex(fi), ll = pfile.getLineFromIndex(li)
 	

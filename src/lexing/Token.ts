@@ -1,5 +1,5 @@
-import { ParsingFile } from "../toolbox/ParsingFile"
-import { CompileError, createErrorMessage } from "../toolbox/CompileErrors";
+
+import { SourceCodeError } from "../toolbox/CompileErrors";
 import { SourceLine } from "./SourceLine";
 import { Keyword, Operator, Type, Marker } from "./values";
 
@@ -66,30 +66,19 @@ export class Token {
         this.indexEnd = this.indexStart + this.value.length
     }
     
-    error(msg:string): CompileError {
+    error(msg:string): SourceCodeError {
         let fi = this.line.startIndex + this.indexLine
         let li = fi + this.value.length
-        return new CompileError(
-            createErrorMessage(this.line.file,fi,li,msg),
-            false
+        return new SourceCodeError(
+            this.line.file,fi,li,msg
         )
     }
 
     errorAt(i:number,msg:string) {
         let fi = this.indexStart + Math.min(i, this.value.length - 1)
         let li = this.indexEnd
-        return new CompileError(
-            createErrorMessage(this.line.file,fi,li,msg),
-            false
-        )
-    }
-
-    warning(msg:string): CompileError {
-        let fi = this.line.startIndex + this.indexLine
-        let li = fi + this.value.length
-        return new CompileError(
-            createErrorMessage(this.line.file,fi,li,msg),
-            true
+        return new SourceCodeError(
+            this.line.file,fi,li,msg
         )
     }
 
