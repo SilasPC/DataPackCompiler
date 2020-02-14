@@ -4,7 +4,7 @@ import { exhaust } from "../toolbox/other";
 import { InstrType, INT_OP } from "./Instructions";
 import { FnFile } from "./FnFile";
 import { OutputManager } from "./managers/OutputManager";
-import { PTExpr, PTKind, PTOpNode, PTBody, ParseTreeStore } from "../semantics/ParseTree";
+import { PTExpr, PTKind, PTOpNode, PTBody, ParseTreeStore, ptCanMut } from "../semantics/ParseTree";
 import { Type } from "../semantics/types/Types";
 import { Scoreboard } from "./managers/ScoreboardManager";
 
@@ -54,10 +54,26 @@ function generateBody(fnf:FnFile,fn:PTBody,om:OutputManager): void {
 					raw: stmt.raw
 				})
 				break
+			case PTKind.RETURN:
+				let fn = stmt.fn
+				if (fn.returns.type != Type.VOID) {
+					if (fn.returns.type != Type.INT && fn.returns.type != Type.BOOL) throw new Error('no return: '+Type[fn.returns.type])
+					if (!stmt.expr) throw new Error('return value non-void, but no expr')
+					let ret = om.scoreboards.getDecl(fn)
+					let expr = generateExpr(fnf,stmt.expr,om)
+					if (!expr) throw new Error('generate expression returned null for non-void')
+					fnf.push({
+						type: InstrType.INT_OP,
+						into: ret,
+						from: expr,
+						op: '='
+					})
+				}
+				fnf.pushFlowBuffer()
+				break
 			case PTKind.WHILE:
 			case PTKind.CONDITIONAL:
-			case PTKind.RETURN:
-				console.log('wait generate if,while,return')
+				console.log('wait generate if,while')
 				break
 			default: return exhaust(stmt)
 		}

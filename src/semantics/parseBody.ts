@@ -34,10 +34,11 @@ export function parseBody(nodes:ASTBody,scope:Scope,log:Logger,cfg:CompilerOptio
 			
 		}
 
-		if (cfg.sourceMap) body.addSubData(...node.sourceMap())
+		if (cfg.sourceMap && !returnedAt) body.addSubData(...node.sourceMap())
 
 		switch (node.type) {
 			case ASTNodeType.COMMAND: {
+
 				let foundErrors = false
 				let interpolations = node.consume.map<PTCmdNode['interpolations'][0]>(n => {
 					if (!n.expr) return {node:n.node,capture:n.capture,pt:null}
@@ -54,8 +55,10 @@ export function parseBody(nodes:ASTBody,scope:Scope,log:Logger,cfg:CompilerOptio
 					}
 					return {node:n.node,capture:n.capture,pt:x.value}
 				})
+
 				if (foundErrors) continue
-				body.add({
+				
+				if (!returnedAt) body.add({
 					kind: PTKind.COMMAND,
 					interpolations,
 					scopeNames: scope.getScopeNames(),
@@ -70,7 +73,9 @@ export function parseBody(nodes:ASTBody,scope:Scope,log:Logger,cfg:CompilerOptio
 			case ASTNodeType.INVOKATION:
 			case ASTNodeType.OPERATION: {
 				let res = parseExpression(node,scope,log)
-				if (!maybe.merge(res)) body.add(res.value)
+				if (!maybe.merge(res)) {
+					if (!returnedAt) body.add(res.value)
+				}
 				break
 			}
 			case ASTNodeType.RETURN: {
@@ -92,14 +97,14 @@ export function parseBody(nodes:ASTBody,scope:Scope,log:Logger,cfg:CompilerOptio
 					pt = {
 						kind: PTKind.RETURN,
 						expr: ret.value,
-						fn: null,
+						fn: fnscope.declaration,
 						type: ptExprToType(ret.value)
 					}
 				} else {
 					pt = {
 						kind: PTKind.RETURN,
 						expr: null,
-						fn: null,
+						fn: fnscope.declaration,
 						type: {type:Type.VOID}
 					}
 				}
@@ -110,7 +115,7 @@ export function parseBody(nodes:ASTBody,scope:Scope,log:Logger,cfg:CompilerOptio
 					break
 				}
 
-				body.add(pt)
+				if (!returnedAt) body.add(pt)
 				break
 			}
 			case ASTNodeType.CONDITIONAL: {
@@ -128,7 +133,7 @@ export function parseBody(nodes:ASTBody,scope:Scope,log:Logger,cfg:CompilerOptio
 					continue
 				}
 				if (!res.value) continue
-				body.add({
+				if (!returnedAt) body.add({
 					kind: PTKind.CONDITIONAL,
 					clause: res.value,
 					ifDo: p.value,
@@ -144,14 +149,14 @@ export function parseBody(nodes:ASTBody,scope:Scope,log:Logger,cfg:CompilerOptio
 					continue
 				}
 				maybe.merge(scope.symbols.declareDirect(node.identifier,res.value.decl,log))
-				body.add(res.value.pt)
+				if (!returnedAt) body.add(res.value.pt)
 				break
 			}
 
 			case ASTNodeType.WHILE: {
 				let res = parseWhile(node,scope,log,cfg)
 				if (maybe.merge(res)) continue
-				body.add(res.value)
+				if (!returnedAt) body.add(res.value)
 				break
 			}
 				

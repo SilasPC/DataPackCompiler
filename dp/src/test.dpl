@@ -17,10 +17,11 @@ fn x(): bool {
 	y()
 	let lol = 1 > 2
 	let lol2 = y()
-	if (lol) {
+	/*if (lol) {
 		/say hello
-	}
+	}*/
 	return lol2
+	return lol
 }
 
 #[todo]

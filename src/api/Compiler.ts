@@ -69,7 +69,7 @@ export class CompileResult {
 						this.cfg,
 						this.output,
 						this.cfg.compilation.debugBuild,
-						fnf.mergeBuffers((namePath:string[])=>this.output.functions.createFn(namePath)),
+						fnf.mergeBuffers(this.output.functions),
 						fnf.getHeader()
 					).join('\n')
 				)

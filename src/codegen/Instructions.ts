@@ -50,6 +50,9 @@ export function instrsToCmds(cfg:Config,output:OutputManager,useDebug:boolean,in
 				ic++
 				break
 			case InstrType.LOCAL_INVOKE:
+				into.push(`function ${i.fn.filePath}`)
+				ic++
+				break
 			case InstrType.INVOKE:
 				if (useDebug) {
 					// stack trace add

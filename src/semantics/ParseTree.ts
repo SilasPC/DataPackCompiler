@@ -81,7 +81,7 @@ export interface PTEventNode {
 
 export interface PTReturn {
 	kind: PTKind.RETURN
-	fn: FnDeclaration | null
+	fn: FnDeclaration
 	expr: PTExpr | null
 	type: ValueType
 }
