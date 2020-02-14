@@ -11,20 +11,27 @@ And it may be useful for map makers and such.
 
 ### Features
 Currently, there are a number of cool features:
-- Create variables
+- Create variables, functions, events, etc.
 - Use infix notation
 - Type checking
+- Compilation directives
+- Debugging features
+  - Source mapping
+  - Stack tracing
+  - Panicing
+  - Command counting
 - Module system
 - Automatic semicolon insertion
 - Hoisting and type inference (somewhat limited right now)
+- Automatically follow datapack conventions (limited for now, see [https://datapackcenter.com/pages/conventions/])
 
 When/if finished, there will also be a bunch of cool features like
 - Verifying datapack function and command syntax
 - Libraries
+- Macros
 - Extensive lazy loaded core library
 - Easy way to make custom blocks and items
 - Easy way to interface with players in general
-- Automatically follow datapack conventions (see [https://datapackcenter.com/pages/conventions/])
 
 ### Examples
 See /examples
