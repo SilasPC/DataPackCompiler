@@ -44,7 +44,7 @@ With some domain specific features and limitations of course.
 Eventually the CLI will ship as an install script.
 
 #### Initializing source folder
-Use `_dpc init [src path]`
+Use `dpc init [src path]`
 
 `[src path]` defaults to current directory.
 
