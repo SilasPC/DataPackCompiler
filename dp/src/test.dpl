@@ -10,7 +10,6 @@ on abc {
 struct A {}
 struct B implements A {}
 
-
 fn x(): bool {
 	let t = 0
 	t += (2+t) * t
@@ -24,6 +23,7 @@ fn x(): bool {
 	return lol2
 }
 
+#[todo]
 fn y(): bool {
 	return 1 != 2
 }

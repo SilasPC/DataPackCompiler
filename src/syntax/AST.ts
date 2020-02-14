@@ -1,5 +1,5 @@
 
-import { TokenI, OpToken, GenericToken } from "../lexing/Token";
+import { TokenI, OpToken, GenericToken, DirectiveToken } from "../lexing/Token";
 import { SourceLine } from "../lexing/SourceLine";
 import { CMDNode } from "../commands/CMDNode";
 import { ParsingFile } from "../toolbox/ParsingFile";
@@ -106,7 +106,8 @@ export class ASTRecipeNode extends ASTNodeBase {
     constructor(
         pfile: ParsingFile,
         indexStart: number,
-        indexEnd: number
+        indexEnd: number,
+        public readonly directives: DirectiveToken[],
     ){super(pfile,indexStart,indexEnd)}
 }
 
@@ -116,6 +117,7 @@ export class ASTModuleNode extends ASTNodeBase {
         pf: ParsingFile,
         indexStart: number,
         indexEnd: number,
+        public readonly directives: DirectiveToken[],
         public readonly identifier: TokenI,
         public readonly body: ASTStaticDeclaration[]
     ){super(pf,indexStart,indexEnd)}
@@ -127,6 +129,7 @@ export class ASTWhileNode extends ASTNodeBase {
         pf: ParsingFile,
         indexStart: number,
         indexEnd: number,
+        public readonly directives: DirectiveToken[],
         public readonly clause: ASTExpr,
         public readonly body: ASTStatement[]
     ){super(pf,indexStart,indexEnd)}
@@ -138,6 +141,7 @@ export class ASTReturnNode extends ASTNodeBase {
         pf: ParsingFile,
         indexStart: number,
         indexEnd: number,
+        public readonly directives: DirectiveToken[],
         public readonly node: ASTExpr | null
     ){super(pf,indexStart,indexEnd)}
 }
@@ -148,6 +152,7 @@ export class ASTCMDNode extends ASTNodeBase {
         pf: ParsingFile,
         indexStart: number,
         indexEnd: number,
+        public readonly directives: DirectiveToken[],
         public readonly token: TokenI,
         public readonly consume: {node:CMDNode,capture:string,expr:ASTExpr|null}[]
     ){super(pf,indexStart,indexEnd)}
@@ -179,6 +184,7 @@ export class ASTLetNode extends ASTNodeBase {
         pf: ParsingFile,
         indexStart: number,
         indexEnd: number,
+        public readonly directives: DirectiveToken[],
         public readonly isConst: boolean,
         public readonly identifier: GenericToken,
         public readonly typeToken: TokenI | null,
@@ -244,6 +250,7 @@ export class ASTEventNode extends ASTNodeBase {
         pf: ParsingFile,
         indexStart: number,
         indexEnd: number,
+        public readonly directives: DirectiveToken[],
         public readonly identifier: GenericToken
     ){super(pf,indexStart,indexEnd)}
 }
@@ -265,6 +272,7 @@ export class ASTFnNode extends ASTNodeBase {
         pf: ParsingFile,
         indexStart: number,
         indexEnd: number,
+        public readonly directives: DirectiveToken[],
         public readonly identifier: GenericToken,
         public readonly parameters: {ref:boolean,symbol:TokenI,type:TokenI}[],
         public readonly returnType: TokenI | null,
@@ -283,6 +291,7 @@ export class ASTStructNode extends ASTNodeBase {
         pf: ParsingFile,
         indexStart: number,
         indexEnd: number,
+        public readonly directives: DirectiveToken[],
         public readonly identifier: GenericToken,
         public readonly parents: GenericToken[]
     ){super(pf,indexStart,indexEnd)}
@@ -294,6 +303,7 @@ export class ASTIfNode extends ASTNodeBase {
         pf: ParsingFile,
         indexStart: number,
         indexEnd: number,
+        public readonly directives: DirectiveToken[],
         public readonly expression: ASTExpr,
         public readonly primaryBranch: ASTStatement[],
         public readonly secondaryBranch: ASTStatement[]
@@ -306,6 +316,7 @@ export class ASTCmdNode extends ASTNodeBase {
         pf: ParsingFile,
         indexStart: number,
         indexEnd: number,
+        public readonly directives: DirectiveToken[],
         public readonly cmd: TokenI
     ){super(pf,indexStart,indexEnd)}
 }

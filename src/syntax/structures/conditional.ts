@@ -1,12 +1,12 @@
 
 import { ASTIfNode, ASTNodeType, ASTNode, ASTStatement } from "../AST"
-import { TokenType, TokenI, KeywordToken } from "../../lexing/Token"
+import { TokenType, TokenI, KeywordToken, DirectiveToken } from "../../lexing/Token"
 import { exprParseNoList } from "../expressionSyntaxParser"
 import { bodyOrLineSyntaxParser } from "../bodySyntaxParser"
 import { TokenIteratorI } from "../../lexing/TokenIterator"
 import { CompileContext } from "../../toolbox/CompileContext"
 
-export function parseConditional(iter:TokenIteratorI,ctx:CompileContext): ASTIfNode {
+export function parseConditional(dirs:DirectiveToken[],iter:TokenIteratorI,ctx:CompileContext): ASTIfNode {
 
     let ifToken = iter.current() as KeywordToken
     iter.next().expectType(TokenType.MARKER).expectValue('(')
@@ -22,6 +22,6 @@ export function parseConditional(iter:TokenIteratorI,ctx:CompileContext): ASTIfN
 
     let last = secondaryBranch[secondaryBranch.length-1] || primaryBranch[primaryBranch.length-1]
 
-    return new ASTIfNode(iter.file,ifToken.indexStart,last.indexEnd,expression,primaryBranch,secondaryBranch)
+    return new ASTIfNode(iter.file,ifToken.indexStart,last.indexEnd,dirs,expression,primaryBranch,secondaryBranch)
 
 }

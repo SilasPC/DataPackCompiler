@@ -28,6 +28,9 @@
 	- #[debug]
 	- #[fail_hard]
 	- #[fail_soft] (for debugging)
+	- #[todo]
+	- #[disabled]
+	- config? std type impl?
 	- ?
 
 # Look at

@@ -11,10 +11,11 @@ export enum TokenType {
     MARKER,
     COMMAND,
     TYPE,
-    SELECTOR
+    SELECTOR,
+    DIRECTIVE
 }
 
-export type TokenI = GenericToken | KeywordToken | OpToken | TypeToken | MarkerToken
+export type TokenI = GenericToken | KeywordToken | OpToken | TypeToken | MarkerToken | DirectiveToken
 
 export interface GenericToken extends Token {
     readonly type: TokenType.COMMAND | TokenType.PRIMITIVE | TokenType.SYMBOL | TokenType.SELECTOR
@@ -36,6 +37,10 @@ export interface OpToken extends Token {
     readonly value: Operator
 }
 
+export interface DirectiveToken extends Token {
+    readonly type: TokenType.DIRECTIVE
+}
+
 export interface TypeToken extends Token {
     readonly type: TokenType.TYPE
     readonly value: Type
@@ -43,9 +48,8 @@ export interface TypeToken extends Token {
 
 export class Token {
 
-    // Workaround to ensure Lexeme behaves 
-    // as type Token during typechecking
     static create(line: SourceLine, index: number, type: TokenType, value: string): TokenI {
+        if (value.includes('\n')) throw new Error('newline in token')
         return new Token(line,index,type,value) as TokenI
     }
 

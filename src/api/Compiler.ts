@@ -114,7 +114,7 @@ export async function compile(logger:Logger,cfg:Config,src:FileTree): Promise<Ma
 	
 	logger.log(1,'inf',`Loaded ${pfiles.length} file(s)`)
 	
-	pfiles.forEach(pf=>lexer(pf,ctx))
+	pfiles.forEach(pf=>lexer(pf))
 	logger.log(1,'inf',`Lexical analysis complete`)
 
 	pfiles.forEach(pf=>fileSyntaxParser(pf,ctx))

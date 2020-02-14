@@ -1,6 +1,6 @@
 import { RootCMDNode } from "./CMDNode";
 import { fromSheet, fromString } from "./sheetParser";
-import { TokenI } from "../lexing/Token";
+import { TokenI, DirectiveToken } from "../lexing/Token";
 import { CompileContext } from "../toolbox/CompileContext";
 import { Scope } from "../semantics/Scope";
 import { ASTCMDNode, ASTNodeType, ASTNode } from "../syntax/AST";
@@ -25,14 +25,14 @@ export class SyntaxSheet {
 		private readonly root: RootCMDNode
 	) {}
 
-	readSyntax(token:TokenI,ctx:CompileContext): Maybe<ASTCMDNode> {
+	readSyntax(dirs:DirectiveToken[],token:TokenI,ctx:CompileContext): Maybe<ASTCMDNode> {
 		const maybe = new MaybeWrapper<ASTCMDNode>()
 		let res = this.root.syntaxParse(token,ctx)
 		if (res instanceof CompileError) {
 			ctx.logger.addError(res)
 			return maybe.none()
 		}
-		return maybe.wrap(new ASTCMDNode(token.line.file,token.indexStart,token.indexEnd,token,res))
+		return maybe.wrap(new ASTCMDNode(token.line.file,token.indexStart,token.indexEnd,dirs,token,res))
 	}
 
 	/*verifySemantics(token:Token,ctx:CompileContext,scope:Scope) {

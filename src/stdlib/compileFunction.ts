@@ -17,7 +17,7 @@ export function compileStdlibFunction(
 
 	let pf = ctx.loadFromSource(fn,'stdlib')
 	
-	lexer(pf,ctx)
+	lexer(pf)
 	fileSyntaxParser(pf,ctx)
 	//parseFile(pf,ctx,()=>{throw new Error('no fetch in stdlib')})
 	

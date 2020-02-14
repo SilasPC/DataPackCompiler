@@ -1,17 +1,33 @@
 
-mod std {
+pub mod std {
 
-	mod debug {
+	pub mod events {
 
-		fn panic(): void {
-			/say weell shit
-			/say Datapack panicing
+		#[tick]
+		event tick
 
-			// print stack trace
-			//tellraw @a [{"text":"","color":"red","bold":true},{"nbt":"stack","storage":"tmp:std","interpret":true},{"text":" Datapack panicking"}]
+		#[load]
+		event load
 
-			//datapack disable ...
-			/say WARNING: Datapack failed to panic. This is likely because the pack name was changed.
+	}
+
+	#[debug]
+	pub mod debug {
+
+		pub fn panic(): void {
+			
+			trace()
+
+			// temp, need to have some compile hook to get datapack name
+			/datapack disable datapack
+
+			/say WARNING: Datapack failed to panic. This is likely because the pack name was changed after emission.
+
+		}
+
+		#[inline]
+		pub fn trace(): void {
+			/tellraw @a [{"text":"","color":"red","bold":true},{"nbt":"stack","storage":"tmp:std","interpret":true},{"text":" Datapack panicking"}]
 		}
 
 	}

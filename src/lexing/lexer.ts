@@ -13,9 +13,11 @@ const primitives = "\\d+(?:\\.\\d+)?|true|false|'[^']*'"
 const symbol = "[a-zA-Z_][a-zA-Z0-9_]*"
 const cmd = '/\\w.*?(?=\r?\n)'
 const selector = '@\\w|@(?=\\[)'
+const directive = '#\\[[^\\]]+\\]'
 
 function getRgx() {
     return RegExp(
+        '(?<dir>'+  directive            +')|'+
         '(?<cmd>'+  cmd                  +')|'+
         '(?<cmt>'+  comments             +')|'+
         '(?<ops>'+  operators            +')|'+
@@ -30,10 +32,11 @@ function getRgx() {
     )
 }
 
-type RgxGroup = 'cmd'|'cmt'|'ops'|'kwd'|'typ'|'pri'|'sym'|'mrk'|'nwl'|'bad'|'sel'
+type RgxGroup = 'dir'|'cmd'|'cmt'|'ops'|'kwd'|'typ'|'pri'|'sym'|'mrk'|'nwl'|'bad'|'sel'
 
 function groupToType(g:Exclude<RgxGroup,'cmt'|'nwl'|'bad'>): TokenType {
     switch (g) {
+        case 'dir': return TokenType.DIRECTIVE
         case 'cmd': return TokenType.COMMAND
         case 'ops': return TokenType.OPERATOR
         case 'kwd': return TokenType.KEYWORD
@@ -47,7 +50,7 @@ function groupToType(g:Exclude<RgxGroup,'cmt'|'nwl'|'bad'>): TokenType {
     }
 }
 
-export function lexer(pfile:ParsingFile,ctx:CompileContext): void {
+export function lexer(pfile:ParsingFile): void {
 
     for (let token of baseLex(pfile,pfile.source)) {
         if (!token) throw new Error('wtf')
