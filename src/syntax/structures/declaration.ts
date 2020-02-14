@@ -15,6 +15,6 @@ export function parseDeclaration(dirs:DirectiveToken[],iter:TokenIteratorI,ctx:C
     let symbol = iter.next().expectType(TokenType.SYMBOL) as GenericToken
     let type = getType(iter)
     iter.next().expectType(TokenType.OPERATOR).expectValue('=')
-    let initial = expressionSyntaxParser(iter,ctx,true).ast
+    let initial = expressionSyntaxParser(iter,true).ast
     return new ASTLetNode(iter.file,letToken.indexStart,initial.indexEnd,dirs,letToken.value=='const',symbol,type,initial)
 }

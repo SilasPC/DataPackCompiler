@@ -23,15 +23,15 @@ type Op = {
 
 type ExprReturn = {meta:{postfix:string[]},ast:ASTExpr}
 
-export function expressionSyntaxParser(tokens:TokenIteratorI,ctx:CompileContext,asi:boolean) {
-    return recurse(tokens,ctx,asi,false,true)
+export function expressionSyntaxParser(tokens:TokenIteratorI,asi:boolean) {
+    return recurse(tokens,asi,false,true)
 }
 
-export function exprParseNoList(tokens:TokenIteratorI,ctx:CompileContext,asi:boolean) {
-    return recurse(tokens,ctx,asi,false,false)
+export function exprParseNoList(tokens:TokenIteratorI,asi:boolean) {
+    return recurse(tokens,asi,false,false)
 }
 
-function recurse(tokens:TokenIteratorI,ctx:CompileContext,asi:boolean,inFn:boolean,allowList:boolean): ExprReturn {
+function recurse(tokens:TokenIteratorI,asi:boolean,inFn:boolean,allowList:boolean): ExprReturn {
 
     let pfile = tokens.file
 
@@ -76,7 +76,7 @@ function recurse(tokens:TokenIteratorI,ctx:CompileContext,asi:boolean,inFn:boole
                                 lastWasOperand = true
                                 break
                             } {
-                                let rec = recurse(tokens,ctx,asi,isFn,true)
+                                let rec = recurse(tokens,asi,isFn,true)
                                 postfix.push(...rec.meta.postfix)
                                 if (!que.length) t.throwDebug('no fn on queue?')
                                 let fn = que.pop() as ASTExpr
@@ -91,7 +91,7 @@ function recurse(tokens:TokenIteratorI,ctx:CompileContext,asi:boolean,inFn:boole
                                 break
                             }
                         } else {
-                            let rec = recurse(tokens,ctx,asi,isFn,true)
+                            let rec = recurse(tokens,asi,isFn,true)
                             postfix.push(...rec.meta.postfix)
                             que.push(rec.ast)
                             lastWasOperand = true
@@ -132,7 +132,7 @@ function recurse(tokens:TokenIteratorI,ctx:CompileContext,asi:boolean,inFn:boole
                 if (lastWasOperand)
                     if (!asi||!tokens.currentFollowsNewline()) t.throwDebug('unexpected operand')
                     else {tokens.skip(-1);return finish()}
-                que.push(parseSelector(tokens,ctx))
+                que.push(parseSelector(tokens))
                 postfix.push(t.value)
                 lastWasOperand = true
                 break

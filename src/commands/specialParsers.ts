@@ -1,4 +1,16 @@
 import { TokenI } from "../lexing/Token"
+import { parseJSONInline } from "../toolbox/other"
+
+const sepRgx = /(?<sep> |$)?/g
+export function readJSON(token:TokenI,i:number): number | string {
+	let res = parseJSONInline(token.value.slice(i))
+	if (res.errIndex != -1) return `malformed json (index ${res.errIndex})`
+	sepRgx.lastIndex = 0
+	let sepRes = sepRgx.exec(token.value.slice(i+res.read))
+	if (!sepRes || !sepRes.groups)
+		return 'expected seperator'
+	return res.read + sepRes[0].length
+}
 
 const coordsRgx = /^(?:~|(?<l1>\^)|)(?:-?\d+(?:\.\d+)?|(?<=\^|~)) (?:~|(?<l2>\^)|)(?:-?\d+(?:\.\d+)?|(?<=\^|~)) (?:~|(?<l3>\^)|)(?:-?\d+(?:\.\d+)?|(?<=\^|~))(?<sep> |$)?/g
 export function readCoords(

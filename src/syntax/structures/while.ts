@@ -10,7 +10,7 @@ export function parseWhile(dirs:DirectiveToken[],iter:TokenIteratorI,ctx:Compile
 
     let whileToken = iter.current() as KeywordToken
     iter.next().expectType(TokenType.MARKER).expectValue('(')
-    let expression = exprParseNoList(iter,ctx,true).ast
+    let expression = exprParseNoList(iter,true).ast
     iter.skip(-1).next().expectType(TokenType.MARKER).expectValue(')')
     let body = bodyOrLineSyntaxParser(iter,ctx)
 

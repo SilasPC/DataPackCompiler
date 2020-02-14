@@ -3,7 +3,7 @@ import { CompileContext } from "../../toolbox/CompileContext";
 import { ASTSelectorNode, ASTNodeType } from "../AST";
 import { GenericToken } from "../../lexing/Token";
 
-export function parseSelector(iter:TokenIteratorI,ctx:CompileContext): ASTSelectorNode {
+export function parseSelector(iter:TokenIteratorI): ASTSelectorNode {
 
 	let token = iter.current() as GenericToken
 

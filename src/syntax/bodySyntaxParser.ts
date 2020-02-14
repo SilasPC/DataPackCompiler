@@ -60,7 +60,7 @@ export function lineSyntaxParser(dirs:DirectiveToken[],iter:TokenIteratorI,ctx:C
                         if (peek.value == ';') iter.skip(1)
                         return new ASTReturnNode(iter.file,token.indexStart,token.indexEnd,dirs,null)
                     } else {
-                        let res = expressionSyntaxParser(iter,ctx,true).ast
+                        let res = expressionSyntaxParser(iter,true).ast
                         return new ASTReturnNode(iter.file,token.indexStart,res.indexEnd,dirs,res)
                     }
                 }
@@ -95,12 +95,12 @@ export function lineSyntaxParser(dirs:DirectiveToken[],iter:TokenIteratorI,ctx:C
         case TokenType.PRIMITIVE:
         case TokenType.SYMBOL:
         case TokenType.SELECTOR:
-            return expressionSyntaxParser(iter.skip(-1),ctx,true).ast
+            return expressionSyntaxParser(iter.skip(-1),true).ast
         case TokenType.MARKER:
             switch (token.value) {
                 case ';': break
                 case '(':
-                    return expressionSyntaxParser(iter.skip(-1),ctx,true).ast
+                    return expressionSyntaxParser(iter.skip(-1),true).ast
                 default:
                     return token.throwDebug('unexpected marker')
             }

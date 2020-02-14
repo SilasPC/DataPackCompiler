@@ -27,7 +27,7 @@ export class SyntaxSheet {
 
 	readSyntax(dirs:DirectiveToken[],token:TokenI,ctx:CompileContext): Maybe<ASTCMDNode> {
 		const maybe = new MaybeWrapper<ASTCMDNode>()
-		let res = this.root.syntaxParse(token,ctx)
+		let res = this.root.syntaxParse(token)
 		if (res instanceof CompileError) {
 			ctx.logger.addError(res)
 			return maybe.none()

@@ -41,22 +41,25 @@ function parser(iter: TokenIteratorI, ctx: CompileContext) {
                         if (isPub) token.throwUnexpectedKeyWord()
                         isPub = token
                         break
-                    case 'use':
-                        return token.throwUnexpectedKeyWord()
                     case 'mod':
                         body.push(wrapPublic(parseModule(dirs,iter,ctx),isPub))
+                        isPub = null
                         break
                     case 'fn':
                         body.push(wrapPublic(parseFunction(dirs,iter,ctx),isPub))
+                        isPub = null
                         break
                     case 'event':
                         body.push(wrapPublic(parseEvent(dirs,iter,ctx),isPub))
+                        isPub = null
                         break
                     case 'let':
                         body.push(wrapPublic(parseDeclaration(dirs,iter,ctx),isPub))
+                        isPub = null
                         break
                     case 'struct':
                         body.push(wrapPublic(parseStruct(dirs,iter,ctx),isPub))
+                        isPub = null
                         break
                     default:
                         return token.throwUnexpectedKeyWord()

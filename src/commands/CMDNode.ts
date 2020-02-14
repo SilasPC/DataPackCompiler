@@ -8,7 +8,7 @@ import { ASTNode, ASTExpr } from "../syntax/AST"
 import { SheetSpecials } from "./sheetParser"
 import { exhaust } from "../toolbox/other"
 import { Maybe, MaybeWrapper } from "../toolbox/Maybe"
-import { readNumber, readSelector, readId, readCoords, read2Coords } from "./specialParsers"
+import { readNumber, readSelector, readId, readCoords, read2Coords, readJSON } from "./specialParsers"
 import { CompileError } from "../toolbox/CompileErrors"
 import { ValueType, Type } from "../semantics/types/Types"
 
@@ -23,8 +23,8 @@ export class CMDNode {
 	) {}
 
 	/** i is the current index. */
-	protected parseSyntax(token:TokenI,i:number,ctx:CompileContext): ParsedSyntax | CompileError {
-		let l = this.tryConsume(token,i,ctx)
+	protected parseSyntax(token:TokenI,i:number): ParsedSyntax | CompileError {
+		let l = this.tryConsume(token,i)
 		if (typeof l != 'number')
 			throw new Error('should not happen')
 		let cmd = token.value
@@ -37,19 +37,19 @@ export class CMDNode {
 			) return token.error('match failed (expected more)')
 			return [{node:this,capture:cmd.substr(i,l-1),expr:null}]
 		}
-		let sub = this.findNext(token,j,ctx)
+		let sub = this.findNext(token,j)
 		if (Array.isArray(sub)) return errMsgsToCompileError(token,j,sub)
-		let res = sub.parseSyntax(token,j,ctx)
+		let res = sub.parseSyntax(token,j)
 		if (res instanceof CompileError) return res
 		return [{node:this,capture:cmd.substr(i,l-1),expr:null},...res]
 	}
 
 	/** Return child. j is next index */
-	protected findNext(token:TokenI,j:number,ctx:CompileContext): CMDNode | string[] {
+	protected findNext(token:TokenI,j:number): CMDNode | string[] {
 		let cmd = token.value
-		let trys = this.children.map(c=>c.tryConsume(token,j,ctx))
+		let trys = this.children.map(c=>c.tryConsume(token,j))
 		let [s,...d] = this.children.filter((_,i)=>typeof trys[i] == 'number')
-		// if (d.length) [s,...d] = this.children.filter(c=>c.tryConsume(token,j+1,ctx)) // try strict equal
+		// if (d.length) [s,...d] = this.children.filter(c=>c.tryConsume(token,j+1)) // try strict equal
 		if (d.length)
 			return ['match failed (matched too many)']
 		if (!s) {
@@ -62,7 +62,7 @@ export class CMDNode {
 	}
 
 	/** Find consumed length. ErrMsg is failed. Includes whitespace. */
-	protected tryConsume(token:TokenI,i:number,ctx:CompileContext): number | string {
+	protected tryConsume(token:TokenI,i:number): number | string {
 		let cmd = token.value
 		if (cmd.length <= i) return `expected '${this.cmpStr}'`
 		let x = cmd.slice(i).split(' ')[0]
@@ -79,18 +79,18 @@ export class SemanticalCMDNode extends CMDNode {
 
 	private lastAST: ASTExpr | null = null
 
-	protected parseSyntax(token:TokenI,i:number,ctx:CompileContext) {
-		let ret = super.parseSyntax(token,i,ctx)
+	protected parseSyntax(token:TokenI,i:number) {
+		let ret = super.parseSyntax(token,i)
 		if (ret instanceof CompileError) return ret
 		ret[ret.length-1].expr = this.lastAST
 		return ret
 	}
 
-	protected tryConsume(token:TokenI,i:number,ctx:CompileContext): number | string {
+	protected tryConsume(token:TokenI,i:number): number | string {
 		if (token.value.startsWith('${',i)) {
 			let lexer = inlineLiveLexer(token.line.file,token,i+2)
 			let {ast} = expressionSyntaxParser(
-				lexer,ctx,true
+				lexer,true
 			)
 			let j = lexer
 				.next()
@@ -115,6 +115,7 @@ export class SemanticalCMDNode extends CMDNode {
 			case 'entities': return readSelector(token,i,true,false)
 			case 'coords': return readCoords(token,i)
 			case 'coords2': return read2Coords(token,i)
+			case 'json': return readJSON(token,i)
 			case 'nbt':
 				console.log('sheet spec not yet: '+spec)
 				return token.value.length - i
@@ -131,8 +132,8 @@ export class SemanticalCMDNode extends CMDNode {
 
 export class RootCMDNode extends CMDNode {
 
-	syntaxParse(token:TokenI,ctx:CompileContext) {
-		return this.parseSyntax(token,1,ctx)
+	syntaxParse(token:TokenI) {
+		return this.parseSyntax(token,1)
 	}
 	
 	protected tryConsume() {

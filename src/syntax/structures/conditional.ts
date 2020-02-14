@@ -10,7 +10,7 @@ export function parseConditional(dirs:DirectiveToken[],iter:TokenIteratorI,ctx:C
 
     let ifToken = iter.current() as KeywordToken
     iter.next().expectType(TokenType.MARKER).expectValue('(')
-    let expression = exprParseNoList(iter,ctx,true).ast
+    let expression = exprParseNoList(iter,true).ast
     iter.skip(-1).next().expectType(TokenType.MARKER).expectValue(')')
     let primaryBranch = bodyOrLineSyntaxParser(iter,ctx)
     let secondaryBranch: ASTStatement[] = []
