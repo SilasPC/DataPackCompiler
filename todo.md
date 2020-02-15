@@ -1,3 +1,9 @@
+# IMPORTANT
+- Directive semantical parsing (sometimes they are just ignored)
+- Fix module system
+  - Remove DeclarationWrapper and just use Declarations
+  - Problem: Erroring on cyclic accesses during complete hoisting flush?
+
 # CURRENT
 - Syntax sheet
   - Special parameters and substitution methods
@@ -6,9 +12,7 @@
 	- Extend | destroy from older versions
 - Actually add the check when invoking controlflow functions
 - Syntax reading, add structure for automatic semicolon insertion
-- Language Sever
-- Directive semantical parsing
-- Fix module system
+- Language Server
 - Use Result<T,P> instead
   - Specifically for declarations, allows to possibly return a type even thought there is an error
   - Result must then hold a set of errors as well, which will be passed on
