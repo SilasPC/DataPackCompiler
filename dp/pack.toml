@@ -24,4 +24,4 @@ ignoreWarnings = false
 verbosity = 3
 colorLog = true
 targetVersion = 'latest'
-debugBuild = false
+debugBuild = true

@@ -1,0 +1,39 @@
+/*
+fn pull(): void {
+    // Floor
+    /execute if block ~ ~2 ~ lever[face=floor,facing=north] run setblock ~ ~2 ~ lever[face=floor,facing=north,powered=true]
+    /execute if block ~ ~2 ~ lever[face=floor,facing=east] run setblock ~ ~2 ~ lever[face=floor,facing=east,powered=true]
+    /execute if block ~ ~2 ~ lever[face=floor,facing=south] run setblock ~ ~2 ~ lever[face=floor,facing=south,powered=true]
+    /execute if block ~ ~2 ~ lever[face=floor,facing=west] run setblock ~ ~2 ~ lever[face=floor,facing=west,powered=true]
+    // Wall
+    /execute if block ~ ~2 ~ lever[face=wall,facing=north] run setblock ~ ~2 ~ lever[face=wall,facing=north,powered=true]
+    /execute if block ~ ~2 ~ lever[face=wall,facing=east] run setblock ~ ~2 ~ lever[face=wall,facing=east,powered=true]
+    /execute if block ~ ~2 ~ lever[face=wall,facing=south] run setblock ~ ~2 ~ lever[face=wall,facing=south,powered=true]
+    /execute if block ~ ~2 ~ lever[face=wall,facing=west] run setblock ~ ~2 ~ lever[face=wall,facing=west,powered=true]
+    // Ceiling
+    /execute if block ~ ~2 ~ lever[face=ceiling,facing=north] run setblock ~ ~2 ~ lever[face=ceiling,facing=north,powered=true]
+    /execute if block ~ ~2 ~ lever[face=ceiling,facing=east] run setblock ~ ~2 ~ lever[face=ceiling,facing=east,powered=true]
+    /execute if block ~ ~2 ~ lever[face=ceiling,facing=south] run setblock ~ ~2 ~ lever[face=ceiling,facing=south,powered=true]
+    /execute if block ~ ~2 ~ lever[face=ceiling,facing=west] run setblock ~ ~2 ~ lever[face=ceiling,facing=west,powered=true]
+}
+
+fn unpull(): void {
+    // Floor
+    /execute if block ~ ~2 ~ lever[face=floor,facing=north] run setblock ~ ~2 ~ lever[face=floor,facing=north,powered=false]
+    /execute if block ~ ~2 ~ lever[face=floor,facing=east] run setblock ~ ~2 ~ lever[face=floor,facing=east,powered=false]
+    /execute if block ~ ~2 ~ lever[face=floor,facing=south] run setblock ~ ~2 ~ lever[face=floor,facing=south,powered=false]
+    /execute if block ~ ~2 ~ lever[face=floor,facing=west] run setblock ~ ~2 ~ lever[face=floor,facing=west,powered=false]
+    // Wall
+    /execute if block ~ ~2 ~ lever[face=wall,facing=north] run setblock ~ ~2 ~ lever[face=wall,facing=north,powered=false]
+    /execute if block ~ ~2 ~ lever[face=wall,facing=east] run setblock ~ ~2 ~ lever[face=wall,facing=east,powered=false]
+    /execute if block ~ ~2 ~ lever[face=wall,facing=south] run setblock ~ ~2 ~ lever[face=wall,facing=south,powered=false]
+    /execute if block ~ ~2 ~ lever[face=wall,facing=west] run setblock ~ ~2 ~ lever[face=wall,facing=west,powered=false]
+    // Ceiling
+    /execute if block ~ ~2 ~ lever[face=ceiling,facing=north] run setblock ~ ~2 ~ lever[face=ceiling,facing=north,powered=false]
+    /execute if block ~ ~2 ~ lever[face=ceiling,facing=east] run setblock ~ ~2 ~ lever[face=ceiling,facing=east,powered=false]
+    /execute if block ~ ~2 ~ lever[face=ceiling,facing=south] run setblock ~ ~2 ~ lever[face=ceiling,facing=south,powered=false]
+    /execute if block ~ ~2 ~ lever[face=ceiling,facing=west] run setblock ~ ~2 ~ lever[face=ceiling,facing=west,powered=false]
+}
+
+
+*/

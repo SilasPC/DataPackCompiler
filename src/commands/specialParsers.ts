@@ -1,23 +1,37 @@
 import { TokenI } from "../lexing/Token"
 import { parseJSONInline } from "../toolbox/other"
 
-const nbtRgx = /[a-zA-Z0-9](\.[a-zA-Z0-9]+|\[-?\d+\])*(?<sep> |$)?/g
+const rangeRgx = /-?\d*(\.\d+)?\.\.-?\d*(\.\d+)?(?<sep> )?/g
+export function readRange(token:TokenI,i:number): number | string {
+	rangeRgx.lastIndex = 0
+	let res = rangeRgx.exec(token.value.slice(i))
+	if (!res) return 'expected range'
+	if (!res.groups || (!res.groups.sep && token.value.length > i + res[0].length))
+		return 'expected seperator'
+	return res[0].length
+}
+
+const nbtRgx = /[a-zA-Z0-9](\.[a-zA-Z0-9]+|\[-?\d+\])*(?<sep> )?/g
 export function readNbtPath(token:TokenI,i:number): number | string {
 	nbtRgx.lastIndex = 0
 	let res = nbtRgx.exec(token.value.slice(i))
 	if (!res) return 'expected nbt path'
-	if (!res.groups) return 'expected seperator'
+	if (!res.groups || (!res.groups.sep && token.value.length > i + res[0].length))
+		return 'expected seperator'
 	return res[0].length
 }
 
-const sepRgx = /(?<sep> |$)?/g
+const sepRgx = /(?<sep> )?/g
 export function readJSON(token:TokenI,i:number): number | string {
 	let res = parseJSONInline(token.value.slice(i))
 	if (res.errIndex != -1) return `malformed json (index ${res.errIndex})`
 	sepRgx.lastIndex = 0
 	let sepRes = sepRgx.exec(token.value.slice(i+res.read))
-	if (!sepRes || !sepRes.groups)
-		return 'expected seperator'
+	if (
+		!sepRes ||
+		!sepRes.groups ||
+		(!sepRes.groups.sep && token.value.length > i + res.read + sepRes[0].length)
+	) return 'expected seperator'
 	return res.read + sepRes[0].length
 }
 
@@ -29,7 +43,8 @@ export function readCoords(
 	coordsRgx.lastIndex = 0
 	let res = coordsRgx.exec(token.value.slice(i))
 	if (!res) return 'expected three valid coordinates'
-	if (!res.groups || !('sep' in res.groups)) return 'expected seperator'
+	if (!res.groups || (!res.groups.sep && token.value.length > i + res[0].length))
+		return 'expected seperator'
 	if (
 		res.groups['l1'] != res.groups['l2'] ||
 		res.groups['l2'] != res.groups['l3']
@@ -45,7 +60,8 @@ export function read2Coords(
 	coords2Rgx.lastIndex = 0
 	let res = coords2Rgx.exec(token.value.slice(i))
 	if (!res) return 'expected two valid coordinates'
-	if (!res.groups || !('sep' in res.groups)) return 'expected seperator'
+	if (!res.groups || (!res.groups.sep && token.value.length > i + res[0].length))
+		return 'expected seperator'
 	if (res.groups['l1'] || res.groups['l2']) return 'cannot use local coordinates'
 	return res[0].length
 }
@@ -62,7 +78,7 @@ export function readNumber(
 	let res = numRgx.exec(token.value.slice(i))
 	if (!res)
 		return 'expected number'
-	if (!res.groups || !('sep' in res.groups))
+	if (!res.groups || (!res.groups.sep && token.value.length > i + res[0].length))
 		return 'expected seperator'
 	if (res.groups['b10']) {
 		let num = Number(res.groups['b10'])
@@ -81,16 +97,19 @@ export function readNumber(
 	} else throw new Error('not implemented other than base 10 nums')
 }
 
-const idRgx = /^(?:[a-zA-Z0-9.-_]+:)?[a-zA-Z0-9.-_]+(?<sep> |$)?/g
+const idRgx = /^(?<ns>[a-zA-Z0-9.-_]+:)?[a-zA-Z0-9.-_]+(?<sep> |$)?/g
 export function readId(
 	token:TokenI,
-	i:number
+	i:number,
+	allowNamespace:boolean
 ): number | string {
 	idRgx.lastIndex = 0
 	let res = idRgx.exec(token.value.slice(i))
 	if (!res) return 'expected valid id'
-	if (!res.groups || !('sep' in res.groups))
+	if (!res.groups || (!res.groups.sep && token.value.length > i + res[0].length))
 		return 'expected seperator'
+	if (res.groups.ns && !allowNamespace)
+		return 'unexpected namespace'
 	return res[0].length
 }
 
@@ -105,7 +124,7 @@ export function readSelector(
 	let res = selRgx.exec(token.value.slice(i))
 	if (!res)
 		return 'expected selector'
-	if (!res.groups || !('sep' in res.groups))
+	if (!res.groups || (!res.groups.sep && token.value.length > i + res[0].length))
 		return 'expected seperator'
 	if (!multiple && 'ae'.includes(res.groups['typ']))
 		return 'only singular selector'

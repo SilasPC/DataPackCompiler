@@ -76,37 +76,37 @@ effect
 enchant <player> <id> [uint]
 
 :exe
-  at <entities> <:exe>
-  as <entities> <:exe>
+  at <entities> [<:exe>]
+  as <entities> [<:exe>]
   positioned
-    as <entities> <:exe>
-    <coords> <:exe>
-  align x|y|z|xy|xz|yx|yz|zx|zy|xyz|xzy|yxz|yzx|zxy|zyx <:exe>
+    as <entities> [<:exe>]
+    <coords> [<:exe>]
+  align x|y|z|xy|xz|yx|yz|zx|zy|xyz|xzy|yxz|yzx|zxy|zyx [<:exe>]
   facing
-    entity <entities> eyes|feet <:exe>
-    <coords> <:exe>
+    entity <entities> eyes|feet [<:exe>]
+    <coords> [<:exe>]
   rotated
-    as <entities> <:exe>
-    <coords2> <:exe>
-  in <id> <:exe>
-  achored feet|eyes <:exe>
+    as <entities> [<:exe>]
+    <coords2> [<:exe>]
+  in <id> [<:exe>]
+  achored feet|eyes [<:exe>]
   if|unless
-    block <coords> <id> <:exe>
-    blocks <coords> <coords> <coords> all|masked <:exe>
+    block <coords> <id> [<:exe>]
+    blocks <coords> <coords> <coords> all|masked [<:exe>]
     data
-      block <coords> <nbtpath> <:exe>
-      entity <entities> <nbtpath> <:exe>
-      storage <id> <nbtpath> <:exe>
-    entity <entities> <:exe>
+      block <coords> <nbtpath> [<:exe>]
+      entity <entities> <nbtpath> [<:exe>]
+      storage <id> <nbtpath> [<:exe>]
+    entity <entities> [<:exe>]
     score <entities> <name>
-      <|<=|=|>|>= <entities> <name> <:exe>
-      matches <range> <:exe>
+      <|<=|=|>|>= <entities> <name> [<:exe>]
+      matches <range> [<:exe>]
     store result|success
-      score <entities> <name> <:exe>
-      block <coords> <nbtpath> byte|double|float|int|long|short <float> <:exe>
-      entity <entities> <nbtpath> byte|double|float|int|long|short <float> <:exe>
-      storage <id> <nbtpath> byte|double|float|int|long|short <float> <:exe>
-      bossbar <id> value|max <:exe>
+      score <entities> <name> [<:exe>]
+      block <coords> <nbtpath> byte|double|float|int|long|short <float> [<:exe>]
+      entity <entities> <nbtpath> byte|double|float|int|long|short <float> [<:exe>]
+      storage <id> <nbtpath> byte|double|float|int|long|short <float> [<:exe>]
+      bossbar <id> value|max [<:exe>]
   run <:>
 
 execute <:exe>

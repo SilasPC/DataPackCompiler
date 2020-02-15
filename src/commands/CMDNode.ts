@@ -4,7 +4,7 @@ import { TokenI, TokenType } from "../lexing/Token"
 import { ASTNode, ASTExpr } from "../syntax/AST"
 import { SheetSpecials } from "./sheetParser"
 import { exhaust } from "../toolbox/other"
-import { readNumber, readSelector, readId, readCoords, read2Coords, readJSON, readNbtPath } from "./specialParsers"
+import { readNumber, readSelector, readId, readCoords, read2Coords, readJSON, readNbtPath, readRange } from "./specialParsers"
 import { CompileError } from "../toolbox/CompileErrors"
 import { ValueType, Type } from "../semantics/types/Types"
 
@@ -98,8 +98,10 @@ export class SemanticalCMDNode extends CMDNode {
 		}
 		let spec = this.cmpStr as SheetSpecials
 		switch (spec) {
-			case 'id': return readId(token,i)
+			case 'id': return readId(token,i,true)
+			case 'name': return readId(token,i,false)
 			case 'text': return token.value.length - i
+			case 'range': return readRange(token,i)
 			case 'int': return readNumber(token,true,true,true,i)
 			case 'uint': return readNumber(token,true,false,true,i)
 			case 'pint': return readNumber(token,true,false,false,i)

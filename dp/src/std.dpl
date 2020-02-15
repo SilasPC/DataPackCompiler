@@ -35,7 +35,20 @@ pub mod debug {
 
 }
 
-mod math {
+pub mod math {
+
+	pub fn pow(val:int,p:int): int {
+		if (p == 0) return 1
+		if (val == 0) return 0
+		if (val == 1) return val
+		let res = val
+		let cur = 1
+		while (cur < p) {
+			res *= val
+			cur++
+		}
+		return res
+	}
 
 	struct Vec3 {/*
 		pub x: int
