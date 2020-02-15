@@ -1,13 +1,15 @@
 {
-  "name": "source-map-support",
-  "version": "0.5.16",
-  "description": "source map",
+  "name": "dpc",
+  "version": "0.1.0",
+  "description": "Datapack compiler for DPL (DataPack Language)",
+  "private": true,
   "main": "test.js",
   "scripts": {
     "test": "cross-env TS_NODE_FILES=true mocha --exit --require ts-node/register --colors tests/**/*.ts",
-    "coverage": "nyc npm run test"
+    "coverage": "nyc npm run test",
+    "webpack": "node_modules\\.bin\\webpack --mode=development"
   },
-  "author": "",
+  "author": "Silas Pockendahl Christensen",
   "license": "ISC",
   "dependencies": {
     "@iarna/toml": "^2.2.3",
@@ -34,9 +36,12 @@
     "@types/colors": "^1.2.1",
     "@types/mkdirp": "^0.5.2",
     "@types/mocha": "^5.2.7",
-    "@types/rimraf": "^2.0.3",
     "@types/node": "^12.12.22",
+    "@types/rimraf": "^2.0.3",
     "@types/yargs": "^13.0.4",
+    "ts-loader": "^6.2.1",
+    "webpack": "^4.41.6",
+    "webpack-cli": "^3.3.11",
     "yargs": "^15.0.2"
   }
 }

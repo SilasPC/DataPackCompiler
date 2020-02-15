@@ -8,6 +8,7 @@ dp/datapack
 .vscode/**/*
 .datapack
 src_old
+dist/*.js
 
 # vscode
 .vscode/**/*
