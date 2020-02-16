@@ -3,6 +3,10 @@ require('source-map-support').install()
 import { Datapack } from './api/Datapack'	
 import yargs from 'yargs'
 import { compilerVersion } from './api/Compiler'
+import { verify } from './commands/verifier'
+import { Logger } from './toolbox/Logger'
+import { purgeNullishKeys } from './toolbox/other'
+import { SyntaxSheet } from './commands/SyntaxSheet'
 
 const COMPILE_GROUP = 'Compilation overrides:'
 
@@ -41,6 +45,16 @@ const argv = yargs
 			})
 	})*/
 
+	.command('verify [path]', 'Verify a datapack', yargs => {
+		yargs
+			.example('$0 -t 1.15.2','Verifies the datapack in the current folder for Minecraft release 1.15.2')
+			.positional('path', {
+				description: 'Folder containing datapack data files',
+				default: './',
+				type: 'string'
+			})
+	}, cliVerify)
+
 	.command('init [path]', 'Initialize pack.toml', yargs => {
 		yargs
 			.positional('path', {
@@ -58,20 +72,29 @@ const argv = yargs
 				default: './',
 				type: 'string'
 			})
+			.option('watch', {
+				alias: 'w',
+				boolean: true,
+				default: false,
+				description: 'Watch source directory for changes',
+			})
+			.option('no-emit', {
+				boolean: true,
+				default: false,
+				description: 'Compile without emitting datapack',
+			})
+			.option('debug', {
+				alias: 'd',
+				description: 'Use debug build',
+				boolean: true,
+				group: COMPILE_GROUP
+			})
+			.option('no-optimize', {
+				description: 'Disable optimization',
+				boolean: true,
+				group: COMPILE_GROUP
+			})
 	}, compile)
-
-	.option('no-emit', { // flag isn't working
-		boolean: true,
-		default: false,
-		description: 'Compile without emitting datapack',
-	})
-
-	.option('watch', {
-		alias: 'w',
-		boolean: true,
-		default: false,
-		description: 'Watch source directory for changes',
-	})
 
 	.option('trace', {
 		boolean: true,
@@ -88,19 +111,6 @@ const argv = yargs
 	
 	.option('silent', {
 		description: 'Run silently (no output)',
-		boolean: true,
-		group: COMPILE_GROUP
-	})
-
-	.option('debug', {
-		alias: 'd',
-		description: 'Use debug build',
-		boolean: true,
-		group: COMPILE_GROUP
-	})
-
-	.option('no-optimize', {
-		description: 'Disable optimization',
 		boolean: true,
 		group: COMPILE_GROUP
 	})
@@ -192,3 +202,12 @@ async function initialize(path:string) {
 /*async function importStruct(argv:any) {
 	
 }*/
+
+async function cliVerify(argv:any) {
+	const log = new Logger(purgeNullishKeys<any,any>({
+		verbosity: argv.silent ? -1 : (argv.verbose ? argv.verbose as number : undefined)
+	}))
+	const sheet = await SyntaxSheet.load(argv['target-version'] || 'latest')
+	const res = await verify(argv.path,log,sheet)
+	process.exit(res.value ? 0 : 1)
+}

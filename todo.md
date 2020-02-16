@@ -4,6 +4,7 @@
   - Remove DeclarationWrapper and just use Declarations
   - Problem: Erroring on cyclic accesses during complete hoisting flush?
 - Control flow
+- Fix verifier
 
 # CURRENT
 - Syntax sheet
