@@ -9,6 +9,7 @@ dp/datapack
 .datapack
 src_old
 dist/*.js
+tardis/tardis
 
 # vscode
 .vscode/**/*
