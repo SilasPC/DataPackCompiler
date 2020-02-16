@@ -8,16 +8,16 @@ import { fileSyntaxParser } from "../syntax/fileSyntaxParser"
 import { OutputManager } from "../codegen/managers/OutputManager"
 import { generate } from "../codegen/generate"
 import { promises as fs, Stats } from 'fs'
-import { Maybe, MaybeWrapper } from "../toolbox/Maybe"
 import { MKDIRP, RIMRAF } from "../toolbox/fsHelpers"
 import $ from 'js-itertools'
 import { instrsToCmds } from "../codegen/Instructions"
 import { Logger } from "../toolbox/Logger"
-import { FileTree, allParsingFiles } from "../toolbox/FileTree"
 import { ProgramManager } from "../semantics/managers/ProgramManager"
-import { parseFileTree } from "../semantics/parseModuleTree"
+import { parseInputTree } from "../semantics/parseModuleTree"
 import { emitConvention } from "../toolbox/ConventionUtils"
 import { Config } from "./Configuration"
+import { InputTree } from "../input/InputTree"
+import { Result, ResultWrapper } from "../toolbox/Result"
 
 export const compilerVersion = '0.1.0'
 
@@ -92,48 +92,48 @@ export class CompileResult {
 
 }
 
-export async function compile(logger:Logger,cfg:Config,src:FileTree): Promise<Maybe<CompileResult>> {
+export function compile(logger:Logger,cfg:Config,src:InputTree,sheet:SyntaxSheet): Result<CompileResult,null> {
 
-	const maybe = new MaybeWrapper<CompileResult>()
+	const result = new ResultWrapper<CompileResult,null>()
 
 	const ctx = new CompileContext(
 		logger,
 		cfg.compilation,
-		await SyntaxSheet.load(cfg.compilation.targetVersion)
+		sheet
 	)
 
 	if (!checkVersion(compilerVersion,ctx.options.minimumVersion)) {
 		logger.log(0,'err',`Pack requires compiler version ${ctx.options.minimumVersion}, currently installed: ${compilerVersion}`)
-		return maybe.none()
+		return result.none()
 	}
 	
 	logger.logGroup(1,'inf',`Begin compilation`)
 	let start = moment()
 
-	const pfiles = allParsingFiles(src)
+	const modules = src.allModules()
 	
 	const programManager = new ProgramManager()
 	
-	logger.log(1,'inf',`Loaded ${pfiles.length} file(s)`)
+	logger.log(1,'inf',`Loaded ${src.countAll()} file(s)`)
 	
-	pfiles.forEach(pf=>lexer(pf))
+	modules.forEach(mod=>lexer(mod))
 	logger.log(1,'inf',`Lexical analysis complete`)
 
-	pfiles.forEach(pf=>fileSyntaxParser(pf,ctx))
+	modules.forEach(mod=>fileSyntaxParser(mod,ctx))
 	logger.log(1,'inf',`Syntax analysis complete`)
 
 	let gotErrors = false
 
-	parseFileTree(src,programManager,ctx)
+	parseInputTree(src,programManager,ctx)
 
-	if (!programManager.hoisting.flushDefered().value)
+	if (result.merge(programManager.hoisting.flushDefered()))
 		gotErrors = true
 
 	/*for (let h of programManager.getUnreferenced()) {
 		logger.addError(h.getToken().warning('Never referenced'))
 	}*/
 
-	if (!programManager.hoisting.flushAll(logger).value)
+	if (result.merge(programManager.hoisting.flushAll(logger)))
 		gotErrors = true
 
 	if (!gotErrors)
@@ -166,11 +166,11 @@ export async function compile(logger:Logger,cfg:Config,src:FileTree): Promise<Ma
 	}
 
 	if (logger.hasErrors())
-		return maybe.none()
+		return result.none()
 
 	if (logger.hasErrors()||gotErrors)
-		return maybe.none()
+		return result.none()
 
-	return maybe.wrap(new CompileResult(cfg,output))
+	return result.wrap(new CompileResult(cfg,output))
 
 }

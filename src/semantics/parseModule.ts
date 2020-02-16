@@ -1,10 +1,9 @@
 
 import { CompileContext } from "../toolbox/CompileContext"
-import { Maybe, MaybeWrapper } from "../toolbox/Maybe"
 import { ASTNodeType, ASTStaticBody } from "../syntax/AST"
 import { exhaust } from "../toolbox/other"
 import { parseFunction } from "./statements/parseFunction"
-import { ModDeclaration, DeclarationType } from "./declarations/Declaration"
+import { ModDeclaration, DeclarationType, Declaration } from "./declarations/Declaration"
 import { parseDefine } from "./statements/parseDefine"
 import { parseStruct } from "./statements/parseStruct"
 import { parseEvent } from "./statements/parseEvents"
@@ -12,14 +11,15 @@ import { resolveAccess } from "./resolveAccess"
 import { parseBody } from "./parseBody"
 import { Program } from "./managers/ProgramManager"
 import { listDirectives, checkDebugIgnore } from "./directives"
+import { EmptyResult, ResultWrapper } from "../toolbox/Result"
 
 export function parseModule(
 	mod: ModDeclaration,
 	body: ASTStaticBody,
 	ctx: CompileContext,
 	program: Program
-): Maybe<true> {
-	const maybe = new MaybeWrapper<true>()
+): EmptyResult {
+	const maybe = new ResultWrapper()
 	
 	const scope = mod.scope
 
@@ -46,24 +46,25 @@ export function parseModule(
 			case ASTNodeType.MODULE: {
 				let child = mod.branch(node.identifier,ctx.logger,program)
 				if (maybe.merge(child)) break
-				maybe.merge(parseModule(child.value,node.body,ctx,program))
+				maybe.mergeCheck(parseModule(child.getValue(),node.body,ctx,program))
 				break
 			}
 	
 			case ASTNodeType.DEFINE: {
 				let node0 = node
-				maybe.merge(scope.symbols.declareHoister(node.identifier,()=>{
+				maybe.mergeCheck(scope.symbols.declareHoister(node.identifier,()=>{
+					const result = new ResultWrapper<Declaration,null>()
 					let res = parseDefine(node0,scope,ctx.logger)
-					if (res.value)
-						program.fnStore.init.add(res.value.pt)
-					return res.pick('decl')
+					if (result.merge(res)) return result.none()
+					program.fnStore.init.add(res.getValue().pt)
+					return result.wrap(res.getValue().decl)
 				},ctx.logger))
 				break
 			}
 	
 			case ASTNodeType.FUNCTION: {
 				let node0 = node
-				maybe.merge(scope.symbols.declareHoister(node.identifier,()=>parseFunction(dirs,node0,scope,program.fnStore,ctx.logger,ctx.options),ctx.logger))
+				maybe.mergeCheck(scope.symbols.declareHoister(node.identifier,()=>parseFunction(dirs,node0,scope,program.fnStore,ctx.logger,ctx.options),ctx.logger))
 				break
 			}
 	
@@ -86,7 +87,7 @@ export function parseModule(
 			case ASTNodeType.ON: {
 				let node0 = node
 				program.hoisting.defer(() => {
-					const maybe = new MaybeWrapper<true>()
+					const result = new ResultWrapper()
 
 					/*for (let dir of dirs) {
 						let val = dir.value.slice(2,-1).trim()
@@ -110,17 +111,18 @@ export function parseModule(
 					}*/
 
 					let res = resolveAccess(node0.event,scope,ctx.logger)
-					if (!res.value) return maybe.none()
-					if (res.value.decl.type != DeclarationType.EVENT) {
+					if (result.merge(res)) return result.empty()
+					let {decl} = res.getValue()
+					if (decl.type != DeclarationType.EVENT) {
 						ctx.logger.addError(node0.event.error('expected an event'))
-						return maybe.none()
+						return result.empty()
 					}
 					if (node0.body) {
 						let body = parseBody(node0.body,scope.branch('event'),ctx.logger,ctx.options)
-						if (!body.value) return maybe.none()
-						program.fnStore.appendToEvent(res.value.decl,body.value)
+						if (result.merge(body)) return result.empty()
+						program.fnStore.appendToEvent(decl,body.getValue())
 					}
-					return maybe.wrap(true)
+					return result.empty()
 				})
 				break
 			}
@@ -136,6 +138,6 @@ export function parseModule(
 	if (trailingDirective.length)
 		ctx.logger.addWarning(trailingDirective[0].error('trailing directive(s)'))
 
-	return maybe.wrap(true)
+	return maybe.empty()
 
 }

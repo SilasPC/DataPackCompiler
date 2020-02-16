@@ -1,12 +1,10 @@
 import { RootCMDNode } from "./CMDNode";
 import { fromSheet, fromString } from "./sheetParser";
-import { TokenI, DirectiveToken } from "../lexing/Token";
-import { CompileContext } from "../toolbox/CompileContext";
-import { Scope } from "../semantics/Scope";
-import { ASTCMDNode, ASTNodeType, ASTNode } from "../syntax/AST";
-import { Maybe, MaybeWrapper } from "../toolbox/Maybe";
+import { TokenI } from "../lexing/Token";
+import { ASTCMDNode } from "../syntax/AST";
 import { CompileError } from "../toolbox/CompileErrors";
 import { Logger } from "../toolbox/Logger";
+import { Result, ResultWrapper } from "../toolbox/Result";
 
 export class SyntaxSheet {
 
@@ -32,14 +30,14 @@ export class SyntaxSheet {
 		return null
 	}
 
-	readSyntax(token:TokenI,log:Logger): Maybe<ASTCMDNode> {
-		const maybe = new MaybeWrapper<ASTCMDNode>()
+	readSyntax(token:TokenI,log:Logger): Result<ASTCMDNode,null> {
+		const result = new ResultWrapper<ASTCMDNode,null>()
 		let res = this.root.syntaxParse(token)
 		if (res instanceof CompileError) {
 			log.addError(res)
-			return maybe.none()
+			return result.none()
 		}
-		return maybe.wrap(new ASTCMDNode(token.line.file,token.indexStart,token.indexEnd,token,res))
+		return result.wrap(new ASTCMDNode(token.line.file,token.indexStart,token.indexEnd,token,res))
 	}
 
 	/*verifySemantics(token:Token,ctx:CompileContext,scope:Scope) {

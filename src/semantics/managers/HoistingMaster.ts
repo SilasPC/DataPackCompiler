@@ -1,10 +1,11 @@
-import { MaybeWrapper, Maybe } from "../../toolbox/Maybe"
+
 import { DeclarationWrapper, Declaration } from "../declarations/Declaration"
 import { Logger } from "../../toolbox/Logger"
 import { TokenI } from "../../lexing/Token"
 import $ from 'js-itertools'
+import { Result, ResultWrapper, EmptyResult } from "../../toolbox/Result"
 
-export type HoisterFn = () => Maybe<Declaration>
+export type HoisterFn = () => Result<Declaration,null>
 
 export interface HoisterI extends Hoister {}
 
@@ -39,15 +40,15 @@ class Hoister {
     
     wasReferenced() {return this.refCounter > 0}
 
-    evaluate(log: Logger): Maybe<DeclarationWrapper> {
-        const maybe = new MaybeWrapper<DeclarationWrapper>()
+    evaluate(log: Logger): Result<DeclarationWrapper,null> {
+        const result = new ResultWrapper<DeclarationWrapper,null>()
         this.refCounter++
-        if (this.failed) return maybe.none()
+        if (this.failed) return result.none()
         if (this.active) {
             log.addError(this.token.error('circular dependency'))
-            return maybe.none()
+            return result.none()
         }
-        if (this.decl) return maybe.wrap(this.decl)
+        if (this.decl) return result.wrap(this.decl)
 
         if (this.hoisted) throw new Error('already hoisted')
 
@@ -58,24 +59,24 @@ class Hoister {
         this.hoisted = true
         this.active = false
 
-        if (decl.value) {
+        if (!result.merge(decl)) {
             this.decl = {
-                decl: decl.value,
+                decl: decl.getValue(),
                 token: this.token
             }
-            return maybe.wrap(this.decl)
+            return result.wrap(this.decl)
         }
 
         this.failed = true
 
-        return maybe.none()
+        return result.none()
 
     }
 
 }
 
 export interface UnreadableHoistingMaster {
-    defer(fn:()=>Maybe<true>): void
+    defer(fn:()=>EmptyResult): void
     addHoister(token:TokenI, fn:HoisterFn): Hoister
     addPrehoisted(token: TokenI, decl: DeclarationWrapper): Hoister
     addPreHoistedInvalid(token:TokenI): Hoister
@@ -83,8 +84,8 @@ export interface UnreadableHoistingMaster {
 
 export class HoistingMaster implements UnreadableHoistingMaster {
 
-    private defered = new Set<()=>Maybe<true>>()
-    defer(fn:()=>Maybe<true>) {this.defered.add(fn)}
+    private defered = new Set<()=>EmptyResult>()
+    defer(fn:()=>EmptyResult) {this.defered.add(fn)}
 
     private hoisters = new Set<Hoister>()
     addHoister(token:TokenI, fn:HoisterFn) {
@@ -111,19 +112,19 @@ export class HoistingMaster implements UnreadableHoistingMaster {
     }
 
     flushAll(log: Logger) {
-        const maybe = new MaybeWrapper<true>()
-        maybe.merge(this.flushDefered())
+        const result = new ResultWrapper()
+        result.merge(this.flushDefered())
         for (let h of this.hoisters)
-            maybe.merge(h.evaluate(log))
-        return maybe.wrap(true)
+            result.merge(h.evaluate(log))
+        return result.wrap(true)
     }
 
     flushDefered() {
-        const maybe = new MaybeWrapper<true>()
+        const result = new ResultWrapper()
         for (let fn of this.defered)
-            maybe.merge(fn())
+            result.mergeCheck(fn())
         this.defered.clear()
-        return maybe.wrap(true)
+        return result.wrap(true)
     }
 
 }

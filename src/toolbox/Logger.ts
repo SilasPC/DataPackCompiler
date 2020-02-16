@@ -1,6 +1,7 @@
 import { CompilerOptions } from "./config"
 import cols from 'colors/safe'
 import { CompileError } from "./CompileErrors"
+import { ResultWrapper } from "./Result"
 
 type LogType = 'inf' | 'err' | 'wrn'
 
@@ -65,6 +66,22 @@ export class Logger {
 
 	logWarns() {
 		for (let err of this.wrns) {
+			this.lastLogType = null
+			this.log(0,'wrn',err.toString())
+		}
+		this.lastLogType = null
+	}
+
+	logErrs(res:ResultWrapper<any,any>) {
+		for (let err of res.getErrors()) {
+			this.lastLogType = null
+			this.log(0,'err',err.toString())
+		}
+		this.lastLogType = null
+	}
+	
+	logWrns(res:ResultWrapper<any,any>) {
+		for (let err of res.getWarnings()) {
 			this.lastLogType = null
 			this.log(0,'wrn',err.toString())
 		}

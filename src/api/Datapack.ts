@@ -5,9 +5,11 @@ import { join } from "path";
 import { WeakCompilerOptions } from "../toolbox/config";
 import { compile, CompileResult } from './Compiler';
 import { Logger } from '../toolbox/Logger';
-import { loadFileTree } from '../toolbox/FileTree';
 import { Config } from './Configuration';
 import { purgeNullishKeys } from '../toolbox/other';
+import { loadDirectory } from '../input/loadFromFileSystem';
+import { SyntaxSheet } from '../commands/SyntaxSheet';
+import { ResultWrapper } from '../toolbox/Result';
 
 export class Datapack {
 
@@ -42,21 +44,30 @@ export class Datapack {
 
 	async compile(cfgOverride:WeakCompilerOptions={}) {
 
-		const src = await loadFileTree(join(this.packDir,this.cfg.compilation.sourceDir))
+		const result = new ResultWrapper()
 
 		let cfg = this.cfg.overrideCompilerOptions(purgeNullishKeys(cfgOverride))
 		
 		const logger = new Logger(cfg.compilation)
 		this.log = logger
-		
+
+		const srcRes = await loadDirectory(this.packDir,join(this.packDir,this.cfg.compilation.sourceDir))
+
+		let src = srcRes.getEnsured()
+
 		logger.logGroup(2,'inf','Overwritten configurations:')
 		for (let [key,val] of Object.entries(purgeNullishKeys<WeakCompilerOptions,any>(cfgOverride)))
 			logger.log(2,'inf',`${key} => ${val}`)
 		
 		try {
-			let res = await compile(logger,cfg,src)
-			if (res.value) this.status = res.value
-			else this.status = 'fail'
+			let sheet = await SyntaxSheet.load(cfg.compilation.targetVersion)
+			let res = await compile(logger,cfg,src,sheet)
+			if (!result.merge(res)) this.status = res.getValue()
+			else {
+				this.status = 'fail'
+				this.log.logWrns(result)
+				this.log.logErrs(result)
+			}
 		} catch (e) {
 			this.status = 'fail'
 			throw e

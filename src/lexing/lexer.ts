@@ -1,12 +1,12 @@
 
 import { TokenI, TokenType, Token } from './Token'
-import { ParsingFile } from '../toolbox/ParsingFile'
 import { exhaust } from '../toolbox/other'
 import 'array-flat-polyfill'
-import { CompileContext } from '../toolbox/CompileContext'
 import { LiveIterator } from './TokenIterator'
 import { SourceLine } from './SourceLine'
 import { operators, keywords, markers, types } from './values'
+import { ModuleFile } from '../input/InputTree'
+import { EnsuredResult, EmptyResult, ResultWrapper } from '../toolbox/Result'
 
 const comments = "//|/\\*|\\*/"
 const primitives = "\\d+(?:\\.\\d+)?|true|false|'[^']*'"
@@ -50,7 +50,7 @@ function groupToType(g:Exclude<RgxGroup,'cmt'|'nwl'|'bad'>): TokenType {
     }
 }
 
-export function lexer(pfile:ParsingFile): void {
+export function lexer(pfile:ModuleFile) {
 
     for (let token of baseLex(pfile,pfile.source)) {
         if (!token) throw new Error('wtf')
@@ -59,7 +59,7 @@ export function lexer(pfile:ParsingFile): void {
 
 }
 
-export function inlineLiveLexer(pfile:ParsingFile,token:TokenI,offset:number) {
+export function inlineLiveLexer(pfile:ModuleFile,token:TokenI,offset:number) {
     return new LiveIterator(pfile,inlineLexer(token.line,token.indexLine+offset))
 }
 
@@ -86,7 +86,7 @@ function* inlineLexer(line:SourceLine,offset:number)/*: Generator<Token,void>*/ 
     return
 }
 
-function* baseLex(pfile:ParsingFile,source:string)/*: Generator<Token,void>*/ {
+function* baseLex(pfile:ModuleFile,source:string)/*: Generator<Token,void>*/ {
 
     let linesRaw = source.split('\n')
 

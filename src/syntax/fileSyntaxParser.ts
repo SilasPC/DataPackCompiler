@@ -1,5 +1,4 @@
 
-import { ParsingFile } from "../toolbox/ParsingFile";
 import { TokenType, TokenI, DirectiveToken } from "../lexing/Token";
 import { parseFunction } from "./structures/function";
 import { wrapPublic } from "./helpers";
@@ -10,15 +9,16 @@ import { parseUse } from "./structures/use";
 import { parseStruct } from "./structures/struct";
 import { parseEvent } from "./structures/event";
 import { parseOnEvent } from "./structures/onEvent";
+import { ModuleFile } from "../input/InputTree";
 
-export function fileSyntaxParser(pfile: ParsingFile, ctx: CompileContext): void {
-    const iter = pfile.getTokenIterator()
+export function fileSyntaxParser(mod: ModuleFile, ctx: CompileContext): void {
+    const iter = mod.getTokenIterator()
     let isPub: TokenI | null = null
 
     for (let token of iter) {
 
         if (token.type == TokenType.DIRECTIVE) {
-            pfile.ast.addSubData(token)
+            mod.ast.addSubData(token)
             continue
         }
 
@@ -30,33 +30,33 @@ export function fileSyntaxParser(pfile: ParsingFile, ctx: CompileContext): void 
                         isPub = token
                         break
                     case 'use':
-                        pfile.ast.add(wrapPublic(parseUse(iter,ctx),isPub))
+                        mod.ast.add(wrapPublic(parseUse(iter,ctx),isPub))
                         isPub = null
                         break
                     case 'mod':
-                        pfile.ast.add(wrapPublic(parseModule(iter,ctx),isPub))
+                        mod.ast.add(wrapPublic(parseModule(iter,ctx),isPub))
                         isPub = null
                         break
                     case 'fn':
-                        pfile.ast.add(wrapPublic(parseFunction(iter,ctx),isPub))
+                        mod.ast.add(wrapPublic(parseFunction(iter,ctx),isPub))
                         isPub = null
                         break
                     case 'const':
                     case 'let':
-                        pfile.ast.add(wrapPublic(parseDeclaration(iter,ctx),isPub))
+                        mod.ast.add(wrapPublic(parseDeclaration(iter,ctx),isPub))
                         isPub = null
                         break
                     case 'struct':
-                        pfile.ast.add(wrapPublic(parseStruct(iter,ctx),isPub))
+                        mod.ast.add(wrapPublic(parseStruct(iter,ctx),isPub))
                         isPub = null
                         break
                     case 'event':
-                        pfile.ast.add(wrapPublic(parseEvent(iter,ctx),isPub))
+                        mod.ast.add(wrapPublic(parseEvent(iter,ctx),isPub))
                         isPub = null
                         break
                     case 'on':
                         if (isPub) token.throwUnexpectedKeyWord()
-                        pfile.ast.add(parseOnEvent(iter,ctx))
+                        mod.ast.add(parseOnEvent(iter,ctx))
                         break
                     default:
                         return token.throwUnexpectedKeyWord()
@@ -68,6 +68,6 @@ export function fileSyntaxParser(pfile: ParsingFile, ctx: CompileContext): void 
         }
     }
 
-    if (isPub) pfile.throwUnexpectedEOF();
+    if (isPub) mod.throwUnexpectedEOF();
 
 }

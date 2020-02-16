@@ -1,12 +1,12 @@
 
 import { ValueType, typeSignature, Type } from "../types/Types";
 import { TokenI } from "../../lexing/Token";
-import { ReadOnlySymbolTable, SymbolTable } from "./SymbolTable";
+import { ReadOnlySymbolTable } from "./SymbolTable";
 import { Struct } from "../types/Struct";
 import { Program } from "../managers/ProgramManager";
-import { Scope, ModScope } from "../Scope";
-import { Maybe, MaybeWrapper } from "../../toolbox/Maybe";
+import { ModScope } from "../Scope";
 import { Logger } from "../../toolbox/Logger";
+import { Result, ResultWrapper } from "../../toolbox/Result";
 
 export type Declaration = VarDeclaration | FnDeclaration | ModDeclaration | RecipeDeclaration | StructDeclaration | EventDeclaration
 
@@ -55,8 +55,8 @@ export class ModDeclaration {
 		this.namePath = scope.getScopeNames()
 	}
 
-	fetchModule(accessors:TokenI[],log:Logger): Maybe<ModDeclaration> {
-		const maybe = new MaybeWrapper<ModDeclaration>()
+	fetchModule(accessors:TokenI[],log:Logger): Result<ModDeclaration,null> {
+		const result = new ResultWrapper<ModDeclaration,null>()
 
 		let mod: ModDeclaration = this
 
@@ -64,7 +64,7 @@ export class ModDeclaration {
             if (accessor.value == 'super') {
                 if (!mod.parent) {
                     log.addError(accessor.error('module not found'))
-                    return maybe.none()
+                    return result.none()
                 }
                 mod = mod.parent
                 continue
@@ -72,12 +72,12 @@ export class ModDeclaration {
             let child = mod.getDirectChild(accessor.value)
             if (!child) {
                 log.addError(accessor.error('module not found'))
-                return maybe.none()
+                return result.none()
             }
             mod = child
         }
         
-        return maybe.wrap(mod)
+        return result.wrap(mod)
 	}
 
 	branchUnsafe(name:string,program:Program): ModDeclaration {
@@ -87,15 +87,15 @@ export class ModDeclaration {
 		return mod
 	}
 
-	branch(name:TokenI,log:Logger,program:Program): Maybe<ModDeclaration> {
-		const maybe = new MaybeWrapper<ModDeclaration>()
+	branch(name:TokenI,log:Logger,program:Program): Result<ModDeclaration,null> {
+		const result = new ResultWrapper<ModDeclaration,null>()
 		let mod = new ModDeclaration(this,this.scope.branchToMod(name.value,program))
 		if (this.children.has(name.value)) {
 			log.addError(name.error('module already exists'))
-			return maybe.none()
+			return result.none()
 		}
 		this.children.set(name.value,mod)
-		return maybe.wrap(mod)
+		return result.wrap(mod)
 	}
 
 	getDirectChild(name:string) {return this.children.get(name)}

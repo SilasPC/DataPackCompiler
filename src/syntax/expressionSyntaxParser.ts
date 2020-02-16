@@ -2,7 +2,6 @@
 import { TokenI, TokenType } from "../lexing/Token";
 import { ASTNodeType, ASTIdentifierNode, ASTOpNode, ASTCallNode, ASTListNode, ASTExpr, ASTRefNode, ASTDynamicAccessNode, ASTStaticAccessNode, ASTPrimitiveNode } from "./AST";
 import { TokenIteratorI } from "../lexing/TokenIterator";
-import { CompileContext } from "../toolbox/CompileContext";
 import { parseSelector } from "./structures/selector";
 
 enum OpType {

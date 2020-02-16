@@ -1,20 +1,21 @@
 import { Logger } from "../toolbox/Logger";
-import { ParsingFile } from "../toolbox/ParsingFile";
 import { mcFnLexer } from "../lexing/funcLexer";
 import { allFilesInDir } from "../toolbox/fsHelpers";
 import { TokenType } from "../lexing/Token";
 import { SyntaxSheet } from "./SyntaxSheet";
-import { Maybe, MaybeWrapper } from "../toolbox/Maybe";
+import { EmptyResult, ResultWrapper } from "../toolbox/Result";
+import { ModuleFile } from "../input/InputTree";
+import { promises as fs } from 'fs'
 
-export async function verify(path:string,log:Logger,sheet:SyntaxSheet): Promise<Maybe<true>> {
-    const maybe = new MaybeWrapper<true>()
+export async function verify(path:string,log:Logger,sheet:SyntaxSheet): Promise<EmptyResult> {
+    const result = new ResultWrapper()
 
     let files = await allFilesInDir(path)
     let fns = files.filter(f=>f.endsWith('.mcfunction'))
 
     log.logGroup(1,'inf',`Loaded ${fns.length} file${fns.length!=1?'s':''}`)
 
-    let pfiles = await Promise.all(fns.map(fn=>ParsingFile.loadFile(fn)))
+    let pfiles = await Promise.all(fns.map(async fn=>new ModuleFile(fn,(await fs.readFile(fn)).toString())))
 
     pfiles.forEach(mcFnLexer)
 
@@ -27,7 +28,6 @@ export async function verify(path:string,log:Logger,sheet:SyntaxSheet): Promise<
             let res = sheet.verifySyntaxNoSlash(token)
             if (!res) continue
             log.addError(res)
-            maybe.noWrap()
             errCount++
         }
     }
@@ -37,6 +37,6 @@ export async function verify(path:string,log:Logger,sheet:SyntaxSheet): Promise<
     else
         log.log(1,'inf','No errors found')
 
-    return maybe.wrap(true)
+    return result.empty()
 
 }

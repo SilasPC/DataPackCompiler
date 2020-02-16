@@ -1,5 +1,4 @@
 import { ASTFnNode } from "../../syntax/AST";
-import { MaybeWrapper, Maybe } from "../../toolbox/Maybe";
 import { FnDeclaration, DeclarationType, VarDeclaration, Declaration } from "../declarations/Declaration";
 import { tokenToType, Type } from "../types/Types";
 import { Logger } from "../../toolbox/Logger";
@@ -10,9 +9,10 @@ import { CompilerOptions } from "../../toolbox/config";
 import { FunctionStore } from "../managers/FunctionStore";
 import { DirectiveList } from "../directives";
 import { exhaust } from "../../toolbox/other";
+import { Result, ResultWrapper } from "../../toolbox/Result";
 
-export function parseFunction(dirs: DirectiveList,node:ASTFnNode,modScope:ModScope,store:FunctionStore,log:Logger,cfg:CompilerOptions): Maybe<FnDeclaration> {
-	const maybe = new MaybeWrapper<FnDeclaration>()
+export function parseFunction(dirs: DirectiveList,node:ASTFnNode,modScope:ModScope,store:FunctionStore,log:Logger,cfg:CompilerOptions): Result<FnDeclaration,null> {
+	const result = new ResultWrapper<FnDeclaration,null>()
 
 	for (let {value, token} of dirs) {
 		switch (value) {
@@ -23,7 +23,6 @@ export function parseFunction(dirs: DirectiveList,node:ASTFnNode,modScope:ModSco
 			case 'tick':
 			case 'load':
 				log.addError(token.error('not available for functions'))
-				maybe.noWrap()
 				break
 			case 'inline':
 				log.addWarning(token.error('inline not supported yet'))
@@ -34,7 +33,7 @@ export function parseFunction(dirs: DirectiveList,node:ASTFnNode,modScope:ModSco
 
 	if (!node.returnType) {
 		log.addError(node.identifier.error('no fn infer'))
-		return maybe.none()
+		return result.none()
 	}
 
 	let type = tokenToType(node.returnType,modScope.symbols)
@@ -67,14 +66,13 @@ export function parseFunction(dirs: DirectiveList,node:ASTFnNode,modScope:ModSco
 	const scope = modScope.branchToFn(node.identifier.value,fndecl)
 
 	for (let [t,d] of paramDecls)
-		maybe.merge(scope.symbols.declareDirect(t,d,log))
+		result.mergeCheck(scope.symbols.declareDirect(t,d,log))
 
 	let res = parseBody(node.body,scope,log,cfg)
-	if (!res.value) return maybe.none()
+	if (result.merge(res)) return result.none()
 
+	store.addFn(fndecl,res.getValue())
 
-	store.addFn(fndecl,res.value)
-
-	return maybe.wrap(fndecl)
+	return result.wrap(fndecl)
 
 }

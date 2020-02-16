@@ -1,7 +1,6 @@
 
 import { Instruction, InstrType } from "./Instructions"
 import { InstrWrapper } from "./InstrWrapper"
-import { OutputManager } from "./managers/OutputManager"
 import { FnFileManager } from "./managers/FnFileManager"
 
 export class FnFile {

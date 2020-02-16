@@ -7,6 +7,7 @@ import { verify } from './commands/verifier'
 import { Logger } from './toolbox/Logger'
 import { purgeNullishKeys } from './toolbox/other'
 import { SyntaxSheet } from './commands/SyntaxSheet'
+import { ResultWrapper } from './toolbox/Result'
 
 const COMPILE_GROUP = 'Compilation overrides:'
 
@@ -203,11 +204,15 @@ async function initialize(path:string) {
 	
 }*/
 
-async function cliVerify(argv:any) {
+async function cliVerify(argv:any): Promise<void> {
+	const result = new ResultWrapper()
 	const log = new Logger(purgeNullishKeys<any,any>({
 		verbosity: argv.silent ? -1 : (argv.verbose ? argv.verbose as number : undefined)
 	}))
 	const sheet = await SyntaxSheet.load(argv['target-version'] || 'latest')
 	const res = await verify(argv.path,log,sheet)
-	process.exit(res.value ? 0 : 1)
+	if (!result.mergeCheck(res)) return process.exit(0)
+	log.logWrns(result)
+	log.logErrs(result)
+	process.exit(1)
 }

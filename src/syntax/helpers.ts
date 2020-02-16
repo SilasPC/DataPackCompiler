@@ -1,6 +1,6 @@
 
 import { TokenType, TokenI, KeywordToken } from "../lexing/Token";
-import { ASTPublicNode, ASTNodeType, ASTStaticDeclaration } from "./AST";
+import { ASTPublicNode, ASTStaticDeclaration } from "./AST";
 import { TokenIteratorI } from "../lexing/TokenIterator";
 
 export function getType(iter:TokenIteratorI): TokenI | null {
@@ -11,7 +11,7 @@ export function getType(iter:TokenIteratorI): TokenI | null {
 
 export function wrapPublic(node:Exclude<ASTStaticDeclaration,ASTPublicNode>,keyword:KeywordToken|null): ASTStaticDeclaration {
     if (keyword) {
-        return new ASTPublicNode(node.pfile,keyword.indexStart,node.indexEnd,node)
+        return new ASTPublicNode(node.mod,keyword.indexStart,node.indexEnd,node)
     }
     return node
 }

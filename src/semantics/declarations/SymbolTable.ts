@@ -1,14 +1,14 @@
 
 import { TokenI } from "../../lexing/Token"
 import { DeclarationWrapper, Declaration } from "./Declaration"
-import { Maybe, MaybeWrapper } from "../../toolbox/Maybe"
 import { reservedSymbols } from "../../lexing/values"
 import { Logger } from "../../toolbox/Logger"
-import { HoistingMaster, HoisterI, HoisterFn, UnreadableHoistingMaster } from "../managers/HoistingMaster"
+import { HoisterI, HoisterFn, UnreadableHoistingMaster } from "../managers/HoistingMaster"
+import { Result, ResultWrapper, EmptyResult } from "../../toolbox/Result"
 
 // Change to PublicSymbolTable (use a pubGet method for getting public members)
 export interface ReadOnlySymbolTable {
-    getDeclaration(name:TokenI,log:Logger): Maybe<DeclarationWrapper>
+    getDeclaration(name:TokenI,log:Logger): Result<DeclarationWrapper,null>
 }
 
 export class SymbolTable implements ReadOnlySymbolTable {
@@ -42,52 +42,52 @@ export class SymbolTable implements ReadOnlySymbolTable {
         return this.getInternal(name) != null
     }
 
-    getDeclaration(name:TokenI,log:Logger): Maybe<DeclarationWrapper> {
-        let maybe = new MaybeWrapper<DeclarationWrapper>()
+    getDeclaration(name:TokenI,log:Logger): Result<DeclarationWrapper,null> {
+        let result = new ResultWrapper<DeclarationWrapper,null>()
         let hoister = this.getInternal(name.value)
         if (!hoister) {
             log.addError(name.error(`'${name.value}' not available in scope`))
-            return maybe.none()
+            return result.none()
         }
-        return maybe.pass(hoister.evaluate(log))
+        return result.pass(hoister.evaluate(log))
     }
 
-    declareInvalidDirect(id:TokenI,log:Logger): Maybe<true> {
-        const maybe = new MaybeWrapper<true>()
+    declareInvalidDirect(id:TokenI,log:Logger): EmptyResult {
+        const maybe = new ResultWrapper()
         if (reservedSymbols.includes(id.value)) {
             log.addError(id.error('reserved identifier'))
-            return maybe.none()
+            return maybe.empty()
         }
         if (this.getInternal(id.value)) {
             log.addError(id.error('duplicate declaration'))
-            return maybe.none()
+            return maybe.empty()
         }
         this.declarations.set(id.value,this.master.addPreHoistedInvalid(id))
-        return maybe.wrap(true)
+        return maybe.empty()
     }
 
-    declareDirect(id:TokenI,decl:Declaration,log:Logger): Maybe<true> {
-        const maybe = new MaybeWrapper<true>()
+    declareDirect(id:TokenI,decl:Declaration,log:Logger): EmptyResult {
+        const maybe = new ResultWrapper()
         if (reservedSymbols.includes(id.value)) {
             log.addError(id.error('reserved identifier'))
-            return maybe.none()
+            return maybe.empty()
         }
         if (this.getInternal(id.value)) {
             log.addError(id.error('duplicate declaration'))
-            return maybe.none()
+            return maybe.empty()
         }
         this.declarations.set(id.value,this.master.addPrehoisted(id,{decl,token:id}))
-        return maybe.wrap(true)
+        return maybe.empty()
     }
 
-    declareHoister(id:TokenI,hoister:HoisterFn,log:Logger): Maybe<true> {
-        const maybe = new MaybeWrapper<true>()
+    declareHoister(id:TokenI,hoister:HoisterFn,log:Logger): EmptyResult {
+        const maybe = new ResultWrapper()
         if (reservedSymbols.includes(id.value)) {
             log.addError(id.error('reserved identifier'))
-            return maybe.none()
+            return maybe.empty()
         }
         this.declarations.set(id.value,this.master.addHoister(id,hoister))
-        return maybe.wrap(true)
+        return maybe.empty()
     }
 
 }

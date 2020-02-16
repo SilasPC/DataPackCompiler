@@ -1,5 +1,6 @@
-import { ParsingFile } from "../toolbox/ParsingFile"
+
 import { SourceCodeError } from "../toolbox/CompileErrors"
+import { ModuleFile } from "../input/InputTree"
 
 export class SourceLine {
 
@@ -9,7 +10,7 @@ export class SourceLine {
 
 	constructor(
 			public readonly previous: SourceLine|null,
-			public readonly file: ParsingFile,
+			public readonly file: ModuleFile,
 			public readonly startIndex: number,
 			public readonly line: string,
 			public readonly nr: number

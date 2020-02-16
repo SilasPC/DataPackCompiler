@@ -1,12 +1,13 @@
-import { ParsingFile } from "../toolbox/ParsingFile"
+
 import { SourceLine } from "./SourceLine"
 import { Token, TokenType } from "./Token"
+import { ModuleFile } from "../input/InputTree"
 
 function getRgx() {
     return /^\s(?<cmt>[^#\n])$/gm
 }
 
-export function mcFnLexer(pfile:ParsingFile)/*: Generator<Token,void>*/ {
+export function mcFnLexer(pfile:ModuleFile)/*: Generator<Token,void>*/ {
 
     let linesRaw = pfile.source.split('\n')
     let match: RegExpExecArray|null

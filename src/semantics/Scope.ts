@@ -1,8 +1,6 @@
 
 import { SymbolTable } from "./declarations/SymbolTable";
 import { Program } from "./managers/ProgramManager";
-import { ValueType } from "./types/Types";
-import { PTReturn, PTExpr } from "./ParseTree";
 import { FnDeclaration } from "./declarations/Declaration";
 
 export class Scope {

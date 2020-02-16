@@ -1,7 +1,7 @@
 
 import { SourceLine } from "../lexing/SourceLine"
 import cols from 'colors/safe'
-import { ParsingFile } from "./ParsingFile"
+import { ModuleFile } from "../input/InputTree"
 
 export type ErrorType = 'File' | 'Syntax' | 'Type' | 'Internal'
 
@@ -18,20 +18,20 @@ export class CompileError extends Error {
 export class SourceCodeError extends CompileError {
 
 	constructor(
-		pfile: ParsingFile,
+		mod: ModuleFile,
 		indexStart: number,
 		indexEnd: number,
 		msg: string
 	) {
-		super(createErrorMessage(pfile,indexStart,indexEnd,msg))
+		super(createErrorMessage(mod,indexStart,indexEnd,msg))
 	}
 
 }
 
 
-function createErrorMessage(pfile:ParsingFile,fi:number,li:number,err:string) {
+function createErrorMessage(mod:ModuleFile,fi:number,li:number,err:string) {
 
-	let fl = pfile.getLineFromIndex(fi), ll = pfile.getLineFromIndex(li)
+	let fl = mod.getLineFromIndex(fi), ll = mod.getLineFromIndex(li)
 	
 	let msg: string[] = []
 	let nrLen = (ll.nr+1).toString().length

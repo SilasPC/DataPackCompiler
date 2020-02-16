@@ -1,65 +1,64 @@
-import { ASTNode, ASTNodeType, ASTOpNode, ASTExpr, ASTCallNode, ASTRefNode } from "../syntax/AST"
+import { ASTNode, ASTNodeType, ASTOpNode, ASTExpr, ASTCallNode } from "../syntax/AST"
 import { exhaust, Errorable } from "../toolbox/other"
-import { Maybe } from "../toolbox/Maybe"
-import { MaybeWrapper } from "../toolbox/Maybe"
-import { CompileError } from "../toolbox/CompileErrors"
 import { ParseTree, PTKind, PTExpr, PTOpNode, ptExprToType, ptCanMut, PTCallNode, PTVarNode } from "./ParseTree"
 import { Logger } from "../toolbox/Logger"
 import { resolveStatic, resolveAccess } from "./resolveAccess"
 import { DeclarationType } from "./declarations/Declaration"
-import { Type, isSubType } from "./types/Types"
+import { Type, isSubType, ValueType } from "./types/Types"
 import { Scope } from "./Scope"
+import { ResultWrapper, Result } from "../toolbox/Result"
 
 export function parseExpression(
 	node: ASTExpr,
 	scope: Scope,
 	log: Logger
-): Maybe<PTExpr> {
+): Result<PTExpr,ValueType> {
 
-	const maybe = new MaybeWrapper<PTExpr>()
+	const result = new ResultWrapper<PTExpr,ValueType>()
 
 	switch (node.type) {
 
 		case ASTNodeType.ACCESS:
 		case ASTNodeType.IDENTIFIER: {
 			let res = resolveAccess(node,scope,log)
-			if (!res.value) return maybe.none()
-			switch (res.value.decl.type) {
+			if (result.merge(res)) return result.none()
+			let {decl} = res.getValue()
+			switch (decl.type) {
 				case DeclarationType.VARIABLE:
-					return maybe.wrap({kind:PTKind.VARIABLE,decl:res.value.decl})
-				default: throw new Error('kiiill mmeeeee '+DeclarationType[res.value.decl.type])
+					return result.wrap({kind:PTKind.VARIABLE,decl})
+				default: throw new Error('kiiill mmeeeee '+DeclarationType[decl.type])
 			}
 		}
 		
 		case ASTNodeType.SELECTOR:
-			return maybe.wrap({kind:PTKind.PRIMITIVE,value:{type:Type.SELECTOR},scopeNames:scope.getScopeNames()})
+			return result.wrap({kind:PTKind.PRIMITIVE,value:{type:Type.SELECTOR},scopeNames:scope.getScopeNames()})
 		case ASTNodeType.PRIMITIVE: {
 			if (node.value.value == 'true')
-				return maybe.wrap({kind:PTKind.PRIMITIVE,value:{type:Type.BOOL,value:true},scopeNames:scope.getScopeNames()})
+				return result.wrap({kind:PTKind.PRIMITIVE,value:{type:Type.BOOL,value:true},scopeNames:scope.getScopeNames()})
 			if (node.value.value == 'false')
-				return maybe.wrap({kind:PTKind.PRIMITIVE,value:{type:Type.BOOL,value:false},scopeNames:scope.getScopeNames()})
+				return result.wrap({kind:PTKind.PRIMITIVE,value:{type:Type.BOOL,value:false},scopeNames:scope.getScopeNames()})
 			if (node.value.value.startsWith('\'')) {
 				log.addError(node.value.error('no strings in expressions for now I guess'))
-				return maybe.none()
+				return result.none()
 			}
 			let n = Number(node.value.value)
 			if (Number.isNaN(n)||!Number.isInteger(n)) {
 				log.addError(node.value.error('kkk only int primitives'))
-				return maybe.none()
+				return result.none()
 			}
-			return maybe.wrap({kind:PTKind.PRIMITIVE,value:{type:Type.INT,value:n},scopeNames:scope.getScopeNames()})
+			return result.wrap({kind:PTKind.PRIMITIVE,value:{type:Type.INT,value:n},scopeNames:scope.getScopeNames()})
 		}
 
 		case ASTNodeType.OPERATION: {
-			return maybe.pass(operator(node,scope,log))
+			return result.pass(operator(node,scope,log))
 		}
 
 		case ASTNodeType.INVOKATION:
-			return maybe.pass(invokation(node,scope,log))			
+			return result.pass(invokation(node,scope,log))			
 
 		case ASTNodeType.LIST:
 			log.addError(node.error('no lists in expr yet'))
-			return maybe.none()
+			return result.none()
 
 		default:
 			return exhaust(node)
@@ -68,12 +67,12 @@ export function parseExpression(
 
 }
 
-function invokation(node:ASTCallNode,scope:Scope,log:Logger): Maybe<PTCallNode> {
+function invokation(node:ASTCallNode,scope:Scope,log:Logger): Result<PTCallNode,ValueType> {
 	type Arg = ({ref:true,pt:PTVarNode}|{ref:false,pt:PTExpr})
-	const maybe = new MaybeWrapper<PTCallNode>()
+	const result = new ResultWrapper<PTCallNode,ValueType>()
 	if (node.func.type != ASTNodeType.IDENTIFIER && node.func.type != ASTNodeType.ACCESS) throw new Error('only direct calls for now')
-	const params: Maybe<Arg>[] = node.parameters.map(p=>{
-		const maybe = new MaybeWrapper<Arg>()
+	const params: Result<Arg,null>[] = node.parameters.map(p=>{
+		const result = new ResultWrapper<Arg,null>()
 		if (p.type == ASTNodeType.REFERENCE) {
 			throw new Error('wait ref')
 			/*let res = resolveAccess(p.ref,scope,log)
@@ -90,56 +89,57 @@ function invokation(node:ASTCallNode,scope:Scope,log:Logger): Maybe<PTCallNode> 
 			return maybe.wrap({ref:true,esr:declw.decl.esr})*/
 		}
 		let pt = parseExpression(p,scope,log)
-		if (!pt.value) return maybe.none()
-		return maybe.wrap({pt:pt.value,ref:false})
+		if (result.merge(pt)) return result.none()
+		return result.wrap({pt:pt.getValue(),ref:false})
 	})
 	if (node.func.type == ASTNodeType.ACCESS && !node.func.isStatic)
 		throw new Error('wait dyn access')
 	let res = resolveStatic(node.func,scope.symbols,log)
-	if (!res.value) return maybe.none()
-	let decl = res.value.decl
+	if (result.merge(res)) return result.none()
+	let {decl,token} = res.getValue()
 	if (decl.type == DeclarationType.STRUCT) {
 		log.addError(node.func.error('con_struct_ion not available yet'))
-		return maybe.none()
+		return result.none()
 	}
 	if (decl.type != DeclarationType.FUNCTION) {
 		log.addError(node.func.error('not a fn'))
-		return maybe.none()
+		return result.none()
 	}
-	if (decl.thisBinding.type != Type.VOID) return res.value.token.throwDebug('methods not implemented')
+	if (decl.thisBinding.type != Type.VOID) return token.throwDebug('methods not implemented')
 	if (params.length != decl.parameters.length) {
 		log.addError(node.func.error('param length unmatched'))
-		return maybe.none()
+		return result.none()
 	}
+	let args: Arg[] = []
 	for (let i = 0; i < params.length; i++) {
-		let param = params[i]
-		if (!param.value) continue
+		let paramRes = params[i]
+		if (result.merge(paramRes)) continue
+		let param = paramRes.getValue()
 		let declParam = decl.parameters[i]
 		let canNoDo = false
-		if (!isSubType(declParam.type,ptExprToType(param.value.pt))) {
+		if (!isSubType(declParam.type,ptExprToType(param.pt))) {
 			log.addError(node.parameters[i].error('param type mismatch'))
 			canNoDo = true
 		}
-		if (param.value.ref != declParam.isRef) {
+		if (param.ref != declParam.isRef) {
 			log.addError(node.parameters[i].error('reference mismatch'))
 			canNoDo = true
 		}
-		if (canNoDo) {
-			maybe.noWrap()
+		if (canNoDo)
 			continue
-		}
+		args.push(param)
 	}
-	if (!decl.returns) return maybe.none()
-	return maybe.wrap({
+	if (!decl.returns) return result.none()
+	return result.wrap({
 		kind: PTKind.INVOKATION,
 		func: decl,
-		args: params.map(p=>p.value as Arg),
+		args,
 		scopeNames:scope.getScopeNames()
 	})
 }
 
-function operator(node:ASTOpNode,scope:Scope,log:Logger): Maybe<PTOpNode> {
-	const maybe = new MaybeWrapper<PTOpNode>()
+function operator(node:ASTOpNode,scope:Scope,log:Logger): Result<PTOpNode,ValueType> {
+	const result = new ResultWrapper<PTOpNode,ValueType>()
 	switch (node.operator.value) {
 		case '+':
 		case '-':
@@ -148,21 +148,21 @@ function operator(node:ASTOpNode,scope:Scope,log:Logger): Maybe<PTOpNode> {
 		case '%': {
 			console.assert(node.operands.length == 2, 'two operands') // skipping unary plus and minus for now
 			let [o0,o1] = node.operands.map(o=>parseExpression(o,scope,log))
-			if (!o0.value || !o1.value)
-				return maybe.none()
-			let [t0,t1] = [ptExprToType(o0.value),ptExprToType(o1.value)]
+			if (result.merge(o0) || result.merge(o1))
+				return result.none()
+			let [t0,t1] = [ptExprToType(o0.getValue()),ptExprToType(o1.getValue())]
 			if (t0.type != Type.INT) {
 				log.addError(node.operator.error('only int op for now'))
-				return maybe.none()
+				return result.none()
 			}
 			if (t0.type != t1.type) {
 				log.addError(node.operator.error('no cast for now'))
-				return maybe.none()
+				return result.none()
 			}
-			return maybe.wrap({
+			return result.wrap({
 				kind: PTKind.OPERATOR,
 				op: node.operator.value,
-				vals: [o0.value,o1.value],
+				vals: [o0.getValue(),o1.getValue()],
 				type: t0,
 				scopeNames:scope.getScopeNames()
 			})
@@ -171,21 +171,21 @@ function operator(node:ASTOpNode,scope:Scope,log:Logger): Maybe<PTOpNode> {
 		case '=': {
 			console.assert(node.operands.length == 2, 'two operands')
 			let [o0,o1] = node.operands.map(o=>parseExpression(o,scope,log))
-			if (!o0.value || !o1.value)
-				return maybe.none()
-			if (!ptCanMut(o0.value)) {
+			if (result.merge(o0) || result.merge(o1))
+				return result.none()
+			if (!ptCanMut(o0.getValue())) {
 				log.addError(node.operands[0].error('left hand side immutable'))
-				return maybe.none()
+				return result.none()
 			}
-			let [t0,t1] = [ptExprToType(o0.value),ptExprToType(o1.value)]
+			let [t0,t1] = [ptExprToType(o0.getValue()),ptExprToType(o1.getValue())]
 			if (!isSubType(t0,t1)) {
 				log.addError(node.operator.error('types not assignable'))
-				return maybe.none()
+				return result.none()
 			}
-			return maybe.wrap({
+			return result.wrap({
 				kind: PTKind.OPERATOR,
 				op: node.operator.value,
-				vals: [o0.value,o1.value],
+				vals: [o0.getValue(),o1.getValue()],
 				type: t0,
 				scopeNames:scope.getScopeNames()
 			})
@@ -198,25 +198,25 @@ function operator(node:ASTOpNode,scope:Scope,log:Logger): Maybe<PTOpNode> {
 		case '%=': {
 			console.assert(node.operands.length == 2, 'two operands')
 			let [o0,o1] = node.operands.map(o=>parseExpression(o,scope,log))
-			if (!o0.value || !o1.value)
-				return maybe.none()
-			if (!ptCanMut(o0.value)) {
+			if (result.merge(o0) || result.merge(o1))
+				return result.none()
+			if (!ptCanMut(o0.getValue())) {
 				log.addError(node.operands[0].error('left hand side immutable'))
-				return maybe.none()
+				return result.none()
 			}
-			let [t0,t1] = [ptExprToType(o0.value),ptExprToType(o1.value)]
+			let [t0,t1] = [ptExprToType(o0.getValue()),ptExprToType(o1.getValue())]
 			if (t0.type != Type.INT) {
 				log.addError(node.operands[0].error('only int op for now'))
-				return maybe.none()
+				return result.none()
 			}
 			if (t0.type != t1.type) {
 				log.addError(node.operator.error('no cast for now'))
-				return maybe.none()
+				return result.none()
 			}
-			return maybe.wrap({
+			return result.wrap({
 				kind: PTKind.OPERATOR,
 				op: node.operator.value,
-				vals: [o0.value,o1.value],
+				vals: [o0.getValue(),o1.getValue()],
 				type: t0,
 				scopeNames:scope.getScopeNames()
 			})
@@ -226,21 +226,21 @@ function operator(node:ASTOpNode,scope:Scope,log:Logger): Maybe<PTOpNode> {
 		case '--': {
 			console.assert(node.operands.length == 1, 'one operand')
 			let o = parseExpression(node.operands[0],scope,log)
-			if (!o.value)
-				return maybe.none()
-			if (!ptCanMut(o.value)) {
+			if (result.merge(o))
+				return result.none()
+			if (!ptCanMut(o.getValue())) {
 				log.addError(node.operands[0].error('left hand side immutable'))
-				return maybe.none()
+				return result.none()
 			}
-			let type = ptExprToType(o.value)
+			let type = ptExprToType(o.getValue())
 			if (type.type != Type.INT) {
 				log.addError(node.operator.error('only int op for now'))
-				return maybe.none()
+				return result.none()
 			}
-			return maybe.wrap({
+			return result.wrap({
 				kind: PTKind.OPERATOR,
 				op: node.operator.value,
-				vals: [o.value],
+				vals: [o.getValue()],
 				type,
 				scopeNames:scope.getScopeNames()
 			})
@@ -254,21 +254,21 @@ function operator(node:ASTOpNode,scope:Scope,log:Logger): Maybe<PTOpNode> {
 		case '!=': {
 			console.assert(node.operands.length == 2, 'two operands')
 			let [o0,o1] = node.operands.map(o=>parseExpression(o,scope,log))
-			if (!o0.value || !o1.value)
-				return maybe.none()
-			let [t0,t1] = [ptExprToType(o0.value),ptExprToType(o1.value)]
+			if (result.merge(o0) || result.merge(o1))
+				return result.none()
+			let [t0,t1] = [ptExprToType(o0.getValue()),ptExprToType(o1.getValue())]
 			if (t0.type != Type.INT) {
 				log.addError(node.operands[0].error('only int op for now'))
-				return maybe.none()
+				return result.none()
 			}
 			if (t0.type != t1.type) {
 				log.addError(node.operator.error('no cast for now'))
-				return maybe.none()
+				return result.none()
 			}
-			return maybe.wrap({
+			return result.wrap({
 				kind: PTKind.OPERATOR,
 				op: node.operator.value,
-				vals: [o0.value,o1.value],
+				vals: [o0.getValue(),o1.getValue()],
 				type: {type:Type.BOOL},
 				scopeNames:scope.getScopeNames()
 			})
@@ -278,21 +278,19 @@ function operator(node:ASTOpNode,scope:Scope,log:Logger): Maybe<PTOpNode> {
 		case '||': {
 			console.assert(node.operands.length == 2, 'two operands')
 			let [o0,o1] = node.operands.map(o=>parseExpression(o,scope,log))
-			if (!o0.value || !o1.value)
-				return maybe.none()
-			let [t0,t1] = [ptExprToType(o0.value),ptExprToType(o1.value)]
+			if (result.merge(o0) || result.merge(o1))
+				return result.none()
+			let [t0,t1] = [ptExprToType(o0.getValue()),ptExprToType(o1.getValue())]
 			if (t0.type != Type.BOOL) {
 				log.addError(node.operands[0].error('expected bool'))
-				maybe.noWrap()
 			}
 			if (t0.type != Type.BOOL) {
 				log.addError(node.operands[1].error('expected bool'))
-				maybe.noWrap()
 			}
-			return maybe.wrap({
+			return result.wrap({
 				kind: PTKind.OPERATOR,
 				op: node.operator.value,
-				vals: [o0.value,o1.value],
+				vals: [o0.getValue(),o1.getValue()],
 				type: {type:Type.BOOL},
 				scopeNames:scope.getScopeNames()
 			})
@@ -301,17 +299,16 @@ function operator(node:ASTOpNode,scope:Scope,log:Logger): Maybe<PTOpNode> {
 		case '!': {
 			console.assert(node.operands.length == 1, 'one operand')
 			let o = parseExpression(node.operands[0],scope,log)
-			if (!o.value)
-				return maybe.none()
-			let type = ptExprToType(o.value)
+			if (result.merge(o))
+				return result.none()
+			let type = ptExprToType(o.getValue())
 			if (type.type != Type.BOOL) {
 				log.addError(node.operands[0].error('expected bool'))
-				maybe.noWrap()
 			}
-			return maybe.wrap({
+			return result.wrap({
 				kind: PTKind.OPERATOR,
 				op: node.operator.value,
-				vals: [o.value],
+				vals: [o.getValue()],
 				type: {type:Type.BOOL},
 				scopeNames:scope.getScopeNames()
 			})

@@ -1,10 +1,10 @@
 
-import { ParsingFile } from "../toolbox/ParsingFile";
 import { TokenI } from "./Token";
+import { ModuleFile } from "../input/InputTree";
 
 export interface TokenIteratorI {
 
-    file: ParsingFile
+    file: ModuleFile
 
     current(): TokenI
     peek(): TokenI
@@ -25,7 +25,7 @@ export interface TokenIteratorI {
 export class TokenIterator implements TokenIteratorI {
 
     constructor(
-        public readonly file: ParsingFile,
+        public readonly file: ModuleFile,
         private readonly tokens: TokenI[],
         private index = 0
     ) {}
@@ -85,7 +85,7 @@ export class LiveIterator implements TokenIteratorI {
     private done = false
 
     constructor(
-        public readonly file: ParsingFile,
+        public readonly file: ModuleFile,
         private readonly generator: /*Generator<TokenI,void>*/ Generator
     ) {}
 
