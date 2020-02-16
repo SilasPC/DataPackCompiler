@@ -1,13 +1,16 @@
 import { TokenI } from "../lexing/Token"
 import { parseJSONInline } from "../toolbox/other"
 
-const rangeRgx = /-?\d*(\.\d+)?(?:\.\.-?\d*(\.\d+)?)?(?<sep> )?/g
+const rangeRgx = /(?<min>-?\d*(\.\d+)?)(?:\.\.(?<max>-?\d*(\.\d+)?))?(?<sep> )?/g
 export function readRange(token:TokenI,i:number): number | string {
 	rangeRgx.lastIndex = 0
 	let res = rangeRgx.exec(token.value.slice(i))
 	if (!res) return 'expected range'
 	if (!res.groups || (!res.groups.sep && token.value.length > i + res[0].length))
 		return 'expected seperator'
+	if (res.groups.min && res.groups.max) {
+		if (Number(res.groups.min) > Number(res.groups.max)) return 'maximum is smaller than minimum'
+	}
 	return res[0].length
 }
 
