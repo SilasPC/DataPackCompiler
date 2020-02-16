@@ -6,6 +6,7 @@ import { Scope } from "../semantics/Scope";
 import { ASTCMDNode, ASTNodeType, ASTNode } from "../syntax/AST";
 import { Maybe, MaybeWrapper } from "../toolbox/Maybe";
 import { CompileError } from "../toolbox/CompileErrors";
+import { Logger } from "../toolbox/Logger";
 
 export class SyntaxSheet {
 
@@ -25,11 +26,17 @@ export class SyntaxSheet {
 		private readonly root: RootCMDNode
 	) {}
 
-	readSyntax(token:TokenI,ctx:CompileContext): Maybe<ASTCMDNode> {
+	verifySyntaxNoSlash(token:TokenI): CompileError | null {
+		let res = this.root.syntaxParseNoSlash(token)
+		if (res instanceof CompileError) return res
+		return null
+	}
+
+	readSyntax(token:TokenI,log:Logger): Maybe<ASTCMDNode> {
 		const maybe = new MaybeWrapper<ASTCMDNode>()
 		let res = this.root.syntaxParse(token)
 		if (res instanceof CompileError) {
-			ctx.logger.addError(res)
+			log.addError(res)
 			return maybe.none()
 		}
 		return maybe.wrap(new ASTCMDNode(token.line.file,token.indexStart,token.indexEnd,token,res))

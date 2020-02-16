@@ -1,14 +1,16 @@
 
-event did_materialize
-event did_dematerialize
+pub event did_materialize
+pub event did_dematerialize
 
-// replace with std::tick
-event tick
-on tick {
+#[load]
+event load
+on load {
+    /scoreboard objectives add vars dummy
+}
+
+pub fn tick(): void {
     // maybe an std for this?
     // note: mc stacker
     /execute at @e[tag=TARDIS] run summon falling_block ~ ~-0.1876 ~ {BlockState:{Name:"black_concrete"},NoGravity:1b,DropItem:0b,Invulnerable:1b}
     /execute at @e[tag=TARDIS] run summon falling_block ~ ~0.8124 ~ {BlockState:{Name:"black_concrete"},NoGravity:1b,DropItem:0b,Invulnerable:1b}
 }
-
-

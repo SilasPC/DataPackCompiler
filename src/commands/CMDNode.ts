@@ -107,15 +107,17 @@ export class SemanticalCMDNode extends CMDNode {
 			case 'pint': return readNumber(token,true,false,false,i)
 			case 'float': return readNumber(token,false,true,true,i)
 			case 'ufloat': return readNumber(token,false,false,true,i)
-			case 'player': return readSelector(token,i,false,true)
-			case 'players': return readSelector(token,i,true,true)
-			case 'entity': return readSelector(token,i,false,false)
-			case 'entities': return readSelector(token,i,true,false)
+			case 'player': return readSelector(token,i,false,true,true)
+			case 'players': return readSelector(token,i,true,true,true)
+			case 'entity': return readSelector(token,i,false,false,true)
+			case 'entities': return readSelector(token,i,true,false,true)
 			case 'coords': return readCoords(token,i)
 			case 'coords2': return read2Coords(token,i)
 			case 'json': return readJSON(token,i)
 			case 'nbtpath': return readNbtPath(token,i)
 			case 'nbt':
+			case 'block':
+			case 'item':
 				console.log('sheet spec not yet: '+spec)
 				return token.value.length - i
 			default:
@@ -133,6 +135,10 @@ export class RootCMDNode extends CMDNode {
 
 	syntaxParse(token:TokenI) {
 		return this.parseSyntax(token,1)
+	}
+
+	syntaxParseNoSlash(token:TokenI) {
+		return this.parseSyntax(token,0)
 	}
 	
 	protected tryConsume() {

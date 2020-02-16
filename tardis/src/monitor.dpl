@@ -1,0 +1,22 @@
+
+#[tick]
+event tick
+on tick {
+    // Update delay
+    /execute if score monitorDelay vars matches 1.. run scoreboard players remove monitorDelay vars 1
+    /execute if score monitorDelay vars matches 1 run function tardis:monitor/update
+}
+
+pub fn update(): void {
+    /execute if score monitor vars matches 1.. run scoreboard players set monitor vars 0
+
+    // Monitor 0 : Location
+    // Is landed: show location
+    /execute if score monitorDelay vars matches 2.. if score isLanded vars matches 1 if score monitor vars matches 0 at @e[tag=TARDIS_MONITOR] run data merge block ~ ~2 ~ {Text1:"[{\"text\":\"\",\"clickEvent\":{\"action\":\"run_command\",\"value\":\"function tardis:monitor/click\"}},{\"text\":\"L\",\"bold\":true},{\"text\":\"o\",\"bold\":true,\"obfuscated\":true},{\"text\":\"c\",\"bold\":true},{\"text\":\"a\",\"bold\":true,\"obfuscated\":true},{\"text\":\"t\",\"bold\":true},{\"text\":\"io\",\"bold\":true,\"obfuscated\":true},{\"text\":\"n:\",\"bold\":true}]",Text2:"[\"\",{\"text\":\"T:\"},{\"score\":{\"name\":\"tx\",\"objective\":\"vars\"}},{\"text\":\",\"},{\"score\":{\"name\":\"ty\",\"objective\":\"vars\"}},{\"text\":\",\"},{\"score\":{\"name\":\"tz\",\"objective\":\"vars\"}},{\"text\":\",\"},{\"score\":{\"name\":\"td\",\"objective\":\"vars\"}}]",Text3:"[\"\",{\"text\":\"C:\"},{\"score\":{\"name\":\"cx\",\"objective\":\"vars\"}},{\"text\":\",\"},{\"score\":{\"name\":\"cy\",\"objective\":\"vars\"}},{\"text\":\",\"},{\"score\":{\"name\":\"cz\",\"objective\":\"vars\"}},{\"text\":\",\"},{\"score\":{\"name\":\"cd\",\"objective\":\"vars\"}}]"}
+    /execute if score monitorDelay vars matches 0..1 if score isLanded vars matches 1 if score monitor vars matches 0 at @e[tag=TARDIS_MONITOR] run data merge block ~ ~2 ~ {Text1:"{\"text\":\"Location:\",\"clickEvent\":{\"action\":\"run_command\",\"value\":\"function tardis:monitor/click\"},\"bold\":true}",Text2:"[\"\",{\"text\":\"T:\"},{\"score\":{\"name\":\"tx\",\"objective\":\"vars\"}},{\"text\":\",\"},{\"score\":{\"name\":\"ty\",\"objective\":\"vars\"}},{\"text\":\",\"},{\"score\":{\"name\":\"tz\",\"objective\":\"vars\"}},{\"text\":\",\"},{\"score\":{\"name\":\"td\",\"objective\":\"vars\"}}]",Text3:"[\"\",{\"text\":\"C:\"},{\"score\":{\"name\":\"cx\",\"objective\":\"vars\"}},{\"text\":\",\"},{\"score\":{\"name\":\"cy\",\"objective\":\"vars\"}},{\"text\":\",\"},{\"score\":{\"name\":\"cz\",\"objective\":\"vars\"}},{\"text\":\",\"},{\"score\":{\"name\":\"cd\",\"objective\":\"vars\"}}]"}
+    
+    // Is not landed: don't show location
+    /execute if score monitorDelay vars matches 2.. if score isLanded vars matches 0 if score monitor vars matches 0 at @e[tag=TARDIS_MONITOR] run data merge block ~ ~2 ~ {Text1:"[{\"text\":\"\",\"clickEvent\":{\"action\":\"run_command\",\"value\":\"function tardis:monitor/click\"}},{\"text\":\"L\",\"bold\":true},{\"text\":\"o\",\"bold\":true,\"obfuscated\":true},{\"text\":\"c\",\"bold\":true},{\"text\":\"a\",\"bold\":true,\"obfuscated\":true},{\"text\":\"t\",\"bold\":true},{\"text\":\"io\",\"bold\":true,\"obfuscated\":true},{\"text\":\"n:\",\"bold\":true}]",Text2:"[\"\",{\"text\":\"T:\"},{\"score\":{\"name\":\"tx\",\"objective\":\"vars\"}},{\"text\":\",\"},{\"score\":{\"name\":\"ty\",\"objective\":\"vars\"}},{\"text\":\",\"},{\"score\":{\"name\":\"tz\",\"objective\":\"vars\"}},{\"text\":\",\"},{\"score\":{\"name\":\"td\",\"objective\":\"vars\"}}]",Text3:"[\"\",{\"text\":\"C: \"},{\"text\":\"Not landed\",\"italic\":true}]"}
+    /execute if score monitorDelay vars matches 0..1 if score isLanded vars matches 0 if score monitor vars matches 0 at @e[tag=TARDIS_MONITOR] run data merge block ~ ~2 ~ {Text1:"{\"text\":\"Location:\",\"clickEvent\":{\"action\":\"run_command\",\"value\":\"function tardis:monitor/click\"},\"bold\":true}",Text2:"[\"\",{\"text\":\"T:\"},{\"score\":{\"name\":\"tx\",\"objective\":\"vars\"}},{\"text\":\",\"},{\"score\":{\"name\":\"ty\",\"objective\":\"vars\"}},{\"text\":\",\"},{\"score\":{\"name\":\"tz\",\"objective\":\"vars\"}},{\"text\":\",\"},{\"score\":{\"name\":\"td\",\"objective\":\"vars\"}}]",Text3:"[\"\",{\"text\":\"C: \"},{\"text\":\"Not landed\",\"italic\":true}]"}
+
+}

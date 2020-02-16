@@ -1,0 +1,82 @@
+
+pub fn tick(): void {
+    
+    // Handbreak
+    /scoreboard players set handbreak vars 0
+    /execute at @e[tag=TARDIS_HANDBREAK] if block ~ ~2 ~ lever[powered=true] run scoreboard players set handbreak vars 1
+
+    // Orientor
+    /execute at @e[tag=TARDIS_ORIENTOR] if block ~ ~2 ~ repeater[delay=1] run scoreboard players set rotation vars 0
+    /execute at @e[tag=TARDIS_ORIENTOR] if block ~ ~2 ~ repeater[delay=2] run scoreboard players set rotation vars 1
+    /execute at @e[tag=TARDIS_ORIENTOR] if block ~ ~2 ~ repeater[delay=3] run scoreboard players set rotation vars 2
+    /execute at @e[tag=TARDIS_ORIENTOR] if block ~ ~2 ~ repeater[delay=4] run scoreboard players set rotation vars 3
+
+    // Dimension selector
+    /scoreboard players operation tmp vars = td vars
+    /execute at @e[tag=TARDIS_DIMENSION_SELECTOR] if block ~ ~2 ~ repeater[delay=1] run scoreboard players set td vars 0
+    /execute at @e[tag=TARDIS_DIMENSION_SELECTOR] if block ~ ~2 ~ repeater[delay=2] run scoreboard players set td vars 0
+    /execute at @e[tag=TARDIS_DIMENSION_SELECTOR] if block ~ ~2 ~ repeater[delay=3] run scoreboard players set td vars 1
+    /execute at @e[tag=TARDIS_DIMENSION_SELECTOR] if block ~ ~2 ~ repeater[delay=4] run scoreboard players set td vars 2
+    /execute unless score tmp vars = td vars run function tardis:monitor/update
+
+    // Saves selector
+    // Reset
+    /execute if score cs vars matches 1 run scoreboard players operation tx vars >< s1x vars
+    /execute if score cs vars matches 1 run scoreboard players operation ty vars >< s1y vars
+    /execute if score cs vars matches 1 run scoreboard players operation tz vars >< s1z vars
+    /execute if score cs vars matches 1 run scoreboard players operation td vars >< s1d vars
+    /execute if score cs vars matches 2 run scoreboard players operation tx vars >< s2x vars
+    /execute if score cs vars matches 2 run scoreboard players operation ty vars >< s2y vars
+    /execute if score cs vars matches 2 run scoreboard players operation tz vars >< s2z vars
+    /execute if score cs vars matches 2 run scoreboard players operation td vars >< s2d vars
+    /execute if score cs vars matches 3 run scoreboard players operation tx vars >< s3x vars
+    /execute if score cs vars matches 3 run scoreboard players operation ty vars >< s3y vars
+    /execute if score cs vars matches 3 run scoreboard players operation tz vars >< s3z vars
+    /execute if score cs vars matches 3 run scoreboard players operation td vars >< s3d vars
+    // Get state
+    /scoreboard players operation tmp vars = cs vars
+    /execute at @e[tag=TARDIS_SAVES_SELECTOR] if block ~ ~2 ~ repeater[delay=1] run scoreboard players set cs vars 0
+    /execute at @e[tag=TARDIS_SAVES_SELECTOR] if block ~ ~2 ~ repeater[delay=2] run scoreboard players set cs vars 1
+    /execute at @e[tag=TARDIS_SAVES_SELECTOR] if block ~ ~2 ~ repeater[delay=3] run scoreboard players set cs vars 2
+    /execute at @e[tag=TARDIS_SAVES_SELECTOR] if block ~ ~2 ~ repeater[delay=4] run scoreboard players set cs vars 3
+    // Replace
+    /execute if score cs vars matches 1 run scoreboard players operation tx vars >< s1x vars
+    /execute if score cs vars matches 1 run scoreboard players operation ty vars >< s1y vars
+    /execute if score cs vars matches 1 run scoreboard players operation tz vars >< s1z vars
+    /execute if score cs vars matches 1 run scoreboard players operation td vars >< s1d vars
+    /execute if score cs vars matches 2 run scoreboard players operation tx vars >< s2x vars
+    /execute if score cs vars matches 2 run scoreboard players operation ty vars >< s2y vars
+    /execute if score cs vars matches 2 run scoreboard players operation tz vars >< s2z vars
+    /execute if score cs vars matches 2 run scoreboard players operation td vars >< s2d vars
+    /execute if score cs vars matches 3 run scoreboard players operation tx vars >< s3x vars
+    /execute if score cs vars matches 3 run scoreboard players operation ty vars >< s3y vars
+    /execute if score cs vars matches 3 run scoreboard players operation tz vars >< s3z vars
+    /execute if score cs vars matches 3 run scoreboard players operation td vars >< s3d vars
+    // Update various things
+    /execute unless score tmp vars = cs vars run function tardis:console/save_sel_refresh
+    /execute unless score tmp vars = cs vars run function tardis:console/dim_sel_update
+    /execute unless score tmp vars = cs vars run function tardis:monitor/update
+
+    //
+    // Ambient console sound
+    /scoreboard players add ambientDelay vars 1
+    /execute if score ambientDelay vars matches 50.. run scoreboard players set ambientDelay vars 0
+    /execute if score ambientDelay vars matches 0 as @a[tag=IN_TARDIS] at @s run playsound ambient.cave ambient @p ~ ~ ~ 1 0.2 1
+}
+
+pub fn dim_sel_update(): void {
+    
+    /execute at @e[tag=TARDIS_DIMENSION_SELECTOR] if score td vars matches 0 if block ~ ~2 ~ minecraft:repeater[facing=north] run setblock ~ ~2 ~ minecraft:repeater[facing=north,delay=1]
+    /execute at @e[tag=TARDIS_DIMENSION_SELECTOR] if score td vars matches 1 if block ~ ~2 ~ minecraft:repeater[facing=north] run setblock ~ ~2 ~ minecraft:repeater[facing=north,delay=3]
+    /execute at @e[tag=TARDIS_DIMENSION_SELECTOR] if score td vars matches 2 if block ~ ~2 ~ minecraft:repeater[facing=north] run setblock ~ ~2 ~ minecraft:repeater[facing=north,delay=4]
+    /execute at @e[tag=TARDIS_DIMENSION_SELECTOR] if score td vars matches 0 if block ~ ~2 ~ minecraft:repeater[facing=south] run setblock ~ ~2 ~ minecraft:repeater[facing=south,delay=1]
+    /execute at @e[tag=TARDIS_DIMENSION_SELECTOR] if score td vars matches 1 if block ~ ~2 ~ minecraft:repeater[facing=south] run setblock ~ ~2 ~ minecraft:repeater[facing=south,delay=3]
+    /execute at @e[tag=TARDIS_DIMENSION_SELECTOR] if score td vars matches 2 if block ~ ~2 ~ minecraft:repeater[facing=south] run setblock ~ ~2 ~ minecraft:repeater[facing=south,delay=4]
+    /execute at @e[tag=TARDIS_DIMENSION_SELECTOR] if score td vars matches 0 if block ~ ~2 ~ minecraft:repeater[facing=east] run setblock ~ ~2 ~ minecraft:repeater[facing=east,delay=1]
+    /execute at @e[tag=TARDIS_DIMENSION_SELECTOR] if score td vars matches 1 if block ~ ~2 ~ minecraft:repeater[facing=east] run setblock ~ ~2 ~ minecraft:repeater[facing=east,delay=3]
+    /execute at @e[tag=TARDIS_DIMENSION_SELECTOR] if score td vars matches 2 if block ~ ~2 ~ minecraft:repeater[facing=east] run setblock ~ ~2 ~ minecraft:repeater[facing=east,delay=4]
+    /execute at @e[tag=TARDIS_DIMENSION_SELECTOR] if score td vars matches 0 if block ~ ~2 ~ minecraft:repeater[facing=west] run setblock ~ ~2 ~ minecraft:repeater[facing=west,delay=1]
+    /execute at @e[tag=TARDIS_DIMENSION_SELECTOR] if score td vars matches 1 if block ~ ~2 ~ minecraft:repeater[facing=west] run setblock ~ ~2 ~ minecraft:repeater[facing=west,delay=3]
+    /execute at @e[tag=TARDIS_DIMENSION_SELECTOR] if score td vars matches 2 if block ~ ~2 ~ minecraft:repeater[facing=west] run setblock ~ ~2 ~ minecraft:repeater[facing=west,delay=4]
+
+}

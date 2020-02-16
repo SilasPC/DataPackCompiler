@@ -1,0 +1,27 @@
+[pack]
+longName = "Tardis Datapack"
+name = "tardis"
+description = "Compiled from DataPack Language"
+namespace = "tardis"
+icon = "minecraft:beacon"
+
+[author]
+name = "Silas Pockendahl"
+player = "B4liz0ng"
+
+[compilation]
+sourceDir = "./src"
+emitDir = "./"
+minimumVersion = "0.1.0"
+obscureNames = false
+noInference = true
+noImplicitCast = true
+ignoreUnreachable = true
+sourceMap = true
+optimize = false
+noUnused = false
+ignoreWarnings = false
+verbosity = 0
+colorLog = true
+targetVersion = "latest"
+debugBuild = true

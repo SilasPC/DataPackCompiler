@@ -20,6 +20,7 @@
 - Defered for semantical check of unreferenced hoisters
 
 # FUTURE
+- Verify functions are actually loaded (schedule and cancel?)
 - Enums
 - Blocktags
 - Dependencies
@@ -41,6 +42,7 @@
 	- #[fail_soft] (for debugging)
 	- #[todo]
 	- #[disabled]
+	- #[version(1.5,1.6)]
 	- config? std type impl?
 	- ?
 

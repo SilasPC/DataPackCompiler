@@ -1,11 +1,9 @@
 
 import { TokenI } from "../lexing/Token";
-import { ASTStaticDeclaration, ASTStaticBody } from "../syntax/AST";
+import { ASTStaticBody } from "../syntax/AST";
 import { promises as fs } from "fs";
-import { resolve, relative, basename } from 'path'
+import { resolve, relative } from 'path'
 import { TokenIterator } from "../lexing/TokenIterator";
-import { ModDeclaration, DeclarationType } from "../semantics/declarations/Declaration";
-import { Scope } from "../semantics/Scope";
 import { SourceLine } from "../lexing/SourceLine";
 import { Interspercer } from "./Interspercer";
 

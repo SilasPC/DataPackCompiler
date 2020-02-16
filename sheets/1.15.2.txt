@@ -18,7 +18,7 @@ bossbar
     value <uint>
     visible true|false
 
-clear [<entities>] [<id>] [<uint>]
+clear [<entities>] [<item>] [<uint>]
 
 clone <coords> <coords> <coords> [
   filtered [force|move|normal]
@@ -91,7 +91,7 @@ enchant <player> <id> [uint]
   in <id> [<:exe>]
   achored feet|eyes [<:exe>]
   if|unless
-    block <coords> <id> [<:exe>]
+    block <coords> <block> [<:exe>]
     blocks <coords> <coords> <coords> all|masked [<:exe>]
     data
       block <coords> <nbtpath> [<:exe>]
@@ -116,9 +116,9 @@ experience
   set <players> <uint> [points|levels]
   query <player> points|levels
 
-fill <coords> <coords> <id> [
+fill <coords> <coords> <block> [
   destroy|hollow|keep|outline
-  replace <id>
+  replace <block>
 
 forceload
   add <coords2> [<coords2>]
@@ -133,7 +133,7 @@ gamerule <name> [true|false|<int>]
 
 help [<text>]
 
-give <players> <id> [<pint>]
+give <players> <item> [<pint>]
 
 kick <players> [<text>]
 
@@ -162,7 +162,7 @@ msg|w|tell <players> <text>
 
 particle <id> <coords> <float> [<coords>] [<coords>] [<ufloat>] [<uint>] [force|normal]
 
-playsound <id> [ambient|block|hostile|master|music|neutral|player|record|voice|weather] [<players>] [<coords>] [<ufloat>] [<ufloat>]
+playsound <id> [ambient|block|hostile|master|music|neutral|player|record|voice|weather] [<players>] [<coords>] [<ufloat>] [<ufloat>] [<ufloat>]
 
 publish [<uint>]
 
@@ -171,9 +171,8 @@ recipe give|take <players> *|<id>
 reload
 
 replaceitem
-                # VV this really is a slot, no namespaces
-  block <coords> <id> <id> <id> [<pint>]
-  entity <entities> <id> <id> [<pint>]
+  block <coords> <name> <id> [<pint>]
+  entity <entities> <name> <id> [<pint>]
 
 say <text>
 
@@ -184,24 +183,24 @@ schedule
 scoreboard
   objectives
     list
-    add <id> <id> [<jtxt>]
-    remove <id>
-    setdisplay <id> [<id>]
-    modify <id>
-      displayname <jtxt>
+    add <name> <id> [<json>]
+    remove <name>
+    setdisplay <name> [<name>]
+    modify <name>
+      displayname <json>
       rendertype hearts|integer
   players
-    list *|[<entity]
-    get <entity> <id>
-    set *|<entities> <id> <int>
-    add *|<entities> <id> <int>
-    remove *|<entities> <id> <int>
-    reset *|<entities> [<id>]
-    enable *|<entities> <id>
-    operation *|<entities> <id> +=|-=|*=|/=|%=|=|<|>|>< *|<entities> <id>
+    list *|[<entity>]
+    get <entity> <name>
+    set *|<entities> <name> <int>
+    add *|<entities> <name> <int>
+    remove *|<entities> <name> <int>
+    reset *|<entities> [<name>]
+    enable *|<entities> <name>
+    operation *|<entities> <name> +=|-=|*=|/=|%=|=|<|>|>< *|<entities> <name>
 
 
-setblock <coords> <id> [destroy|keep|replace]
+setblock <coords> <block> [destroy|keep|replace]
 
 setworldspawn [<coords>]
 
@@ -215,16 +214,16 @@ stopsound <players> [*|ambient|block|hostile|master|music|neutral|player|record|
 summon <id> [<coords>] [<nbt>]
 
 tag <entities>
-  add|remove <text>
+  add|remove <name>
   list
 
 team
-  add <id> [<json>]
-  remove|empty <id>
-  join <id> [<entities>]
+  add <name> [<json>]
+  remove|empty <name>
+  join <name> [<entities>]
   leave [<entities>]
-  list [<id>]
-  modify <id>
+  list [<name>]
+  modify <name>
     collisionRule always|never|pushOtherTeams|pushOwnTeam
     color reset|aqua|black|blue|dark_aqua|dark_blue|dark_gray|dark_green|dark_purple|dark_red|gold|grey|green|light_purple|red|white|yellow
     deathMessageVisibility always|never|hideForOtherTeams|hideForOwnTeam
@@ -254,7 +253,7 @@ title
   clear|reset
   times <uint> <uint> <uint>
 
-trigger <id> add|set <int>
+trigger <name> add|set <int>
 
 weather clear|rain|thunder [<pint>]
 

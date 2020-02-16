@@ -6,6 +6,9 @@ export class ResultWrapper<T,P> {
     private readonly errors = new Set<CompileError>()
     private readonly warnings = new Set<CompileError>()
 
+    addError(err:CompileError) {this.errors.add(err)}
+    addWarning(wrn:CompileError) {this.warnings.add(wrn)}
+
     merge<K,S>(res:Result<any,any>): res is FailedResult<K,S> {
         let resc = res as ResultClass<any,any>
         for (let err of resc.errors)

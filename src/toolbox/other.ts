@@ -1,6 +1,4 @@
 import { CompileError } from "./CompileErrors"
-import { DirectiveToken } from "../lexing/Token"
-import { Logger } from "./Logger"
 
 export interface Errorable {
 	error(err:string): CompileError

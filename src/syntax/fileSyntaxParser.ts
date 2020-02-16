@@ -48,9 +48,11 @@ export function fileSyntaxParser(pfile: ParsingFile, ctx: CompileContext): void 
                         break
                     case 'struct':
                         pfile.ast.add(wrapPublic(parseStruct(iter,ctx),isPub))
+                        isPub = null
                         break
                     case 'event':
                         pfile.ast.add(wrapPublic(parseEvent(iter,ctx),isPub))
+                        isPub = null
                         break
                     case 'on':
                         if (isPub) token.throwUnexpectedKeyWord()

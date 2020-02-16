@@ -21,7 +21,7 @@ export function RIMRAF(path:string) {
 
 import { join } from 'path'
 import { Stats, promises as fs } from 'fs'
-async function findRecursive(path:string): Promise<string[]> {
+export async function allFilesInDir(path:string): Promise<string[]> {
 	let files = await fs.readdir(path)
 	let stats = await Promise.all(files.map(f=>fs.stat(join(path,f))))
 	let dirs = stats
@@ -32,7 +32,7 @@ async function findRecursive(path:string): Promise<string[]> {
 		.filter(f=>!dirs.includes(f))
 		.map(f=>join(path,f))
 		.concat(
-			(await Promise.all(dirs.map(d=>findRecursive(join(path,d)))))
+			(await Promise.all(dirs.map(d=>allFilesInDir(join(path,d)))))
 				.reduce((a,c)=>a.concat(c),[])
 				.map(v=>v)
 		)

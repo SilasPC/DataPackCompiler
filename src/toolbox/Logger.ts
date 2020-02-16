@@ -58,7 +58,7 @@ export class Logger {
 	logErrors() {
 		for (let err of this.errs) {
 			this.lastLogType = null
-			this.log(0,'err',err.getErrorString())
+			this.log(0,'err',err.toString())
 		}
 		this.lastLogType = null
 	}
@@ -66,7 +66,7 @@ export class Logger {
 	logWarns() {
 		for (let err of this.wrns) {
 			this.lastLogType = null
-			this.log(0,'wrn',err.getErrorString())
+			this.log(0,'wrn',err.toString())
 		}
 		this.lastLogType = null
 	}

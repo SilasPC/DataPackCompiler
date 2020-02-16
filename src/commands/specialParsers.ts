@@ -1,7 +1,7 @@
 import { TokenI } from "../lexing/Token"
 import { parseJSONInline } from "../toolbox/other"
 
-const rangeRgx = /-?\d*(\.\d+)?\.\.-?\d*(\.\d+)?(?<sep> )?/g
+const rangeRgx = /-?\d*(\.\d+)?(?:\.\.-?\d*(\.\d+)?)?(?<sep> )?/g
 export function readRange(token:TokenI,i:number): number | string {
 	rangeRgx.lastIndex = 0
 	let res = rangeRgx.exec(token.value.slice(i))
@@ -118,12 +118,17 @@ export function readSelector(
 	token:TokenI,
 	i:number,
 	multiple:boolean,
-	playerOnly:boolean
+	playerOnly:boolean,
+	allowId:boolean
 ): number | string {
 	selRgx.lastIndex = 0
 	let res = selRgx.exec(token.value.slice(i))
-	if (!res)
+	if (!res) {
+		if (!allowId) return 'expected selector'
+		let idRes = readId(token,i,false)
+		if (typeof idRes == 'number') return idRes
 		return 'expected selector'
+	}
 	if (!res.groups || (!res.groups.sep && token.value.length > i + res[0].length))
 		return 'expected seperator'
 	if (!multiple && 'ae'.includes(res.groups['typ']))

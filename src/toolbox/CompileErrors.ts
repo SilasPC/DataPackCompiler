@@ -3,23 +3,19 @@ import { SourceLine } from "../lexing/SourceLine"
 import cols from 'colors/safe'
 import { ParsingFile } from "./ParsingFile"
 
+export type ErrorType = 'File' | 'Syntax' | 'Type' | 'Internal'
+
 export class CompileError extends Error {
 
 	constructor(
-		private readonly errorString: string
-	) {
-		super(errorString)
-	}
+		protected readonly errorString: string
+	) {super(errorString)}
 
-	getErrorString() {
-		return this.errorString
-	}
+	toString() {return this.message}
 
 }
 
 export class SourceCodeError extends CompileError {
-
-	private readonly errString: string
 
 	constructor(
 		pfile: ParsingFile,
@@ -27,13 +23,9 @@ export class SourceCodeError extends CompileError {
 		indexEnd: number,
 		msg: string
 	) {
-		super(msg)
-		this.errString = createErrorMessage(pfile,indexStart,indexEnd,msg)
+		super(createErrorMessage(pfile,indexStart,indexEnd,msg))
 	}
 
-	getErrorString() {
-		return this.errString
-	}
 }
 
 

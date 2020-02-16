@@ -1,4 +1,4 @@
-/*
+
 fn pull(): void {
     // Floor
     /execute if block ~ ~2 ~ lever[face=floor,facing=north] run setblock ~ ~2 ~ lever[face=floor,facing=north,powered=true]
@@ -34,6 +34,3 @@ fn unpull(): void {
     /execute if block ~ ~2 ~ lever[face=ceiling,facing=south] run setblock ~ ~2 ~ lever[face=ceiling,facing=south,powered=false]
     /execute if block ~ ~2 ~ lever[face=ceiling,facing=west] run setblock ~ ~2 ~ lever[face=ceiling,facing=west,powered=false]
 }
-
-
-*/

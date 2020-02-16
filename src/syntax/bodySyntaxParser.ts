@@ -84,7 +84,7 @@ export function lineSyntaxParser(iter:TokenIteratorI,ctx:CompileContext): null |
             }
         }
         case TokenType.COMMAND:
-            let res = ctx.syntaxSheet.readSyntax(iter.current(),ctx)
+            let res = ctx.syntaxSheet.readSyntax(iter.current(),ctx.logger)
             if (res.value) return res.value
             return null
         case TokenType.OPERATOR:
