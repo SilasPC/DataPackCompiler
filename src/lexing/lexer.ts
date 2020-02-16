@@ -50,11 +50,11 @@ function groupToType(g:Exclude<RgxGroup,'cmt'|'nwl'|'bad'>): TokenType {
     }
 }
 
-export function lexer(pfile:ModuleFile) {
+export function lexer(file:ModuleFile) {
 
-    for (let token of baseLex(pfile,pfile.source)) {
+    for (let token of baseLex(file,file.source)) {
         if (!token) throw new Error('wtf')
-        pfile.addToken(token)
+        file.addToken(token)
     }
 
 }

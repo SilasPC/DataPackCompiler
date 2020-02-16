@@ -40,42 +40,10 @@ export class Logger {
 
 	}
 
-	private readonly errs = new Set<CompileError>()
-	private readonly wrns = new Set<CompileError>()
-
-	addWarning(wrn:CompileError) {
-		this.wrns.add(wrn)
-	}
-
-	addError(err:CompileError) {
-		this.errs.add(err)
-	}
-
-	hasErrors() {return this.errs.size > 0}
-	getErrorCount() {return this.errs.size}
-	hasWarnings() {return this.wrns.size > 0}
-	getWarningCount() {return this.wrns.size}
-
-	logErrors() {
-		for (let err of this.errs) {
-			this.lastLogType = null
-			this.log(0,'err',err.toString())
-		}
-		this.lastLogType = null
-	}
-
-	logWarns() {
-		for (let err of this.wrns) {
-			this.lastLogType = null
-			this.log(0,'wrn',err.toString())
-		}
-		this.lastLogType = null
-	}
-
 	logErrs(res:ResultWrapper<any,any>) {
 		for (let err of res.getErrors()) {
 			this.lastLogType = null
-			this.log(0,'err',err.toString())
+			this.log(0,'err',err.getErrorMsg())
 		}
 		this.lastLogType = null
 	}
@@ -83,7 +51,7 @@ export class Logger {
 	logWrns(res:ResultWrapper<any,any>) {
 		for (let err of res.getWarnings()) {
 			this.lastLogType = null
-			this.log(0,'wrn',err.toString())
+			this.log(0,'wrn',err.getErrorMsg())
 		}
 		this.lastLogType = null
 	}

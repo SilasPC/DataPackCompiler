@@ -58,6 +58,9 @@ export class Datapack {
 		logger.logGroup(2,'inf','Overwritten configurations:')
 		for (let [key,val] of Object.entries(purgeNullishKeys<WeakCompilerOptions,any>(cfgOverride)))
 			logger.log(2,'inf',`${key} => ${val}`)
+
+		logger.logGroup(3,'inf','File structure:')
+		logger.log(3,'inf',src.getStructureString())
 		
 		try {
 			let sheet = await SyntaxSheet.load(cfg.compilation.targetVersion)
@@ -65,8 +68,6 @@ export class Datapack {
 			if (!result.merge(res)) this.status = res.getValue()
 			else {
 				this.status = 'fail'
-				this.log.logWrns(result)
-				this.log.logErrs(result)
 			}
 		} catch (e) {
 			this.status = 'fail'

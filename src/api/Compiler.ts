@@ -122,27 +122,27 @@ export function compile(logger:Logger,cfg:Config,src:InputTree,sheet:SyntaxSheet
 	modules.forEach(mod=>fileSyntaxParser(mod,ctx))
 	logger.log(1,'inf',`Syntax analysis complete`)
 
-	let gotErrors = false
+	let gotSemanticalErrors = false
 
 	parseInputTree(src,programManager,ctx)
 
-	if (result.merge(programManager.hoisting.flushDefered()))
-		gotErrors = true
+	if (result.mergeCheck(programManager.hoisting.flushDefered()))
+		gotSemanticalErrors = true
 
 	/*for (let h of programManager.getUnreferenced()) {
 		logger.addError(h.getToken().warning('Never referenced'))
 	}*/
 
-	if (result.merge(programManager.hoisting.flushAll(logger)))
-		gotErrors = true
+	if (result.mergeCheck(programManager.hoisting.flushAll()))
+		gotSemanticalErrors = true
 
-	if (!gotErrors)
+	if (!gotSemanticalErrors)
 		logger.log(1,'inf',`Semantical analysis complete`)
 	else
 		logger.log(1,'err',`Semantical analysis failed`)
 
 	const output = new OutputManager(cfg)
-	if (!gotErrors) {
+	if (!gotSemanticalErrors) {
 
 		generate(programManager,output)
 		logger.log(1,'inf',`Generation complete`)
@@ -155,22 +155,16 @@ export function compile(logger:Logger,cfg:Config,src:InputTree,sheet:SyntaxSheet
 
 	}
 
-	if (logger.hasWarnings()) {
-		logger.logWarns()
-		logger.log(0,'wrn',`Raised ${logger.getWarningCount()} warning${logger.getWarningCount()>1?'s':''}`)
+	if (result.hasWarnings()) {
+		logger.logWrns(result)
+		logger.log(0,'wrn',`Raised ${result.getWarnings().size} warning${result.getWarnings().size>1?'s':''}`)
 	}
 
-	if (logger.hasErrors()) {
-		logger.logErrors()
-		logger.log(0,'err',`Raised ${logger.getErrorCount()} error${logger.getErrorCount()>1?'s':''}`)
+	if (result.hasErrors()) {
+		logger.logErrs(result)
+		logger.log(0,'err',`Raised ${result.getErrors().size} error${result.getErrors().size>1?'s':''}`)
 	}
-
-	if (logger.hasErrors())
-		return result.none()
-
-	if (logger.hasErrors()||gotErrors)
-		return result.none()
-
+	
 	return result.wrap(new CompileResult(cfg,output))
 
 }

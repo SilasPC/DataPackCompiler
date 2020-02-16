@@ -1,7 +1,6 @@
 import { ASTNode, ASTNodeType, astArrErr, ASTBody } from "../syntax/AST"
 import { exhaust } from "../toolbox/other"
 import { parseDefine } from "./statements/parseDefine"
-import { Logger } from "../toolbox/Logger"
 import { parseExpression } from "./expressionParser"
 import { Scope } from "./Scope"
 import { ptExprToType, PTKind, PTCmdNode, PTBody, PTReturn } from "./ParseTree"
@@ -12,7 +11,7 @@ import { Interspercer } from "../toolbox/Interspercer"
 import { listDirectives, checkDebugIgnore } from "./directives"
 import { Result, ResultWrapper } from "../toolbox/Result"
 
-export function parseBody(nodes:ASTBody,scope:Scope,log:Logger,cfg:CompilerOptions): Result<PTBody,null> {
+export function parseBody(nodes:ASTBody,scope:Scope,cfg:CompilerOptions): Result<PTBody,null> {
 	let result = new ResultWrapper<PTBody,null>()
 
 	let returnedAt: ASTNode | null = null
@@ -21,8 +20,8 @@ export function parseBody(nodes:ASTBody,scope:Scope,log:Logger,cfg:CompilerOptio
 
 	for (let [dirTokens,node] of nodes.iterate()) {
 		
-		let dirs = listDirectives(dirTokens,log)
-		if (checkDebugIgnore(dirs,cfg.debugBuild)) continue
+		let dirs = listDirectives(dirTokens)
+		if (checkDebugIgnore(dirs.getEnsured(),cfg.debugBuild)) continue
 
 		/*for (let dir of dirs) {
 			let val = dir.value.slice(2,-1).trim()
@@ -30,7 +29,7 @@ export function parseBody(nodes:ASTBody,scope:Scope,log:Logger,cfg:CompilerOptio
 				case 'debug':
 					break
 				default:
-					log.addError(dir.error('unknown directive'))
+					result.addError(dir.error('unknown directive'))
 					maybe.noWrap()
 			}
 			
@@ -44,14 +43,14 @@ export function parseBody(nodes:ASTBody,scope:Scope,log:Logger,cfg:CompilerOptio
 				let foundErrors = false
 				let interpolations = node.consume.map<PTCmdNode['interpolations'][0]>(n => {
 					if (!n.expr) return {node:n.node,capture:n.capture,pt:null}
-					let x = parseExpression(n.expr,scope,log)
+					let x = parseExpression(n.expr,scope)
 					if (result.merge(x)) {
 						foundErrors = true
 						return {node:n.node,capture:n.capture,pt:null}
 					}
 					let type = ptExprToType(x.getValue())
 					if (!isSubType(n.node.getSubstituteType(),type)) {
-						log.addError(n.expr.error('type mismatch'))
+						result.addError(n.expr.error('type mismatch'))
 						return {node:n.node,capture:n.capture,pt:null}
 					}
 					return {node:n.node,capture:n.capture,pt:x.getValue()}
@@ -73,7 +72,7 @@ export function parseBody(nodes:ASTBody,scope:Scope,log:Logger,cfg:CompilerOptio
 			case ASTNodeType.IDENTIFIER:
 			case ASTNodeType.INVOKATION:
 			case ASTNodeType.OPERATION: {
-				let res = parseExpression(node,scope,log)
+				let res = parseExpression(node,scope)
 				if (!result.merge(res)) {
 					if (!returnedAt) body.add(res.getValue())
 				}
@@ -81,9 +80,9 @@ export function parseBody(nodes:ASTBody,scope:Scope,log:Logger,cfg:CompilerOptio
 			}
 			case ASTNodeType.RETURN: {
 				let fnscope = scope.lastFnScope()
-				let ret = node.node ? parseExpression(node.node,scope,log) : null
+				let ret = node.node ? parseExpression(node.node,scope) : null
 				if (!fnscope) {
-					log.addError(node.error('return must be contained in fn scope'))
+					result.addError(node.error('return must be contained in fn scope'))
 					break
 				} else {
 					if (!returnedAt) returnedAt = node
@@ -109,7 +108,7 @@ export function parseBody(nodes:ASTBody,scope:Scope,log:Logger,cfg:CompilerOptio
 				}
 
 				if (!isSubType(fnscope.declaration.returns,pt.type)) {
-					log.addError(node.error('return must match fn return type'))
+					result.addError(node.error('return must match fn return type'))
 					break
 				}
 
@@ -117,12 +116,12 @@ export function parseBody(nodes:ASTBody,scope:Scope,log:Logger,cfg:CompilerOptio
 				break
 			}
 			case ASTNodeType.CONDITIONAL: {
-				let res = parseExpression(node.expression,scope,log)
-				let p = parseBody(node.primaryBranch,scope.branch('if'),log,cfg)
-				let s = parseBody(node.secondaryBranch,scope.branch('else'),log,cfg)
+				let res = parseExpression(node.expression,scope)
+				let p = parseBody(node.primaryBranch,scope.branch('if'),cfg)
+				let s = parseBody(node.secondaryBranch,scope.branch('else'),cfg)
 				if (result.merge(res) || result.merge(p) || result.merge(s)) continue
 				if (ptExprToType(res.getValue()).type != Type.BOOL) {
-					log.addError(node.expression.error('not a bool'))
+					result.addError(node.expression.error('not a bool'))
 				}
 				if (!res.getValue()) continue
 				if (!returnedAt) body.add({
@@ -135,25 +134,25 @@ export function parseBody(nodes:ASTBody,scope:Scope,log:Logger,cfg:CompilerOptio
 				break
 			}
 			case ASTNodeType.DEFINE: {
-				let res = parseDefine(node,scope,log)
+				let res = parseDefine(node,scope)
 				if (result.merge(res)) {
-					scope.symbols.declareInvalidDirect(node.identifier,log)
+					scope.symbols.declareInvalidDirect(node.identifier)
 					continue
 				}
-				result.mergeCheck(scope.symbols.declareDirect(node.identifier,res.getValue().decl,log))
+				result.mergeCheck(scope.symbols.declareDirect(node.identifier,res.getValue().decl))
 				if (!returnedAt) body.add(res.getValue().pt)
 				break
 			}
 
 			case ASTNodeType.WHILE: {
-				let res = parseWhile(node,scope,log,cfg)
+				let res = parseWhile(node,scope,cfg)
 				if (result.merge(res)) continue
 				if (!returnedAt) body.add(res.getValue())
 				break
 			}
 				
 			case ASTNodeType.LIST:
-				log.addError(node.error('list not here for now'))
+				result.addError(node.error('list not here for now'))
 				break
 
 			default:
@@ -164,7 +163,7 @@ export function parseBody(nodes:ASTBody,scope:Scope,log:Logger,cfg:CompilerOptio
 	if (returnedAt) {
 		let dead = nodes.getData().slice(nodes.getData().indexOf(returnedAt)+1)
 		if (dead.length > 0)
-			log.addWarning(astArrErr(dead,'dead code detected'))
+			result.addWarning(astArrErr(dead,'dead code detected'))
 	}
 
 	return result.wrap(body)

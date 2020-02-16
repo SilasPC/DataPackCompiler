@@ -7,7 +7,7 @@ import { Interspercer } from "../toolbox/Interspercer"
 export class InputTree {
 
     public readonly modules = new Map<string,InputTree>()
-    public readonly other = new Map<string,InputFile>()
+    public readonly others = new Map<string,InputFile>()
 
     constructor(
         public module: ModuleFile | null
@@ -21,9 +21,26 @@ export class InputTree {
 
     public allModules(): ModuleFile[] {
         let mods: ModuleFile[] = []
-        if (this.module) mods.push(this.module)
-        for (let child of this.modules.values()) mods.concat(child.allModules())
+        this.findModules(mods)
         return mods
+    }
+    private findModules(arr:ModuleFile[]) {
+        if (this.module) arr.push(this.module)
+        for (let child of this.modules.values()) child.findModules(arr)
+    }
+
+    public getStructureString() {
+        let arr = ['root']
+        this.structureString(arr,1)
+        return arr.join('\n')
+    }
+    private structureString(arr:string[],i:number) {
+        for (let [name,mod] of this.modules) {
+            arr.push('  '.repeat(i)+name)
+            mod.structureString(arr,i+1)
+        }
+        for (let [other] of this.others)
+            arr.push('  '.repeat(i)+other)
     }
 
 }

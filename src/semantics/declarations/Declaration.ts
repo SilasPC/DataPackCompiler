@@ -5,7 +5,6 @@ import { ReadOnlySymbolTable } from "./SymbolTable";
 import { Struct } from "../types/Struct";
 import { Program } from "../managers/ProgramManager";
 import { ModScope } from "../Scope";
-import { Logger } from "../../toolbox/Logger";
 import { Result, ResultWrapper } from "../../toolbox/Result";
 
 export type Declaration = VarDeclaration | FnDeclaration | ModDeclaration | RecipeDeclaration | StructDeclaration | EventDeclaration
@@ -55,7 +54,7 @@ export class ModDeclaration {
 		this.namePath = scope.getScopeNames()
 	}
 
-	fetchModule(accessors:TokenI[],log:Logger): Result<ModDeclaration,null> {
+	fetchModule(accessors:TokenI[]): Result<ModDeclaration,null> {
 		const result = new ResultWrapper<ModDeclaration,null>()
 
 		let mod: ModDeclaration = this
@@ -63,7 +62,7 @@ export class ModDeclaration {
         for (let accessor of accessors) {
             if (accessor.value == 'super') {
                 if (!mod.parent) {
-                    log.addError(accessor.error('module not found'))
+                    result.addError(accessor.error('module not found'))
                     return result.none()
                 }
                 mod = mod.parent
@@ -71,7 +70,7 @@ export class ModDeclaration {
             }
             let child = mod.getDirectChild(accessor.value)
             if (!child) {
-                log.addError(accessor.error('module not found'))
+                result.addError(accessor.error('module not found'))
                 return result.none()
             }
             mod = child
@@ -87,11 +86,11 @@ export class ModDeclaration {
 		return mod
 	}
 
-	branch(name:TokenI,log:Logger,program:Program): Result<ModDeclaration,null> {
+	branch(name:TokenI,program:Program): Result<ModDeclaration,null> {
 		const result = new ResultWrapper<ModDeclaration,null>()
 		let mod = new ModDeclaration(this,this.scope.branchToMod(name.value,program))
 		if (this.children.has(name.value)) {
-			log.addError(name.error('module already exists'))
+			result.addError(name.error('module already exists'))
 			return result.none()
 		}
 		this.children.set(name.value,mod)

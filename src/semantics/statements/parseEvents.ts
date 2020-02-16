@@ -9,7 +9,7 @@ import { DirectiveList } from "../directives"
 import { exhaust } from "../../toolbox/other"
 import { Result, ResultWrapper } from "../../toolbox/Result"
 
-export function parseEvent(dirs: DirectiveList, node: ASTEventNode, scope:Scope, log:Logger, program: Program): Result<EventDeclaration,null> {
+export function parseEvent(dirs: DirectiveList, node: ASTEventNode, scope:Scope, program: Program): Result<EventDeclaration,null> {
 	const result = new ResultWrapper<EventDeclaration,null>()
 
 	let decl: EventDeclaration = {
@@ -27,10 +27,10 @@ export function parseEvent(dirs: DirectiveList, node: ASTEventNode, scope:Scope,
 				program.setEventToLoad(decl)
 				break
 			case 'todo':
-				log.addWarning(token.error('event not fully implemented'))
+				result.addWarning(token.error('event not fully implemented'))
 				break
 			case 'inline':
-				log.addError(token.error('not available for events'))
+				result.addError(token.error('not available for events'))
 				break
 			default: return exhaust(value)
 		}

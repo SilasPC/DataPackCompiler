@@ -11,28 +11,28 @@ import { DirectiveList } from "../directives";
 import { exhaust } from "../../toolbox/other";
 import { Result, ResultWrapper } from "../../toolbox/Result";
 
-export function parseFunction(dirs: DirectiveList,node:ASTFnNode,modScope:ModScope,store:FunctionStore,log:Logger,cfg:CompilerOptions): Result<FnDeclaration,null> {
+export function parseFunction(dirs:DirectiveList,node:ASTFnNode,modScope:ModScope,store:FunctionStore,cfg:CompilerOptions): Result<FnDeclaration,null> {
 	const result = new ResultWrapper<FnDeclaration,null>()
 
 	for (let {value, token} of dirs) {
 		switch (value) {
 			case 'debug': break
 			case 'todo':
-				log.addWarning(token.error('function not fully implemented'))
+				result.addWarning(token.error('function not fully implemented'))
 				break
 			case 'tick':
 			case 'load':
-				log.addError(token.error('not available for functions'))
+				result.addError(token.error('not available for functions'))
 				break
 			case 'inline':
-				log.addWarning(token.error('inline not supported yet'))
+				result.addWarning(token.error('inline not supported yet'))
 				break
 			default: return exhaust(value)
 		}
 	}
 
 	if (!node.returnType) {
-		log.addError(node.identifier.error('no fn infer'))
+		result.addError(node.identifier.error('no fn infer'))
 		return result.none()
 	}
 
@@ -66,9 +66,9 @@ export function parseFunction(dirs: DirectiveList,node:ASTFnNode,modScope:ModSco
 	const scope = modScope.branchToFn(node.identifier.value,fndecl)
 
 	for (let [t,d] of paramDecls)
-		result.mergeCheck(scope.symbols.declareDirect(t,d,log))
+		result.mergeCheck(scope.symbols.declareDirect(t,d))
 
-	let res = parseBody(node.body,scope,log,cfg)
+	let res = parseBody(node.body,scope,cfg)
 	if (result.merge(res)) return result.none()
 
 	store.addFn(fndecl,res.getValue())

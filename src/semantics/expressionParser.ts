@@ -1,7 +1,6 @@
 import { ASTNode, ASTNodeType, ASTOpNode, ASTExpr, ASTCallNode } from "../syntax/AST"
 import { exhaust, Errorable } from "../toolbox/other"
 import { ParseTree, PTKind, PTExpr, PTOpNode, ptExprToType, ptCanMut, PTCallNode, PTVarNode } from "./ParseTree"
-import { Logger } from "../toolbox/Logger"
 import { resolveStatic, resolveAccess } from "./resolveAccess"
 import { DeclarationType } from "./declarations/Declaration"
 import { Type, isSubType, ValueType } from "./types/Types"
@@ -10,8 +9,7 @@ import { ResultWrapper, Result } from "../toolbox/Result"
 
 export function parseExpression(
 	node: ASTExpr,
-	scope: Scope,
-	log: Logger
+	scope: Scope
 ): Result<PTExpr,ValueType> {
 
 	const result = new ResultWrapper<PTExpr,ValueType>()
@@ -20,7 +18,7 @@ export function parseExpression(
 
 		case ASTNodeType.ACCESS:
 		case ASTNodeType.IDENTIFIER: {
-			let res = resolveAccess(node,scope,log)
+			let res = resolveAccess(node,scope)
 			if (result.merge(res)) return result.none()
 			let {decl} = res.getValue()
 			switch (decl.type) {
@@ -38,26 +36,26 @@ export function parseExpression(
 			if (node.value.value == 'false')
 				return result.wrap({kind:PTKind.PRIMITIVE,value:{type:Type.BOOL,value:false},scopeNames:scope.getScopeNames()})
 			if (node.value.value.startsWith('\'')) {
-				log.addError(node.value.error('no strings in expressions for now I guess'))
+				result.addError(node.value.error('no strings in expressions for now I guess'))
 				return result.none()
 			}
 			let n = Number(node.value.value)
 			if (Number.isNaN(n)||!Number.isInteger(n)) {
-				log.addError(node.value.error('kkk only int primitives'))
+				result.addError(node.value.error('kkk only int primitives'))
 				return result.none()
 			}
 			return result.wrap({kind:PTKind.PRIMITIVE,value:{type:Type.INT,value:n},scopeNames:scope.getScopeNames()})
 		}
 
 		case ASTNodeType.OPERATION: {
-			return result.pass(operator(node,scope,log))
+			return result.pass(operator(node,scope))
 		}
 
 		case ASTNodeType.INVOKATION:
-			return result.pass(invokation(node,scope,log))			
+			return result.pass(invokation(node,scope))			
 
 		case ASTNodeType.LIST:
-			log.addError(node.error('no lists in expr yet'))
+			result.addError(node.error('no lists in expr yet'))
 			return result.none()
 
 		default:
@@ -67,7 +65,7 @@ export function parseExpression(
 
 }
 
-function invokation(node:ASTCallNode,scope:Scope,log:Logger): Result<PTCallNode,ValueType> {
+function invokation(node:ASTCallNode,scope:Scope): Result<PTCallNode,ValueType> {
 	type Arg = ({ref:true,pt:PTVarNode}|{ref:false,pt:PTExpr})
 	const result = new ResultWrapper<PTCallNode,ValueType>()
 	if (node.func.type != ASTNodeType.IDENTIFIER && node.func.type != ASTNodeType.ACCESS) throw new Error('only direct calls for now')
@@ -75,39 +73,39 @@ function invokation(node:ASTCallNode,scope:Scope,log:Logger): Result<PTCallNode,
 		const result = new ResultWrapper<Arg,null>()
 		if (p.type == ASTNodeType.REFERENCE) {
 			throw new Error('wait ref')
-			/*let res = resolveAccess(p.ref,scope,log)
+			/*let res = resolveAccess(p.ref,scope)
 			if (!res.value) return maybe.none()
 			if (res.value.isESR) {
-				log.addError(node.func.error('cannot reference an expression'))
+				result.addError(node.func.error('cannot reference an expression'))
 				return maybe.none()
 			}
 			let declw = res.value.wrapper
 			if (declw.decl.type != DeclarationType.VARIABLE) {
-				log.addError(p.ref.error('can only reference variables'))
+				result.addError(p.ref.error('can only reference variables'))
 				return maybe.none()
 			}
 			return maybe.wrap({ref:true,esr:declw.decl.esr})*/
 		}
-		let pt = parseExpression(p,scope,log)
+		let pt = parseExpression(p,scope)
 		if (result.merge(pt)) return result.none()
 		return result.wrap({pt:pt.getValue(),ref:false})
 	})
 	if (node.func.type == ASTNodeType.ACCESS && !node.func.isStatic)
 		throw new Error('wait dyn access')
-	let res = resolveStatic(node.func,scope.symbols,log)
+	let res = resolveStatic(node.func,scope.symbols)
 	if (result.merge(res)) return result.none()
 	let {decl,token} = res.getValue()
 	if (decl.type == DeclarationType.STRUCT) {
-		log.addError(node.func.error('con_struct_ion not available yet'))
+		result.addError(node.func.error('con_struct_ion not available yet'))
 		return result.none()
 	}
 	if (decl.type != DeclarationType.FUNCTION) {
-		log.addError(node.func.error('not a fn'))
+		result.addError(node.func.error('not a fn'))
 		return result.none()
 	}
 	if (decl.thisBinding.type != Type.VOID) return token.throwDebug('methods not implemented')
 	if (params.length != decl.parameters.length) {
-		log.addError(node.func.error('param length unmatched'))
+		result.addError(node.func.error('param length unmatched'))
 		return result.none()
 	}
 	let args: Arg[] = []
@@ -118,11 +116,11 @@ function invokation(node:ASTCallNode,scope:Scope,log:Logger): Result<PTCallNode,
 		let declParam = decl.parameters[i]
 		let canNoDo = false
 		if (!isSubType(declParam.type,ptExprToType(param.pt))) {
-			log.addError(node.parameters[i].error('param type mismatch'))
+			result.addError(node.parameters[i].error('param type mismatch'))
 			canNoDo = true
 		}
 		if (param.ref != declParam.isRef) {
-			log.addError(node.parameters[i].error('reference mismatch'))
+			result.addError(node.parameters[i].error('reference mismatch'))
 			canNoDo = true
 		}
 		if (canNoDo)
@@ -138,7 +136,7 @@ function invokation(node:ASTCallNode,scope:Scope,log:Logger): Result<PTCallNode,
 	})
 }
 
-function operator(node:ASTOpNode,scope:Scope,log:Logger): Result<PTOpNode,ValueType> {
+function operator(node:ASTOpNode,scope:Scope): Result<PTOpNode,ValueType> {
 	const result = new ResultWrapper<PTOpNode,ValueType>()
 	switch (node.operator.value) {
 		case '+':
@@ -147,16 +145,16 @@ function operator(node:ASTOpNode,scope:Scope,log:Logger): Result<PTOpNode,ValueT
 		case '/':
 		case '%': {
 			console.assert(node.operands.length == 2, 'two operands') // skipping unary plus and minus for now
-			let [o0,o1] = node.operands.map(o=>parseExpression(o,scope,log))
+			let [o0,o1] = node.operands.map(o=>parseExpression(o,scope))
 			if (result.merge(o0) || result.merge(o1))
 				return result.none()
 			let [t0,t1] = [ptExprToType(o0.getValue()),ptExprToType(o1.getValue())]
 			if (t0.type != Type.INT) {
-				log.addError(node.operator.error('only int op for now'))
+				result.addError(node.operator.error('only int op for now'))
 				return result.none()
 			}
 			if (t0.type != t1.type) {
-				log.addError(node.operator.error('no cast for now'))
+				result.addError(node.operator.error('no cast for now'))
 				return result.none()
 			}
 			return result.wrap({
@@ -170,16 +168,16 @@ function operator(node:ASTOpNode,scope:Scope,log:Logger): Result<PTOpNode,ValueT
 
 		case '=': {
 			console.assert(node.operands.length == 2, 'two operands')
-			let [o0,o1] = node.operands.map(o=>parseExpression(o,scope,log))
+			let [o0,o1] = node.operands.map(o=>parseExpression(o,scope))
 			if (result.merge(o0) || result.merge(o1))
 				return result.none()
 			if (!ptCanMut(o0.getValue())) {
-				log.addError(node.operands[0].error('left hand side immutable'))
+				result.addError(node.operands[0].error('left hand side immutable'))
 				return result.none()
 			}
 			let [t0,t1] = [ptExprToType(o0.getValue()),ptExprToType(o1.getValue())]
 			if (!isSubType(t0,t1)) {
-				log.addError(node.operator.error('types not assignable'))
+				result.addError(node.operator.error('types not assignable'))
 				return result.none()
 			}
 			return result.wrap({
@@ -197,20 +195,20 @@ function operator(node:ASTOpNode,scope:Scope,log:Logger): Result<PTOpNode,ValueT
 		case '/=':
 		case '%=': {
 			console.assert(node.operands.length == 2, 'two operands')
-			let [o0,o1] = node.operands.map(o=>parseExpression(o,scope,log))
+			let [o0,o1] = node.operands.map(o=>parseExpression(o,scope))
 			if (result.merge(o0) || result.merge(o1))
 				return result.none()
 			if (!ptCanMut(o0.getValue())) {
-				log.addError(node.operands[0].error('left hand side immutable'))
+				result.addError(node.operands[0].error('left hand side immutable'))
 				return result.none()
 			}
 			let [t0,t1] = [ptExprToType(o0.getValue()),ptExprToType(o1.getValue())]
 			if (t0.type != Type.INT) {
-				log.addError(node.operands[0].error('only int op for now'))
+				result.addError(node.operands[0].error('only int op for now'))
 				return result.none()
 			}
 			if (t0.type != t1.type) {
-				log.addError(node.operator.error('no cast for now'))
+				result.addError(node.operator.error('no cast for now'))
 				return result.none()
 			}
 			return result.wrap({
@@ -225,16 +223,16 @@ function operator(node:ASTOpNode,scope:Scope,log:Logger): Result<PTOpNode,ValueT
 		case '++':
 		case '--': {
 			console.assert(node.operands.length == 1, 'one operand')
-			let o = parseExpression(node.operands[0],scope,log)
+			let o = parseExpression(node.operands[0],scope)
 			if (result.merge(o))
 				return result.none()
 			if (!ptCanMut(o.getValue())) {
-				log.addError(node.operands[0].error('left hand side immutable'))
+				result.addError(node.operands[0].error('left hand side immutable'))
 				return result.none()
 			}
 			let type = ptExprToType(o.getValue())
 			if (type.type != Type.INT) {
-				log.addError(node.operator.error('only int op for now'))
+				result.addError(node.operator.error('only int op for now'))
 				return result.none()
 			}
 			return result.wrap({
@@ -253,16 +251,16 @@ function operator(node:ASTOpNode,scope:Scope,log:Logger): Result<PTOpNode,ValueT
 		case '==':
 		case '!=': {
 			console.assert(node.operands.length == 2, 'two operands')
-			let [o0,o1] = node.operands.map(o=>parseExpression(o,scope,log))
+			let [o0,o1] = node.operands.map(o=>parseExpression(o,scope))
 			if (result.merge(o0) || result.merge(o1))
 				return result.none()
 			let [t0,t1] = [ptExprToType(o0.getValue()),ptExprToType(o1.getValue())]
 			if (t0.type != Type.INT) {
-				log.addError(node.operands[0].error('only int op for now'))
+				result.addError(node.operands[0].error('only int op for now'))
 				return result.none()
 			}
 			if (t0.type != t1.type) {
-				log.addError(node.operator.error('no cast for now'))
+				result.addError(node.operator.error('no cast for now'))
 				return result.none()
 			}
 			return result.wrap({
@@ -277,15 +275,15 @@ function operator(node:ASTOpNode,scope:Scope,log:Logger): Result<PTOpNode,ValueT
 		case '&&':
 		case '||': {
 			console.assert(node.operands.length == 2, 'two operands')
-			let [o0,o1] = node.operands.map(o=>parseExpression(o,scope,log))
+			let [o0,o1] = node.operands.map(o=>parseExpression(o,scope))
 			if (result.merge(o0) || result.merge(o1))
 				return result.none()
 			let [t0,t1] = [ptExprToType(o0.getValue()),ptExprToType(o1.getValue())]
 			if (t0.type != Type.BOOL) {
-				log.addError(node.operands[0].error('expected bool'))
+				result.addError(node.operands[0].error('expected bool'))
 			}
 			if (t0.type != Type.BOOL) {
-				log.addError(node.operands[1].error('expected bool'))
+				result.addError(node.operands[1].error('expected bool'))
 			}
 			return result.wrap({
 				kind: PTKind.OPERATOR,
@@ -298,12 +296,12 @@ function operator(node:ASTOpNode,scope:Scope,log:Logger): Result<PTOpNode,ValueT
 
 		case '!': {
 			console.assert(node.operands.length == 1, 'one operand')
-			let o = parseExpression(node.operands[0],scope,log)
+			let o = parseExpression(node.operands[0],scope)
 			if (result.merge(o))
 				return result.none()
 			let type = ptExprToType(o.getValue())
 			if (type.type != Type.BOOL) {
-				log.addError(node.operands[0].error('expected bool'))
+				result.addError(node.operands[0].error('expected bool'))
 			}
 			return result.wrap({
 				kind: PTKind.OPERATOR,

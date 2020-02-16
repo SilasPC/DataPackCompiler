@@ -8,10 +8,10 @@ export type ErrorType = 'File' | 'Syntax' | 'Type' | 'Internal'
 export class CompileError extends Error {
 
 	constructor(
-		protected readonly errorString: string
-	) {super(errorString)}
+		protected readonly err: string
+	) {super(err)}
 
-	toString() {return this.message}
+	getErrorMsg() {return this.err}
 
 }
 

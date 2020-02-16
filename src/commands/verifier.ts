@@ -27,7 +27,7 @@ export async function verify(path:string,log:Logger,sheet:SyntaxSheet): Promise<
                 throw new Error('got non command token in verifier')
             let res = sheet.verifySyntaxNoSlash(token)
             if (!res) continue
-            log.addError(res)
+            result.addError(res)
             errCount++
         }
     }

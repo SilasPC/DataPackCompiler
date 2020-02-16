@@ -10,7 +10,9 @@ export class ResultWrapper<T,P> {
     addWarning(wrn:CompileError) {this.warnings.add(wrn)}
 
     getErrors() {return this.errors}
-    getWarnings() {return this.errors}
+    hasErrors() {return this.errors.size > 0}
+    getWarnings() {return this.warnings}
+    hasWarnings() {return this.warnings.size > 0}
 
     mergeCheck(res:Result<any,any>|EnsuredResult<any>|EmptyResult): boolean {
         let resc = res as ResultClass<any,any>
@@ -54,7 +56,7 @@ export class ResultWrapper<T,P> {
         return new ResultClass(
             'ensured',
             [...this.errors], [...this.warnings],
-            null as any, this.part
+            null as any, val
         ) as any
     }
 

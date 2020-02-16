@@ -40,12 +40,12 @@ class Hoister {
     
     wasReferenced() {return this.refCounter > 0}
 
-    evaluate(log: Logger): Result<DeclarationWrapper,null> {
+    evaluate(): Result<DeclarationWrapper,null> {
         const result = new ResultWrapper<DeclarationWrapper,null>()
         this.refCounter++
         if (this.failed) return result.none()
         if (this.active) {
-            log.addError(this.token.error('circular dependency'))
+            result.addError(this.token.error('circular dependency'))
             return result.none()
         }
         if (this.decl) return result.wrap(this.decl)
@@ -111,20 +111,20 @@ export class HoistingMaster implements UnreadableHoistingMaster {
             .filter(h=>!h.wasReferenced())
     }
 
-    flushAll(log: Logger) {
+    flushAll(): EmptyResult {
         const result = new ResultWrapper()
-        result.merge(this.flushDefered())
+        result.mergeCheck(this.flushDefered())
         for (let h of this.hoisters)
-            result.merge(h.evaluate(log))
-        return result.wrap(true)
+            result.merge(h.evaluate())
+        return result.empty()
     }
 
-    flushDefered() {
+    flushDefered(): EmptyResult {
         const result = new ResultWrapper()
         for (let fn of this.defered)
             result.mergeCheck(fn())
         this.defered.clear()
-        return result.wrap(true)
+        return result.empty()
     }
 
 }

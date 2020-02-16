@@ -30,11 +30,11 @@ export class SyntaxSheet {
 		return null
 	}
 
-	readSyntax(token:TokenI,log:Logger): Result<ASTCMDNode,null> {
+	readSyntax(token:TokenI): Result<ASTCMDNode,null> {
 		const result = new ResultWrapper<ASTCMDNode,null>()
 		let res = this.root.syntaxParse(token)
 		if (res instanceof CompileError) {
-			log.addError(res)
+			result.addError(res)
 			return result.none()
 		}
 		return result.wrap(new ASTCMDNode(token.line.file,token.indexStart,token.indexEnd,token,res))

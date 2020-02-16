@@ -3,21 +3,20 @@ import { ASTNodeType, ASTIdentifierNode, ASTAccess, ASTDynamicAccessNode, ASTSta
 import { DeclarationType, DeclarationWrapper } from "./declarations/Declaration";
 import { GenericToken } from "../lexing/Token";
 import { SymbolTable, ReadOnlySymbolTable } from "./declarations/SymbolTable";
-import { Logger } from "../toolbox/Logger";
 import { parseExpression } from "./expressionParser";
 import { Scope } from "./Scope";
 import { ResultWrapper, Result } from "../toolbox/Result";
 
-export function resolveStatic(node:ASTStaticAccessNode|ASTIdentifierNode,symbols:SymbolTable,log:Logger): Result<DeclarationWrapper,null> {
+export function resolveStatic(node:ASTStaticAccessNode|ASTIdentifierNode,symbols:SymbolTable): Result<DeclarationWrapper,null> {
 	const result = new ResultWrapper<DeclarationWrapper,null>()
 	if (node.type == ASTNodeType.IDENTIFIER)
-		return symbols.getDeclaration(node.identifier,log)
+		return symbols.getDeclaration(node.identifier)
 
 	let staticAccesses: GenericToken[] = []
 	let op = node
 	while (true) {
 		if (!op.isStatic) {
-			log.addError(op.error('cannot access statically on non static'))
+			result.addError(op.error('cannot access statically on non static'))
 			return result.none()
 		}
 		if (op.accessee.type == ASTNodeType.IDENTIFIER) {
@@ -32,7 +31,7 @@ export function resolveStatic(node:ASTStaticAccessNode|ASTIdentifierNode,symbols
 	let sym: ReadOnlySymbolTable = symbols
 	for (let i = 0; i < staticAccesses.length; i++) {
 		let acc = staticAccesses[i]
-		let declw = sym.getDeclaration(acc,log)
+		let declw = sym.getDeclaration(acc)
 		if (result.merge(declw)) return result.none()
 		let w = declw.getValue()
 		if (w.decl.type == DeclarationType.MODULE) {
@@ -41,13 +40,13 @@ export function resolveStatic(node:ASTStaticAccessNode|ASTIdentifierNode,symbols
 			}
 			sym = w.decl.symbols
 			if (i == staticAccesses.length - 1) {
-				log.addError(w.token.error('module cannot be used directly'))
+				result.addError(w.token.error('module cannot be used directly'))
 				return result.none()
 			}
 			continue
 		}
 		if (i != staticAccesses.length - 1) {
-			log.addError(staticAccesses[i+1].error('static access on non-module'))
+			result.addError(staticAccesses[i+1].error('static access on non-module'))
 			return result.none()
 		}
 		return result.wrap(declw.getValue())
@@ -55,11 +54,11 @@ export function resolveStatic(node:ASTStaticAccessNode|ASTIdentifierNode,symbols
 	throw new Error('cannot happen')
 }
 
-export function resolveAccess(node:ASTAccess,scope:Scope,log:Logger): Result<DeclarationWrapper,null> {
+export function resolveAccess(node:ASTAccess,scope:Scope): Result<DeclarationWrapper,null> {
 	const result = new ResultWrapper<DeclarationWrapper,null>()
 
 	if (node.type == ASTNodeType.IDENTIFIER)
-		return scope.symbols.getDeclaration(node.identifier,log)
+		return scope.symbols.getDeclaration(node.identifier)
 
 	let dynAccesses: GenericToken[] = []
 	let accessOn: DeclarationWrapper
@@ -75,7 +74,7 @@ export function resolveAccess(node:ASTAccess,scope:Scope,log:Logger): Result<Dec
 			while (true) {
 				dynAccesses.push(dynOp.access)
 				if (dynOp.accessee.type == ASTNodeType.IDENTIFIER) {
-					let declw = scope.symbols.getDeclaration(dynOp.accessee.identifier,log)
+					let declw = scope.symbols.getDeclaration(dynOp.accessee.identifier)
 					if (result.merge(declw)) return result.none()
 					accessOn = declw.getValue()
 					break doStatic
@@ -86,7 +85,7 @@ export function resolveAccess(node:ASTAccess,scope:Scope,log:Logger): Result<Dec
 					}
 					dynOp = dynOp.accessee
 				} else {
-					let expr = parseExpression(dynOp.accessee,scope,log)
+					let expr = parseExpression(dynOp.accessee,scope)
 					if (result.merge(expr)) return result.none()
 					throw new Error('wait dyn process')
 					//return processDynamic(expr.value)
@@ -111,7 +110,7 @@ export function resolveAccess(node:ASTAccess,scope:Scope,log:Logger): Result<Dec
 		let sym: ReadOnlySymbolTable = scope.symbols
 		for (let i = 0; i < staticAccesses.length; i++) {
 			let acc = staticAccesses[i]
-			let declw = sym.getDeclaration(acc,log)
+			let declw = sym.getDeclaration(acc)
 			if (result.merge(declw)) return result.none()
 			let w = declw.getValue()
 			if (w.decl.type == DeclarationType.MODULE) {
@@ -121,13 +120,13 @@ export function resolveAccess(node:ASTAccess,scope:Scope,log:Logger): Result<Dec
 				}
 				sym = w.decl.symbols
 				if (i == staticAccesses.length - 1) {
-					log.addError(w.token.error('module cannot be used directly'))
+					result.addError(w.token.error('module cannot be used directly'))
 					return result.none()
 				}
 				continue
 			}
 			if (i != staticAccesses.length - 1) {
-				log.addError(staticAccesses[i+1].error('static access on non-module'))
+				result.addError(staticAccesses[i+1].error('static access on non-module'))
 				return result.none()
 			}
 			accessOn = w
@@ -145,7 +144,7 @@ export function resolveAccess(node:ASTAccess,scope:Scope,log:Logger): Result<Dec
 	if (accessOn.decl.type == DeclarationType.VARIABLE)
 		//return processDynamic(accessOn.decl.esr)
 	
-	log.addError(dynAccesses[0].error('dynamic access not quite ready'))
+	result.addError(dynAccesses[0].error('dynamic access not quite ready'))
 	return result.none()
 	
 	/*function processDynamic(esr:ESR): Maybe<ReturnType> {
@@ -154,7 +153,7 @@ export function resolveAccess(node:ASTAccess,scope:Scope,log:Logger): Result<Dec
 		if (dynAccesses.length == 0) return maybe.wrap({isESR:true,esr})
 
 		// console.log(dynAccesses.map(t=>t.value))
-		log.addError(dynAccesses[0].error('not ready to dyn resolve'))
+		result.addError(dynAccesses[0].error('not ready to dyn resolve'))
 
 		return maybe.none()
 

@@ -101,7 +101,7 @@ function parseStatement(iter:TokenIteratorI,ctx:CompileContext): Result<ASTState
             }
         }
         case TokenType.COMMAND:
-            let res = ctx.syntaxSheet.readSyntax(iter.current(),ctx.logger)
+            let res = ctx.syntaxSheet.readSyntax(iter.current())
             if (result.merge(res)) return result.none()
             return result.wrap(res.getValue())
         case TokenType.OPERATOR:

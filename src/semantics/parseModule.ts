@@ -19,14 +19,14 @@ export function parseModule(
 	ctx: CompileContext,
 	program: Program
 ): EmptyResult {
-	const maybe = new ResultWrapper()
+	const result = new ResultWrapper()
 	
 	const scope = mod.scope
 
 	for (let [dirTokens,node] of body.iterate()) {
 
-		let dirs = listDirectives(dirTokens,ctx.logger)
-		if (checkDebugIgnore(dirs,ctx.options.debugBuild)) continue
+		let dirs = listDirectives(dirTokens)
+		if (checkDebugIgnore(dirs.getEnsured(),ctx.options.debugBuild)) continue
 
 		let isPublic = false
 
@@ -39,32 +39,32 @@ export function parseModule(
 
 			case ASTNodeType.USE: {
 				let node0 = node
-				scope.symbols.declareHoister(node.accessors[node.accessors.length-1],()=>mod.fetchModule(node0.accessors,ctx.logger),ctx.logger)
+				scope.symbols.declareHoister(node.accessors[node.accessors.length-1],()=>mod.fetchModule(node0.accessors))
 				break
 			}
 	
 			case ASTNodeType.MODULE: {
-				let child = mod.branch(node.identifier,ctx.logger,program)
-				if (maybe.merge(child)) break
-				maybe.mergeCheck(parseModule(child.getValue(),node.body,ctx,program))
+				let child = mod.branch(node.identifier,program)
+				if (result.merge(child)) break
+				result.mergeCheck(parseModule(child.getValue(),node.body,ctx,program))
 				break
 			}
 	
 			case ASTNodeType.DEFINE: {
 				let node0 = node
-				maybe.mergeCheck(scope.symbols.declareHoister(node.identifier,()=>{
+				result.mergeCheck(scope.symbols.declareHoister(node.identifier,()=>{
 					const result = new ResultWrapper<Declaration,null>()
-					let res = parseDefine(node0,scope,ctx.logger)
+					let res = parseDefine(node0,scope)
 					if (result.merge(res)) return result.none()
 					program.fnStore.init.add(res.getValue().pt)
 					return result.wrap(res.getValue().decl)
-				},ctx.logger))
+				}))
 				break
 			}
 	
 			case ASTNodeType.FUNCTION: {
 				let node0 = node
-				maybe.mergeCheck(scope.symbols.declareHoister(node.identifier,()=>parseFunction(dirs,node0,scope,program.fnStore,ctx.logger,ctx.options),ctx.logger))
+				result.mergeCheck(scope.symbols.declareHoister(node.identifier,()=>parseFunction(dirs.getEnsured(),node0,scope,program.fnStore,ctx.options)))
 				break
 			}
 	
@@ -74,13 +74,13 @@ export function parseModule(
 	
 			case ASTNodeType.STRUCT: {
 				let node0 = node
-				scope.symbols.declareHoister(node.identifier,()=>parseStruct(node0,scope,ctx),ctx.logger)
+				scope.symbols.declareHoister(node.identifier,()=>parseStruct(node0,scope))
 				break
 			}
 
 			case ASTNodeType.EVENT: {
 				let node0 = node
-				scope.symbols.declareHoister(node.identifier,()=>parseEvent(dirs,node0,scope,ctx.logger,program),ctx.logger)
+				scope.symbols.declareHoister(node.identifier,()=>parseEvent(dirs.getEnsured(),node0,scope,program))
 				break
 			}
 
@@ -110,15 +110,15 @@ export function parseModule(
 						}
 					}*/
 
-					let res = resolveAccess(node0.event,scope,ctx.logger)
+					let res = resolveAccess(node0.event,scope)
 					if (result.merge(res)) return result.empty()
 					let {decl} = res.getValue()
 					if (decl.type != DeclarationType.EVENT) {
-						ctx.logger.addError(node0.event.error('expected an event'))
+						result.addError(node0.event.error('expected an event'))
 						return result.empty()
 					}
 					if (node0.body) {
-						let body = parseBody(node0.body,scope.branch('event'),ctx.logger,ctx.options)
+						let body = parseBody(node0.body,scope.branch('event'),ctx.options)
 						if (result.merge(body)) return result.empty()
 						program.fnStore.appendToEvent(decl,body.getValue())
 					}
@@ -136,8 +136,8 @@ export function parseModule(
 
 	const trailingDirective = body.getTrailingSubData()
 	if (trailingDirective.length)
-		ctx.logger.addWarning(trailingDirective[0].error('trailing directive(s)'))
+		result.addWarning(trailingDirective[0].error('trailing directive(s)'))
 
-	return maybe.empty()
+	return result.empty()
 
 }

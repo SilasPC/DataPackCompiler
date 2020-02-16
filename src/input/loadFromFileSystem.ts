@@ -31,13 +31,14 @@ async function loadChildren(originPath:string,path:string,tree:InputTree): Promi
         let fullPath = join(path,file)
         let relPath = relative(originPath,fullPath)
         let ext = extname(file)
-        if (ext == 'md') continue // ignore markdown files
+
+        if (!['.dpl'].includes(ext)) continue // ignore all files other than the given ones
 
         if (tree.modules.has(name)) {
             result.addError(new CompileError(`Module ${relPath} already exists`))
             continue
         }
-        if (tree.other.has(name)) {
+        if (tree.others.has(name)) {
             result.addError(new CompileError(`File ${relPath} already exists`))
             continue
         }
@@ -47,7 +48,7 @@ async function loadChildren(originPath:string,path:string,tree:InputTree): Promi
         }
 
         switch (ext) {
-            case 'dpl':
+            case '.dpl':
                 if (name == 'mod') {
                     if (tree.module) {
                         result.addWarning(new CompileError(`Module ${relPath} already exists (${tree.module.displayName})`))
