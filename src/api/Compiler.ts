@@ -92,7 +92,7 @@ export class CompileResult {
 
 }
 
-export function compile(logger:Logger,cfg:Config,src:InputTree,sheet:SyntaxSheet): Result<CompileResult,null> {
+export function compile(logger:Logger,cfg:Config,src:InputTree,sheet:SyntaxSheet): CompileResult | null {
 
 	const result = new ResultWrapper<CompileResult,null>()
 
@@ -104,7 +104,7 @@ export function compile(logger:Logger,cfg:Config,src:InputTree,sheet:SyntaxSheet
 
 	if (!checkVersion(compilerVersion,ctx.options.minimumVersion)) {
 		logger.log(0,'err',`Pack requires compiler version ${ctx.options.minimumVersion}, currently installed: ${compilerVersion}`)
-		return result.none()
+		return null
 	}
 	
 	logger.logGroup(1,'inf',`Begin compilation`)
@@ -119,12 +119,23 @@ export function compile(logger:Logger,cfg:Config,src:InputTree,sheet:SyntaxSheet
 	modules.forEach(mod=>lexer(mod))
 	logger.log(1,'inf',`Lexical analysis complete`)
 
-	modules.forEach(mod=>fileSyntaxParser(mod,ctx))
-	logger.log(1,'inf',`Syntax analysis complete`)
+	let gotSyntaxErrors = false
+	modules.forEach(mod=>{
+		let res = fileSyntaxParser(mod,ctx)
+		if (result.mergeCheck(res)) gotSyntaxErrors = true
+	})
+	if (!gotSyntaxErrors)
+		logger.log(1,'inf',`Syntax analysis complete`)
+	else {
+		logger.log(1,'err',`Syntax analysis failed`)
+		logger.raiseErrors(result)
+		return null
+	}
 
 	let gotSemanticalErrors = false
 
-	parseInputTree(src,programManager,ctx)
+	if (result.mergeCheck(parseInputTree(src,programManager,ctx)))
+		gotSemanticalErrors = true
 
 	if (result.mergeCheck(programManager.hoisting.flushDefered()))
 		gotSemanticalErrors = true
@@ -153,18 +164,11 @@ export function compile(logger:Logger,cfg:Config,src:InputTree,sheet:SyntaxSheet
 		logger.log(1,'inf',`Compilation complete`)
 		logger.log(2,'inf',`Elapsed time: ${(moment.duration(moment().diff(start)) as any).format()}`)
 
-	}
-
-	if (result.hasWarnings()) {
-		logger.logWrns(result)
-		logger.log(0,'wrn',`Raised ${result.getWarnings().size} warning${result.getWarnings().size>1?'s':''}`)
-	}
-
-	if (result.hasErrors()) {
-		logger.logErrs(result)
-		logger.log(0,'err',`Raised ${result.getErrors().size} error${result.getErrors().size>1?'s':''}`)
-	}
+	} else {
+	    logger.raiseErrors(result)
+        return null
+    }
 	
-	return result.wrap(new CompileResult(cfg,output))
+	return new CompileResult(cfg,output)
 
 }

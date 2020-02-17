@@ -11,11 +11,13 @@ export class CompileError extends Error {
 		protected readonly err: string
 	) {super(err)}
 
-	getErrorMsg() {return this.err}
+	getErrorMsg(short:boolean) {return this.err}
 
 }
 
 export class SourceCodeError extends CompileError {
+
+	private readonly shortError: string
 
 	constructor(
 		mod: ModuleFile,
@@ -23,21 +25,29 @@ export class SourceCodeError extends CompileError {
 		indexEnd: number,
 		msg: string
 	) {
-		super(createErrorMessage(mod,indexStart,indexEnd,msg))
+		super(createErrorMessage(mod,indexStart,indexEnd,msg,false))
+		this.shortError = createErrorMessage(mod,indexStart,indexEnd,msg,true)
+	}
+
+	getErrorMsg(short:boolean) {
+		if (short) return this.shortError
+		return this.err
 	}
 
 }
 
 
-function createErrorMessage(mod:ModuleFile,fi:number,li:number,err:string) {
+function createErrorMessage(mod:ModuleFile,fi:number,li:number,err:string,short:boolean) {
 
 	let fl = mod.getLineFromIndex(fi), ll = mod.getLineFromIndex(li)
 	
+	if (short) return `'${fl.file.displayName}'(${fl.nr}:${fi-fl.startIndex}-${ll.nr}:${li-ll.startIndex}) ${err}`
+
 	let msg: string[] = []
 	let nrLen = (ll.nr+1).toString().length
 	let ws = ' '.repeat(nrLen+2)
 	
-	msg.push(`At ("${fl.file.displayName}":${fl.nr}:${fi-fl.startIndex}):`)
+	msg.push(`At '${fl.file.displayName}'(${fl.nr}:${fi-fl.startIndex}):`)
 	msg.push(err.split('\n').map(s=>`${ws}# ${s}`).join('\n'))
 	msg.push(`${ws}|`)
 

@@ -9,9 +9,6 @@ export interface WeakCompilerOptions {
 	sourceMap?: boolean
 	optimize?: boolean
 	noUnused?: boolean
-	ignoreWarnings?: boolean
-	verbosity?: number
-	colorLog?: boolean
 	noInference?: boolean
 	noImplicitCast?: boolean // unused
 	ignoreUnreachable?: boolean // unused
@@ -32,9 +29,6 @@ export function compilerOptionDefaults(cfg?:WeakCompilerOptions): CompilerOption
 		sourceMap: false,
 		optimize: false,
 		noUnused: false,
-		ignoreWarnings: false,
-		verbosity: 0,
-		colorLog: true,
 		targetVersion: 'latest',
 		debugBuild: false,
 		...cfg

@@ -1,8 +1,5 @@
 # IMPORTANT
 - Directive semantical parsing (sometimes they are just ignored)
-- Fix module system
-  - Remove DeclarationWrapper and just use Declarations
-  - Problem: Erroring on cyclic accesses during complete hoisting flush?
 - Control flow
 - Fix verifier
 - Iterator methods must check undefined
@@ -21,6 +18,7 @@
 - Compile without syntax sheet (for soft failure of syntax sheet parsing)
 
 # FUTURE
+- Var declarations without intializer
 - Verify functions are actually loaded (schedule and cancel?)
 - Enums
 - Blocktags

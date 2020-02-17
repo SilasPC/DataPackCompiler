@@ -1,13 +1,40 @@
 
 import { TokenI } from "../../lexing/Token"
-import { DeclarationWrapper, Declaration } from "./Declaration"
+import { Declaration } from "./Declaration"
 import { reservedSymbols } from "../../lexing/values"
 import { HoisterI, HoisterFn, UnreadableHoistingMaster } from "../managers/HoistingMaster"
 import { Result, ResultWrapper, EmptyResult } from "../../toolbox/Result"
 
+class HoisterWrapper {
+
+    public static fromHoister(v:HoisterI) {
+        return new HoisterWrapper({h:true,v})
+    }
+
+    public static fromDeclaration(v:Declaration) {
+        return new HoisterWrapper({h:false,v})
+    }
+
+    public static fromNothing() {
+        return new HoisterWrapper(null)
+    }
+
+    private constructor(
+        private readonly value: {h:true,v:HoisterI}|{h:false,v:Declaration} | null
+    ) {}
+
+    public evaluate(): Result<Declaration,null> {
+        const result = new ResultWrapper<Declaration,null>()
+        if (!this.value) return result.noneNoErrors()
+        if (this.value.h) return result.pass(this.value.v.evaluate())
+        return result.wrap(this.value.v)
+    }
+
+}
+
 // Change to PublicSymbolTable (use a pubGet method for getting public members)
 export interface ReadOnlySymbolTable {
-    getDeclaration(name:TokenI): Result<DeclarationWrapper,null>
+    getDeclaration(name:TokenI): Result<Declaration,null>
 }
 
 export class SymbolTable implements ReadOnlySymbolTable {
@@ -16,7 +43,7 @@ export class SymbolTable implements ReadOnlySymbolTable {
         return new SymbolTable(master,null)
     }
 
-    protected readonly declarations: Map<string,HoisterI> = new Map()
+    protected readonly declarations: Map<string,HoisterWrapper> = new Map()
 
     private readonly children: SymbolTable[] = []
 
@@ -31,8 +58,8 @@ export class SymbolTable implements ReadOnlySymbolTable {
         return child
     }
 
-    private getInternal(id:string): HoisterI | null {
-        if (this.declarations.has(id)) return this.declarations.get(id) as HoisterI
+    private getInternal(id:string): HoisterWrapper | null {
+        if (this.declarations.has(id)) return this.declarations.get(id) as HoisterWrapper
         if (this.parent) return this.parent.getInternal(id)
         return null
     }
@@ -41,8 +68,8 @@ export class SymbolTable implements ReadOnlySymbolTable {
         return this.getInternal(name) != null
     }
 
-    getDeclaration(name:TokenI): Result<DeclarationWrapper,null> {
-        let result = new ResultWrapper<DeclarationWrapper,null>()
+    getDeclaration(name:TokenI): Result<Declaration,null> {
+        let result = new ResultWrapper<Declaration,null>()
         let hoister = this.getInternal(name.value)
         if (!hoister) {
             result.addError(name.error(`'${name.value}' not available in scope`))
@@ -51,7 +78,12 @@ export class SymbolTable implements ReadOnlySymbolTable {
         return result.pass(hoister.evaluate())
     }
 
-    declareInvalidDirect(id:TokenI): EmptyResult {
+    declareUnsafe(name:string,decl:Declaration) {
+        if (this.declarations.has(name)) throw new Error('unsafe redeclaration')
+        this.declarations.set(name,HoisterWrapper.fromDeclaration(decl))
+    }
+
+    declareFailed(id:TokenI): EmptyResult {
         const result = new ResultWrapper()
         if (reservedSymbols.includes(id.value)) {
             result.addError(id.error('reserved identifier'))
@@ -61,7 +93,7 @@ export class SymbolTable implements ReadOnlySymbolTable {
             result.addError(id.error('duplicate declaration'))
             return result.empty()
         }
-        this.declarations.set(id.value,this.master.addPreHoistedInvalid(id))
+        this.declarations.set(id.value,HoisterWrapper.fromNothing())
         return result.empty()
     }
 
@@ -75,7 +107,7 @@ export class SymbolTable implements ReadOnlySymbolTable {
             result.addError(id.error('duplicate declaration'))
             return result.empty()
         }
-        this.declarations.set(id.value,this.master.addPrehoisted(id,{decl,token:id}))
+        this.declarations.set(id.value,HoisterWrapper.fromDeclaration(decl))
         return result.empty()
     }
 
@@ -90,7 +122,7 @@ export class SymbolTable implements ReadOnlySymbolTable {
             result.addError(id.error('duplicate declaration'))
             return result.empty()
         }
-        this.declarations.set(id.value,h)
+        this.declarations.set(id.value,HoisterWrapper.fromHoister(h))
         return result.empty()
     }
 
@@ -105,7 +137,7 @@ export class SymbolTable implements ReadOnlySymbolTable {
             result.addError(id.error('duplicate declaration'))
             return result.empty()
         }
-        this.declarations.set(id.value,h)
+        this.declarations.set(id.value,HoisterWrapper.fromHoister(h))
         return result.empty()
     }
 

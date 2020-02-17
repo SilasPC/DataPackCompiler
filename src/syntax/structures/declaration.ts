@@ -6,7 +6,7 @@ import { TokenType, KeywordToken, GenericToken } from "../../lexing/Token"
 import { TokenIteratorI } from "../../lexing/TokenIterator"
 import { CompileContext } from "../../toolbox/CompileContext"
 
-export function parseDeclaration(iter:TokenIteratorI,ctx:CompileContext): ASTLetNode {
+export function parseDeclaration(iter:TokenIteratorI): ASTLetNode {
     // allow destructured assignment?   let a,b,c = 1,2,3
     // or like this?                    let [a,b,c] = [1,2,3]
     // allow multi assignment?          let a = 1, b = 2, c = 3

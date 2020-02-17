@@ -14,6 +14,7 @@ export class ResultWrapper<T,P> {
     getWarnings() {return this.warnings}
     hasWarnings() {return this.warnings.size > 0}
 
+    /** Returns true if result had any errors */
     mergeCheck(res:Result<any,any>|EnsuredResult<any>|EmptyResult): boolean {
         let resc = res as ResultClass<any,any>
         for (let err of resc.errors)
@@ -23,13 +24,14 @@ export class ResultWrapper<T,P> {
         return resc.errors.length > 0
     }
 
+    /** Typeguard for failure (result had errors and/or no value) */
     merge<K,S>(res:Result<K,S>): res is FailedResult<K,S> {
         let resc = res as ResultClass<K,S>
         for (let err of resc.errors)
             this.errors.add(err)
         for (let wrn of resc.warnings)
             this.warnings.add(wrn)
-        return resc.errors.length > 0
+        return !resc.hasValue() || resc.errors.length > 0
     }
 
     partial(val:P) {
@@ -48,7 +50,7 @@ export class ResultWrapper<T,P> {
         return new ResultClass(
             'empty',
             [...this.errors], [...this.warnings],
-            null, null
+            undefined, null // not using null for full value ensures it is considered as having a value
         ) as any
     }
 
@@ -56,16 +58,20 @@ export class ResultWrapper<T,P> {
         return new ResultClass(
             'ensured',
             [...this.errors], [...this.warnings],
-            null as any, val
+            null, val // not using null for full value ensures it is considered as having a value
         ) as any
     }
 
-    none(): Result<T,P> {
+    none() {
         if (this.errors.size == 0) throw new Error('ResultWrapper.none() called without adding any errors')
+        return this.noneNoErrors()
+    }
+
+    noneNoErrors(): Result<T,P> {
         return new ResultClass(
             'normal',
             [...this.errors], [...this.warnings],
-            null as any, this.part
+            null, this.part
         ) as any
     }
 
@@ -106,18 +112,21 @@ class ResultClass<T,P> {
         public readonly _type: 'normal' | 'ensured' |'empty',
         public readonly errors: readonly CompileError[],
         public readonly warnings: readonly CompileError[],
-        private readonly full:T,
+        private readonly full:T|null,
         private readonly part:P|null
     ) {}
 
+    hasValue() {
+        return this.full != null
+    }
+
     getPartial(): P | null {
-        if (this.errors.length == 0) return null
         return this.part
     }
 
     getValue(): T | null {
-        if (this.errors.length == 0) return this.full
-        return null
+        if (!this.full) throw new Error('Result had no value when getValue() was called')
+        return this.full
     }
 
     getEnsured(): P {

@@ -5,10 +5,17 @@ import { ResultWrapper } from "./Result"
 
 type LogType = 'inf' | 'err' | 'wrn'
 
+export interface LogOptions {
+	verbosity: number
+	shortFormat: boolean
+	ignoreWarnings: boolean
+	useColor: boolean
+}
+
 export class Logger {
 
 	constructor(
-		public readonly options: CompilerOptions
+		public readonly options: LogOptions
 	) {}
 
 	private lastLogType: LogType|null = null
@@ -20,7 +27,7 @@ export class Logger {
 		if (type == 'wrn' && this.options.ignoreWarnings) return
 		if (level > this.options.verbosity) return
 		let col = type == 'inf' ? cols.green : type == 'wrn' ? cols.yellow : cols.red
-		if (!this.options.colorLog) col = (s:string) => s
+		if (!this.options.useColor) col = (s:string) => s
 
 		let pad = col('    ] ')
 		let padh = col(`\n[${type}] `)
@@ -35,23 +42,37 @@ export class Logger {
 				.join('\n')
 		)
 
-		// this.lastLogLevel2 = level
 		this.lastLogType = type
 
 	}
 
-	logErrs(res:ResultWrapper<any,any>) {
+	/** Returns true if there were any errors (not warnings) */
+	raiseErrors(res:ResultWrapper<any,any>): boolean {
+		if (res.hasWarnings()) {
+			this.logWrns(res)
+			this.log(0,'wrn',`Raised ${res.getWarnings().size} warning${res.getWarnings().size>1?'s':''}`)
+		}
+	
+		if (res.hasErrors()) {
+			this.logErrs(res)
+			this.log(0,'err',`Raised ${res.getErrors().size} error${res.getErrors().size>1?'s':''}`)
+			return true
+		}
+		return false
+	}
+
+	private logErrs(res:ResultWrapper<any,any>) {
 		for (let err of res.getErrors()) {
 			this.lastLogType = null
-			this.log(0,'err',err.getErrorMsg())
+			this.log(0,'err',err.getErrorMsg(this.options.shortFormat))
 		}
 		this.lastLogType = null
 	}
 	
-	logWrns(res:ResultWrapper<any,any>) {
+	private logWrns(res:ResultWrapper<any,any>) {
 		for (let err of res.getWarnings()) {
 			this.lastLogType = null
-			this.log(0,'wrn',err.getErrorMsg())
+			this.log(0,'wrn',err.getErrorMsg(this.options.shortFormat))
 		}
 		this.lastLogType = null
 	}

@@ -1,5 +1,5 @@
 
-import { TokenI, TokenType } from "../lexing/Token";
+import { TokenI, TokenType, GenericToken } from "../lexing/Token";
 import { ASTNodeType, ASTIdentifierNode, ASTOpNode, ASTCallNode, ASTListNode, ASTExpr, ASTRefNode, ASTDynamicAccessNode, ASTStaticAccessNode, ASTPrimitiveNode } from "./AST";
 import { TokenIteratorI } from "../lexing/TokenIterator";
 import { parseSelector } from "./structures/selector";
@@ -248,10 +248,14 @@ function recurse(tokens:TokenIteratorI,asi:boolean,inFn:boolean,allowList:boolea
                 switch (op.op) {
                     case '::': {
                         let [o0,o1] = que.splice(-2,2)
+                        let accessors: GenericToken[] = []
                         if (o1.type != ASTNodeType.IDENTIFIER) return op.token.throwDebug('unexpected '+ASTNodeType[o1.type])
-                        if (o0.type != ASTNodeType.IDENTIFIER && (o0.type != ASTNodeType.ACCESS || o0.isStatic == false))
-                            return op.token.throwDebug('unexpected')
-                        que.push(new ASTStaticAccessNode(pfile,o0.indexStart,o1.indexEnd,o1.identifier,o0))
+                        if (o0.type == ASTNodeType.IDENTIFIER) {
+                            accessors.push(o0.identifier)
+                        } else if (o0.type == ASTNodeType.ACCESS && o0.isStatic == true) {
+                            accessors.push(...o0.accessors)
+                        } else return op.token.throwDebug('unexpected')
+                        que.push(new ASTStaticAccessNode(pfile,o0.indexStart,o1.indexEnd,accessors))
                         postfix.push(op.token.value)
                         break
                     }

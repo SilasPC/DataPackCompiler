@@ -1,12 +1,14 @@
 
-import { ASTFnNode, ASTNodeType } from "../AST"
-import { TokenType, TokenI, KeywordToken, GenericToken, DirectiveToken } from "../../lexing/Token"
+import { ASTFnNode } from "../AST"
+import { TokenType, TokenI, KeywordToken, GenericToken } from "../../lexing/Token"
 import { bodySyntaxParser } from "../bodySyntaxParser"
 import { getType } from "../helpers"
 import { TokenIteratorI } from "../../lexing/TokenIterator"
 import { CompileContext } from "../../toolbox/CompileContext"
+import { ResultWrapper, Result } from "../../toolbox/Result"
 
-export function parseFunction(iter:TokenIteratorI,ctx:CompileContext): ASTFnNode {
+export function parseFunction(iter:TokenIteratorI,ctx:CompileContext): Result<ASTFnNode,null> {
+    const result = new ResultWrapper<ASTFnNode,null>()
     let fnToken = iter.current() as KeywordToken
     let fnSymbol = iter.next().expectType(TokenType.SYMBOL) as GenericToken
     let parameters: {symbol:TokenI,type:TokenI,ref:boolean}[] = []
@@ -31,5 +33,6 @@ export function parseFunction(iter:TokenIteratorI,ctx:CompileContext): ASTFnNode
     let returnType = getType(iter)
     iter.next().expectType(TokenType.MARKER).expectValue('{')
     let body = bodySyntaxParser(iter,ctx)
-    return new ASTFnNode(iter.file,fnToken.indexStart,iter.current().indexEnd,fnSymbol,parameters,returnType,body)
+    if (result.merge(body)) return result.none()
+    return result.wrap(new ASTFnNode(iter.file,fnToken.indexStart,iter.current().indexEnd,fnSymbol,parameters,returnType,body.getValue()))
 }

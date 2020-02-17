@@ -1,7 +1,7 @@
-import { VarDeclaration, FnDeclaration, ModDeclaration } from "./declarations/Declaration";
+import { VarDeclaration, FnDeclaration, ModDeclaration, EventDeclaration, DeclarationType } from "./declarations/Declaration";
 import { Primitive, primToType } from "./types/PrimitiveValue";
 import { Operator } from "../lexing/values";
-import { ValueType } from "./types/Types";
+import { ValueType, Type } from "./types/Types";
 import { exhaust } from "../toolbox/other";
 import { CMDNode } from "../commands/CMDNode";
 import { Interspercer } from "../toolbox/Interspercer";
@@ -13,7 +13,11 @@ export function ptExprToType(pt:PTExpr): ValueType {
 		case PTKind.PRIMITIVE:
 			return primToType(pt.value)
 		case PTKind.INVOKATION:
-			return pt.func.returns
+			switch (pt.func.type) {
+				case DeclarationType.EVENT: return {type:Type.VOID}
+				case DeclarationType.FUNCTION: return pt.func.returns
+				default: return exhaust(pt.func)
+			}
 		case PTKind.OPERATOR:
 			return pt.type
 		default: return exhaust(pt)
@@ -93,7 +97,7 @@ export interface PTModNode {
 
 export interface PTCallNode {
 	kind: PTKind.INVOKATION
-	func: FnDeclaration
+	func: FnDeclaration | EventDeclaration
 	args: ({ref:true,pt:PTVarNode}|{ref:false,pt:PTExpr})[]
 	scopeNames: string[]
 }

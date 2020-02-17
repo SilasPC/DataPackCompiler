@@ -1,6 +1,13 @@
 
-use super::std
-// use subMod
+use super::std::events::tick
+use std::events::tick
+
+use std::debug::panic
+
+on tick {
+	/say holy crap
+	panic()
+}
 
 on abc {
 	/say wtf

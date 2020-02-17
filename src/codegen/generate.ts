@@ -1,5 +1,5 @@
 
-import { fnSignature } from "../semantics/declarations/Declaration";
+import { fnSignature, DeclarationType } from "../semantics/declarations/Declaration";
 import { exhaust } from "../toolbox/other";
 import { InstrType } from "./Instructions";
 import { FnFile } from "./FnFile";
@@ -99,6 +99,13 @@ function generateExpr(fnf:FnFile,pt:PTExpr,om:OutputManager): Scoreboard | null 
 			return om.scoreboards.getConstant(pt.value.value)
 
 		case PTKind.INVOKATION:
+			if (pt.func.type == DeclarationType.EVENT) {
+				fnf.push({
+					type: InstrType.INVOKE,
+					fn: om.functions.byDeclaration(pt.func)
+				})
+				return null
+			}
 			if (pt.func.thisBinding.type != Type.VOID) throw new Error('no method gen plz')
 			for (let i = 0; i < pt.args.length; i++) {
 				let arg = pt.args[i]

@@ -7,7 +7,7 @@ import { ModDeclaration, DeclarationType, Declaration } from "./declarations/Dec
 import { parseDefine } from "./statements/parseDefine"
 import { parseStruct } from "./statements/parseStruct"
 import { parseEvent } from "./statements/parseEvents"
-import { resolveAccess } from "./resolveAccess"
+import { resolveAccess, resolveStatic } from "./resolveAccess"
 import { parseBody } from "./parseBody"
 import { Program } from "./managers/ProgramManager"
 import { listDirectives, checkDebugIgnore } from "./directives"
@@ -39,14 +39,19 @@ export function parseModule(
 
 			case ASTNodeType.USE: {
 				let node0 = node
-				scope.symbols.declareHoister(node.accessors[node.accessors.length-1],()=>mod.fetchModule(node0.accessors))
+				scope.symbols.declareHoister(node.accessors[node.accessors.length-1],()=>resolveStatic(node0.accessors,scope.symbols))
 				break
 			}
 	
 			case ASTNodeType.MODULE: {
-				let child = mod.branch(node.identifier,program)
-				if (result.merge(child)) break
-				result.mergeCheck(parseModule(child.getValue(),node.body,ctx,program))
+				let node0 = node
+				result.mergeCheck(scope.symbols.declareHoister(node.identifier,()=>{
+					const result = new ResultWrapper<Declaration,null>()
+					let child = mod.branch(node0.identifier,program)
+					if (result.merge(child)) return result.none()
+					result.mergeCheck(parseModule(child.getValue(),node0.body,ctx,program))
+					return result.pass(child)
+				}))
 				break
 			}
 	
@@ -112,7 +117,7 @@ export function parseModule(
 
 					let res = resolveAccess(node0.event,scope)
 					if (result.merge(res)) return result.empty()
-					let {decl} = res.getValue()
+					let decl = res.getValue()
 					if (decl.type != DeclarationType.EVENT) {
 						result.addError(node0.event.error('expected an event'))
 						return result.empty()

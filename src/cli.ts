@@ -4,7 +4,7 @@ import { Datapack } from './api/Datapack'
 import yargs from 'yargs'
 import { compilerVersion } from './api/Compiler'
 import { verify } from './commands/verifier'
-import { Logger } from './toolbox/Logger'
+import { Logger, LogOptions } from './toolbox/Logger'
 import { purgeNullishKeys } from './toolbox/other'
 import { SyntaxSheet } from './commands/SyntaxSheet'
 import { ResultWrapper } from './toolbox/Result'
@@ -116,6 +116,13 @@ const argv = yargs
 		group: COMPILE_GROUP
 	})
 
+	.option('simple-format', {
+		description: 'Output simpler format',
+		boolean: true,
+		default: false,
+		group: COMPILE_GROUP
+	})
+
 	.option('no-warn', {
 		description: 'Ignore compiler warnings',
 		boolean: true,
@@ -168,14 +175,7 @@ async function compile(argv:any): Promise<void> {
 	async function doCompile(dp:Datapack): Promise<number> {
 		try {
 
-			await dp.compile({
-				targetVersion: argv['target-version'] as string|undefined,
-				verbosity: argv.silent ? -1 : (argv.verbose ? argv.verbose as number : undefined),
-				colorLog: argv.color === false ? false : undefined,
-				optimize: argv.optimize === false ? false : undefined,
-				ignoreWarnings: argv.warn === false ? true : undefined,
-				debugBuild: argv.debug === true ? true : undefined
-			})
+			await dp.compile(logOptions(argv),{})
 			if (dp.canEmit() && argv.emit !== false) await dp.emit()
 			
 		} catch (err) {
@@ -206,19 +206,24 @@ async function initialize(path:string) {
 
 async function cliVerify(argv:any): Promise<void> {
 	const result = new ResultWrapper()
-	const log = new Logger(purgeNullishKeys<any,any>({
-		verbosity: argv.silent ? -1 : (argv.verbose ? argv.verbose as number : undefined)
-	}))
+	const log = new Logger(logOptions(argv))
 	const sheet = await SyntaxSheet.load(argv['target-version'] || 'latest')
 	if (result.merge(sheet)) {
-		log.logWrns(result)
-		log.logErrs(result)
+		log.raiseErrors(result)
 		log.log(0,'err','Failed to parse syntax sheet')
 		return process.exit(1)
 	}
 	const res = await verify(argv.path,log,sheet.getValue())
 	if (!result.mergeCheck(res)) return process.exit(0)
-	log.logWrns(result)
-	log.logErrs(result)
+	log.raiseErrors(result)
 	process.exit(1)
+}
+
+function logOptions(argv:any): LogOptions {
+	return {
+		verbosity: argv.silent ? -1 : (argv.verbose ? argv.verbose as number : 0),
+		ignoreWarnings: argv.warn === false ? true : false,
+		shortFormat: Boolean(argv['simple-format']),
+		useColor: argv.color === false ? false : true
+	}
 }

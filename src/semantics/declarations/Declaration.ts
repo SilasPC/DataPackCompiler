@@ -1,18 +1,13 @@
 
 import { ValueType, typeSignature, Type } from "../types/Types";
 import { TokenI } from "../../lexing/Token";
-import { ReadOnlySymbolTable } from "./SymbolTable";
+import { ReadOnlySymbolTable, SymbolTable } from "./SymbolTable";
 import { Struct } from "../types/Struct";
 import { Program } from "../managers/ProgramManager";
 import { ModScope } from "../Scope";
 import { Result, ResultWrapper } from "../../toolbox/Result";
 
 export type Declaration = VarDeclaration | FnDeclaration | ModDeclaration | RecipeDeclaration | StructDeclaration | EventDeclaration
-
-export interface DeclarationWrapper {
-	token: TokenI
-	decl: Declaration
-}
 
 export enum DeclarationType {
 	VARIABLE,
@@ -44,40 +39,17 @@ export class ModDeclaration {
 	private readonly children = new Map<string,ModDeclaration>()
 
 	public readonly namePath: readonly string[]
-	public readonly symbols: ReadOnlySymbolTable
 
 	private constructor (
 		public readonly parent: ModDeclaration | null,
 		public readonly scope: ModScope
 	) {
-		this.symbols = scope.symbols
 		this.namePath = scope.getScopeNames()
 	}
 
-	fetchModule(accessors:TokenI[]): Result<ModDeclaration,null> {
-		const result = new ResultWrapper<ModDeclaration,null>()
+	public getSymbols(): ReadOnlySymbolTable {return this.scope.symbols}
 
-		let mod: ModDeclaration = this
-
-        for (let accessor of accessors) {
-            if (accessor.value == 'super') {
-                if (!mod.parent) {
-                    result.addError(accessor.error('module not found'))
-                    return result.none()
-                }
-                mod = mod.parent
-                continue
-            }
-            let child = mod.getDirectChild(accessor.value)
-            if (!child) {
-                result.addError(accessor.error('module not found'))
-                return result.none()
-            }
-            mod = child
-        }
-        
-        return result.wrap(mod)
-	}
+	public setModuleUnsafe(name:string,mod:ModDeclaration) {this.scope.symbols.declareUnsafe(name,mod)}
 
 	branchUnsafe(name:string,program:Program): ModDeclaration {
 		let mod = new ModDeclaration(this,this.scope.branchToMod(name,program))

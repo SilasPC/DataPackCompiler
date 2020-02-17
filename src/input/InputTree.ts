@@ -3,6 +3,7 @@ import { TokenI } from "../lexing/Token"
 import { TokenIterator } from "../lexing/TokenIterator"
 import { ASTStaticBody } from "../syntax/AST"
 import { Interspercer } from "../toolbox/Interspercer"
+import { SourceCodeError } from "../toolbox/CompileErrors"
 
 export class InputTree {
 
@@ -74,6 +75,10 @@ export class ModuleFile extends InputFile {
 
     throwUnexpectedEOF() {
         return (<TokenI>this.tokens.pop()).line.fatal('Unexpected EOF',0,0)
+    }
+
+    unexpectedEOI(): SourceCodeError {
+        return new SourceCodeError(this,this.tokens[this.tokens.length-1].indexEnd,this.source.length-1,'Unexpected end of input')
     }
     
 }

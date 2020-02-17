@@ -4,7 +4,7 @@ import { promises as fs, Stats }  from 'fs'
 import { join } from "path";
 import { WeakCompilerOptions } from "../toolbox/config";
 import { compile, CompileResult } from './Compiler';
-import { Logger } from '../toolbox/Logger';
+import { Logger, LogOptions } from '../toolbox/Logger';
 import { Config } from './Configuration';
 import { purgeNullishKeys } from '../toolbox/other';
 import { loadDirectory } from '../input/loadFromFileSystem';
@@ -42,13 +42,13 @@ export class Datapack {
 		return watcher
 	}
 
-	async compile(cfgOverride:WeakCompilerOptions={}) {
+	async compile(logCfg:LogOptions,cfgOverride:WeakCompilerOptions) {
 
 		const result = new ResultWrapper()
 
 		let cfg = this.cfg.overrideCompilerOptions(purgeNullishKeys(cfgOverride))
 		
-		const logger = new Logger(cfg.compilation)
+		const logger = new Logger(logCfg)
 		this.log = logger
 
 		const srcRes = await loadDirectory(this.packDir,join(this.packDir,this.cfg.compilation.sourceDir))
@@ -65,14 +65,13 @@ export class Datapack {
 		try {
 			let sheet = await SyntaxSheet.load(cfg.compilation.targetVersion)
 			if (result.merge(sheet)) {
-				logger.logWrns(result)
-				logger.logErrs(result)
+				logger.raiseErrors(result)
 				logger.log(0,'err','Failed to parse syntax sheet')
 				this.status = 'fail'
 				return
 			}
 			let res = await compile(logger,cfg,src,sheet.getValue())
-			if (!result.merge(res)) this.status = res.getValue()
+			if (res) this.status = res
 			else {
 				this.status = 'fail'
 			}

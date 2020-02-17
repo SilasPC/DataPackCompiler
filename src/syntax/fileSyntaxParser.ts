@@ -10,15 +10,23 @@ import { parseStruct } from "./structures/struct";
 import { parseEvent } from "./structures/event";
 import { parseOnEvent } from "./structures/onEvent";
 import { ModuleFile } from "../input/InputTree";
+import { ResultWrapper, Result } from "../toolbox/Result";
+import { ASTStaticBody } from "./AST";
+import { Interspercer } from "../toolbox/Interspercer";
 
-export function fileSyntaxParser(mod: ModuleFile, ctx: CompileContext): void {
+export function fileSyntaxParser(mod: ModuleFile, ctx: CompileContext): Result<ASTStaticBody,null> {
+
+    const result = new ResultWrapper<ASTStaticBody,null>()
+
     const iter = mod.getTokenIterator()
     let isPub: TokenI | null = null
+
+    let body: ASTStaticBody = new Interspercer()
 
     for (let token of iter) {
 
         if (token.type == TokenType.DIRECTIVE) {
-            mod.ast.addSubData(token)
+            body.addSubData(token)
             continue
         }
 
@@ -30,34 +38,46 @@ export function fileSyntaxParser(mod: ModuleFile, ctx: CompileContext): void {
                         isPub = token
                         break
                     case 'use':
-                        mod.ast.add(wrapPublic(parseUse(iter,ctx),isPub))
+                        body.add(wrapPublic(parseUse(iter,ctx),isPub))
                         isPub = null
                         break
-                    case 'mod':
-                        mod.ast.add(wrapPublic(parseModule(iter,ctx),isPub))
+                    case 'mod': {
+                        let res = parseModule(iter,ctx)
+                        if (result.merge(res)) return result.none()
+                        body.add(wrapPublic(res.getValue(),isPub))
                         isPub = null
                         break
-                    case 'fn':
-                        mod.ast.add(wrapPublic(parseFunction(iter,ctx),isPub))
+                    }
+                    case 'fn': {
+                        let res = parseFunction(iter,ctx)
+                        if (result.merge(res)) return result.none()
+                        body.add(wrapPublic(res.getValue(),isPub))
                         isPub = null
                         break
+                    }
                     case 'const':
                     case 'let':
-                        mod.ast.add(wrapPublic(parseDeclaration(iter,ctx),isPub))
+                        body.add(wrapPublic(parseDeclaration(iter),isPub))
                         isPub = null
                         break
                     case 'struct':
-                        mod.ast.add(wrapPublic(parseStruct(iter,ctx),isPub))
+                        body.add(wrapPublic(parseStruct(iter,ctx),isPub))
                         isPub = null
                         break
-                    case 'event':
-                        mod.ast.add(wrapPublic(parseEvent(iter,ctx),isPub))
+                    case 'event': {
+                        let res = parseEvent(iter,ctx)
+                        if (result.merge(res)) return result.none()
+                        body.add(wrapPublic(res.getValue(),isPub))
                         isPub = null
                         break
-                    case 'on':
+                    }
+                    case 'on': {
                         if (isPub) token.throwUnexpectedKeyWord()
-                        mod.ast.add(parseOnEvent(iter,ctx))
+                        let res = parseOnEvent(iter,ctx)
+                        if (result.merge(res)) return result.none()
+                        body.add(res.getValue())
                         break
+                    }
                     default:
                         return token.throwUnexpectedKeyWord()
                 }
@@ -69,5 +89,9 @@ export function fileSyntaxParser(mod: ModuleFile, ctx: CompileContext): void {
     }
 
     if (isPub) mod.throwUnexpectedEOF();
+
+    mod.ast.insertEnd(body)
+
+    return result.wrap(body)
 
 }

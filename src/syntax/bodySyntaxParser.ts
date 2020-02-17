@@ -1,6 +1,6 @@
 
-import { TokenType, TokenI, DirectiveToken } from "../lexing/Token";
-import { ASTNode, ASTNodeType, ASTReturnNode, ASTStatement, ASTBody } from "./AST";
+import { TokenType } from "../lexing/Token";
+import { ASTReturnNode, ASTStatement, ASTBody } from "./AST";
 import { expressionSyntaxParser } from "./expressionSyntaxParser";
 import { parseConditional } from "./structures/conditional";
 import { parseDeclaration } from "./structures/declaration";
@@ -11,25 +11,20 @@ import { parseWhile } from "./structures/while";
 import { Interspercer } from "../toolbox/Interspercer";
 import { Result, ResultWrapper } from "../toolbox/Result";
 
-export function bodyOrLineSyntaxParser(iter:TokenIteratorI,ctx:CompileContext): ASTBody {
-    const result = new ResultWrapper()
+export function bodyOrLineSyntaxParser(iter:TokenIteratorI,ctx:CompileContext): Result<ASTBody,null> {
+    const result = new ResultWrapper<ASTBody,null>()
     let next = iter.next()
     if (next && next.type == TokenType.MARKER && iter.current().value == '{')
-        return bodySyntaxParser(iter,ctx)
+        return result.pass(bodySyntaxParser(iter,ctx))
     let res = parseStatement(iter,ctx)
     let body: ASTBody = new Interspercer()
     if (!result.merge(res)) body.add(res.getValue())
-    else {
-        ctx.logger.log(0,'wrn','Result not handled correctly (body syntax parser)')
-        ctx.logger.logWrns(result)
-        ctx.logger.logErrs(result)
-    }
-    return body
+    return result.wrap(body)
 }
 
-export function bodySyntaxParser(iter:TokenIteratorI,ctx:CompileContext): ASTBody {
+export function bodySyntaxParser(iter:TokenIteratorI,ctx:CompileContext): Result<ASTBody,null> {
     
-    const result = new ResultWrapper()
+    const result = new ResultWrapper<ASTBody,null>()
 
     let body: ASTBody = new Interspercer()
 
@@ -40,19 +35,15 @@ export function bodySyntaxParser(iter:TokenIteratorI,ctx:CompileContext): ASTBod
             continue
         }
 
-        if (token.type == TokenType.MARKER && token.value == '}') return body
+        if (token.type == TokenType.MARKER && token.value == '}') return result.wrap(body)
+        
         let res = parseStatement(iter,ctx)
         if (!result.merge(res)) body.add(res.getValue())
-        else {
-            ctx.logger.log(0,'wrn','Result not handled correctly (body syntax parser)')
-            ctx.logger.logWrns(result)
-            ctx.logger.logErrs(result)
-        }
 
     }
 
-    throw new Error('body ran out, end of file')
-    
+    result.addError(iter.file.unexpectedEOI())
+    return result.none()
 }
 
 function parseStatement(iter:TokenIteratorI,ctx:CompileContext): Result<ASTStatement,null> {
@@ -62,8 +53,8 @@ function parseStatement(iter:TokenIteratorI,ctx:CompileContext): Result<ASTState
         case TokenType.KEYWORD: {
             switch (token.value) {
                 case 'const':
-                case 'let': return result.wrap(parseDeclaration(iter,ctx))
-                case 'if':  return result.wrap(parseConditional(iter,ctx))
+                case 'let': return result.wrap(parseDeclaration(iter))
+                case 'if':  return result.pass(parseConditional(iter,ctx))
                 case 'return': {
                     let peek = iter.peek()
                     if ( // this is not so great
@@ -78,7 +69,7 @@ function parseStatement(iter:TokenIteratorI,ctx:CompileContext): Result<ASTState
                     }
                 }
                 case 'while':
-                    return result.wrap(parseWhile(iter,ctx))
+                    return result.pass(parseWhile(iter,ctx))
                 case 'fn':
                 case 'break':
                 case 'for':

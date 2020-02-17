@@ -1,7 +1,7 @@
 import { ASTNode, ASTNodeType, ASTOpNode, ASTExpr, ASTCallNode } from "../syntax/AST"
 import { exhaust, Errorable } from "../toolbox/other"
 import { ParseTree, PTKind, PTExpr, PTOpNode, ptExprToType, ptCanMut, PTCallNode, PTVarNode } from "./ParseTree"
-import { resolveStatic, resolveAccess } from "./resolveAccess"
+import { resolveStatic, resolveAccess, resolveStaticNode } from "./resolveAccess"
 import { DeclarationType } from "./declarations/Declaration"
 import { Type, isSubType, ValueType } from "./types/Types"
 import { Scope } from "./Scope"
@@ -20,7 +20,7 @@ export function parseExpression(
 		case ASTNodeType.IDENTIFIER: {
 			let res = resolveAccess(node,scope)
 			if (result.merge(res)) return result.none()
-			let {decl} = res.getValue()
+			let decl = res.getValue()
 			switch (decl.type) {
 				case DeclarationType.VARIABLE:
 					return result.wrap({kind:PTKind.VARIABLE,decl})
@@ -92,20 +92,29 @@ function invokation(node:ASTCallNode,scope:Scope): Result<PTCallNode,ValueType> 
 	})
 	if (node.func.type == ASTNodeType.ACCESS && !node.func.isStatic)
 		throw new Error('wait dyn access')
-	let res = resolveStatic(node.func,scope.symbols)
+	let res = resolveStaticNode(node.func,scope.symbols)
 	if (result.merge(res)) return result.none()
-	let {decl,token} = res.getValue()
+	let decl = res.getValue()
 	if (decl.type == DeclarationType.STRUCT) {
 		result.addError(node.func.error('con_struct_ion not available yet'))
 		return result.none()
 	}
+	if (decl.type == DeclarationType.EVENT) {
+		if (params.length) result.addError(node.error('no parameters for events yet'))
+		return result.wrap({
+			kind: PTKind.INVOKATION,
+			func: decl,
+			args: [],
+			scopeNames:scope.getScopeNames()
+		})
+	}
 	if (decl.type != DeclarationType.FUNCTION) {
-		result.addError(node.func.error('not a fn'))
+		result.addError(node.func.error('expected a function or event'))
 		return result.none()
 	}
-	if (decl.thisBinding.type != Type.VOID) return token.throwDebug('methods not implemented')
+	if (decl.thisBinding.type != Type.VOID) throw node.func.error('methods not implemented')
 	if (params.length != decl.parameters.length) {
-		result.addError(node.func.error('param length unmatched'))
+		result.addError(node.error('param length unmatched'))
 		return result.none()
 	}
 	let args: Arg[] = []

@@ -325,8 +325,7 @@ export class ASTStaticAccessNode extends ASTNodeBase {
         mod: ModuleFile,
         indexStart: number,
         indexEnd: number,
-        public readonly access: GenericToken,
-        public readonly accessee: ASTStaticAccessNode | ASTIdentifierNode
+        public readonly accessors: GenericToken[],
     ){super(mod,indexStart,indexEnd)}
 }
 

@@ -1,7 +1,7 @@
 import { ASTStructNode } from "../../syntax/AST";
 import { Scope } from "../Scope";
 import { CompileContext } from "../../toolbox/CompileContext";
-import { StructDeclaration, DeclarationType, DeclarationWrapper } from "../declarations/Declaration";
+import { StructDeclaration, DeclarationType, Declaration } from "../declarations/Declaration";
 import { Struct } from "../types/Struct";
 import { GenericToken } from "../../lexing/Token";
 import { Result, ResultWrapper, SuccededResult } from "../../toolbox/Result";
@@ -13,18 +13,18 @@ export function parseStruct(node:ASTStructNode,scope:Scope): Result<StructDeclar
         .filter(
             (p:{
                 token:GenericToken,
-                decl:Result<DeclarationWrapper,null>
+                decl:Result<Declaration,null>
             }): p is {
                 token:GenericToken,
-                decl:SuccededResult<DeclarationWrapper,null>
+                decl:SuccededResult<Declaration,null>
             } => !result.merge(p.decl))
         .flatMap(p=>{
             let w = p.decl.getValue()
-            if (w.decl.type != DeclarationType.STRUCT) {
+            if (w.type != DeclarationType.STRUCT) {
                 result.addError(p.token.error('not a struct'))
                 return [] as {struct:StructDeclaration,errOn:GenericToken}[]
             }
-            return {struct:w.decl,errOn:p.token}
+            return {struct:w,errOn:p.token}
         })
     let struct = Struct.create(node.identifier.value,parents)
     if (result.merge(struct)) return result.none()

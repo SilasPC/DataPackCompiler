@@ -136,7 +136,7 @@ export function parseBody(nodes:ASTBody,scope:Scope,cfg:CompilerOptions): Result
 			case ASTNodeType.DEFINE: {
 				let res = parseDefine(node,scope)
 				if (result.merge(res)) {
-					scope.symbols.declareInvalidDirect(node.identifier)
+					scope.symbols.declareFailed(node.identifier)
 					continue
 				}
 				result.mergeCheck(scope.symbols.declareDirect(node.identifier,res.getValue().decl))

@@ -1,5 +1,5 @@
 
-import { DeclarationWrapper, Declaration } from "../declarations/Declaration"
+import { Declaration } from "../declarations/Declaration"
 import { Logger } from "../../toolbox/Logger"
 import { TokenI } from "../../lexing/Token"
 import $ from 'js-itertools'
@@ -18,14 +18,14 @@ class Hoister {
         return h
     }
 
-    public static unhoisted(token: TokenI, decl: DeclarationWrapper) {
+    public static unhoisted(token: TokenI, decl: Declaration) {
         let h = new Hoister(()=>{throw new Error('no hoister')},token)
         h.decl = decl
         h.hoisted = true
         return h
     }
 
-    private decl?: DeclarationWrapper
+    private decl?: Declaration
     
     private refCounter = 0
 
@@ -40,17 +40,17 @@ class Hoister {
     
     wasReferenced() {return this.refCounter > 0}
 
-    evaluate(): Result<DeclarationWrapper,null> {
-        const result = new ResultWrapper<DeclarationWrapper,null>()
+    evaluate(): Result<Declaration,null> {
+        const result = new ResultWrapper<Declaration,null>()
         this.refCounter++
-        if (this.failed) return result.none()
+        if (this.failed) return result.noneNoErrors()
         if (this.active) {
             result.addError(this.token.error('circular dependency'))
             return result.none()
         }
         if (this.decl) return result.wrap(this.decl)
 
-        if (this.hoisted) throw new Error('already hoisted')
+        if (this.hoisted) throw new Error('already hoisted') // hard error
 
         this.active = true
 
@@ -60,10 +60,7 @@ class Hoister {
         this.active = false
 
         if (!result.merge(decl)) {
-            this.decl = {
-                decl: decl.getValue(),
-                token: this.token
-            }
+            this.decl = decl.getValue()
             return result.wrap(this.decl)
         }
 
@@ -79,7 +76,7 @@ export interface UnreadableHoistingMaster {
     defer(fn:()=>EmptyResult): void
     deferHoister(token:TokenI, fn: HoisterFn): Hoister
     addHoister(token:TokenI, fn:HoisterFn): Hoister
-    addPrehoisted(token: TokenI, decl: DeclarationWrapper): Hoister
+    addPrehoisted(token: TokenI, decl: Declaration): Hoister
     addPreHoistedInvalid(token:TokenI): Hoister
 }
 
@@ -111,7 +108,7 @@ export class HoistingMaster implements UnreadableHoistingMaster {
         return h
     }
 
-    addPrehoisted(token: TokenI, decl: DeclarationWrapper) {
+    addPrehoisted(token: TokenI, decl: Declaration) {
         let h = Hoister.unhoisted(token,decl)
         this.hoisters.add(h)
         return h
