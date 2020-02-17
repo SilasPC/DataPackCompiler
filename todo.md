@@ -15,10 +15,9 @@
 - Actually add the check when invoking controlflow functions
 - Syntax reading, add structure for automatic semicolon insertion
 - Language Server
-- Use Result<T,P> instead
-  - Specifically for declarations, allows to possibly return a type even thought there is an error
-  - Result must then hold a set of errors as well, which will be passed on
+- Use Result partials
 - Defered for semantical check of unreferenced hoisters
+- Compile without syntax sheet (for soft failure of syntax sheet parsing)
 
 # FUTURE
 - Verify functions are actually loaded (schedule and cancel?)
@@ -44,6 +43,8 @@
 	- #[todo]
 	- #[disabled]
 	- #[version(1.5,1.6)]
+	- #[eager]
+	- #[lazy] (say for things that only need to run if some other thing is loaded)
 	- config? std type impl?
 	- ?
 

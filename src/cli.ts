@@ -210,7 +210,13 @@ async function cliVerify(argv:any): Promise<void> {
 		verbosity: argv.silent ? -1 : (argv.verbose ? argv.verbose as number : undefined)
 	}))
 	const sheet = await SyntaxSheet.load(argv['target-version'] || 'latest')
-	const res = await verify(argv.path,log,sheet)
+	if (result.merge(sheet)) {
+		log.logWrns(result)
+		log.logErrs(result)
+		log.log(0,'err','Failed to parse syntax sheet')
+		return process.exit(1)
+	}
+	const res = await verify(argv.path,log,sheet.getValue())
 	if (!result.mergeCheck(res)) return process.exit(0)
 	log.logWrns(result)
 	log.logErrs(result)

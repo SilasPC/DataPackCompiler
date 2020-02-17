@@ -4,15 +4,22 @@ import { CompileContext } from "../../toolbox/CompileContext";
 import { StructDeclaration, DeclarationType, DeclarationWrapper } from "../declarations/Declaration";
 import { Struct } from "../types/Struct";
 import { GenericToken } from "../../lexing/Token";
-import { Result, ResultWrapper } from "../../toolbox/Result";
+import { Result, ResultWrapper, SuccededResult } from "../../toolbox/Result";
 
 export function parseStruct(node:ASTStructNode,scope:Scope): Result<StructDeclaration,null> {
     const result = new ResultWrapper<StructDeclaration,null>()
     let parents = node.parents
         .map(token=>({token,decl:scope.symbols.getDeclaration(token)}))
-        .filter(p=>!result.merge(p.decl))
+        .filter(
+            (p:{
+                token:GenericToken,
+                decl:Result<DeclarationWrapper,null>
+            }): p is {
+                token:GenericToken,
+                decl:SuccededResult<DeclarationWrapper,null>
+            } => !result.merge(p.decl))
         .flatMap(p=>{
-            let w = p.decl.getValue() as DeclarationWrapper
+            let w = p.decl.getValue()
             if (w.decl.type != DeclarationType.STRUCT) {
                 result.addError(p.token.error('not a struct'))
                 return [] as {struct:StructDeclaration,errOn:GenericToken}[]

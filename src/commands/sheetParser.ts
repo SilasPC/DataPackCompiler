@@ -3,22 +3,39 @@ import { promises as fs } from 'fs'
 import { dirname } from "path";
 import { CMDNode, RootCMDNode, SemanticalCMDNode } from "./CMDNode";
 import 'array-flat-polyfill'
+import { Result, ResultWrapper, EnsuredResult } from '../toolbox/Result';
+import { CompileError } from '../toolbox/CompileErrors';
 
-export function fromString(string:string): RootCMDNode {
+export class SheetError extends CompileError {
+	constructor(msg:string) {
+		super(msg)
+	}
+}
+
+export function fromString(string:string): Result<RootCMDNode,null> {
+	const result = new ResultWrapper<RootCMDNode,null>()
 	let root = new RootCMDNode('',false,[])
 	let def: Def = new Map([['',[root]]])
 	let lines = transformString(string)
-	if (lines.some(l=>l.l.trim().startsWith('@'))) throw new Error('no directives in string sheet')
-	root.children.push(...parseTree(buildTree(transformString(string)),[def]))
-	return root
+    if (lines.some(l=>l.l.trim().startsWith('@'))) throw new Error('no directives in string sheet')
+    let tree = buildTree(transformString(string))
+    if (result.merge(tree)) return result.none()
+    let parsed = parseTree(tree.getValue(),[def])
+    result.mergeCheck(parsed)
+	root.children.push(...parsed.getEnsured())
+	return result.wrap(root)
 }
 
-export async function fromSheet(sheet:string): Promise<RootCMDNode> {
+export async function fromSheet(sheet:string): Promise<Result<RootCMDNode,null>> {
+    const result = new ResultWrapper<RootCMDNode,null>()
 	let root = new RootCMDNode('',false,[])
 	let def: Def = new Map([['',[root]]])
-	let tree = buildTree(await readSheet('./sheets/'+sheet+'.txt'))
-	root.children.push(...parseTree(tree,[def]))
-	return root
+    let tree = buildTree(await readSheet('./sheets/'+sheet+'.txt'))
+    if (result.merge(tree)) return result.none()
+    let parsed = parseTree(tree.getValue(),[def])
+    result.mergeCheck(parsed)
+	root.children.push(...parsed.getEnsured())
+	return result.wrap(root)
 }
 
 // It's actually more an arbitrary directed graph than a tree
@@ -76,15 +93,23 @@ async function readSheet(file:string): Promise<IndexedLines> {
 
 }
 
-function buildTree(lines:IndexedLines): Tree {	
+function buildTree(lines:IndexedLines): Result<Tree,null> {	
+
+	const result = new ResultWrapper<Tree,null>()
 
 	let tree: Tree = new Map()
 	let stack: Tree[] = [tree]
 	for (let {l:line,i} of lines) {
 		let depth = 1 + (line.length - line.trimStart().length) / 2
-		if (!Number.isInteger(depth)) throw new Error('indentation invalid '+(i+1))
+		if (!Number.isInteger(depth)) {
+            result.addError(new SheetError(`uneven indentation ${i+1}`))
+            return result.none()
+		}
 		if (depth > stack.length) {
-			if (depth > stack.length + 1) throw new Error('over indentation '+(i+1))
+			if (depth > stack.length + 1) {
+                result.addError(new SheetError('over-indentation '+(i+1)))
+                return result.none()
+            }
 			stack.push(tree = new Map())
 		} else {
 			stack = stack.slice(0,depth)
@@ -98,13 +123,15 @@ function buildTree(lines:IndexedLines): Tree {
 		stack.push(tree0)
 	}
 
-	return stack[0]
+	return result.wrap(stack[0])
 
 }
 
 type Def = Map<string,CMDNode[]>
 
-function parseTree(tree:Tree,defs:Def[]): CMDNode[] {
+function parseTree(tree:Tree,defs:Def[]): EnsuredResult<CMDNode[]> {
+
+    const result = new ResultWrapper<null,CMDNode[]>()
 
 	let localDefs: Def = new Map()
 	defs = [...defs,localDefs]
@@ -114,24 +141,38 @@ function parseTree(tree:Tree,defs:Def[]): CMDNode[] {
 	for (let [mainKey,[keySubs,children]] of tree) {
 		if (mainKey.startsWith(':')) {
 			mainKey = mainKey.slice(1)
-			if (!mainKey.length) throw new Error('expected definition name')
-			if (findDef(mainKey)) throw new Error('redefining :'+mainKey)
-			if (keySubs.length) throw new Error('definition must only have children')
+			if (!mainKey.length) {
+                result.addError(new SheetError('expected definition name before colon'))
+                continue
+            }
+			if (findDef(mainKey)) {
+                result.addError(new SheetError(`redefinition of '${mainKey}'`))
+                continue
+            }
+			if (keySubs.length) {
+                result.addError(new SheetError(`definition must not be followed by sub commands, only children`))
+            }
 			let defChildren: CMDNode[] = []
-			localDefs.set(mainKey,defChildren)
-			defChildren.push(...parseTree(children,defs))
+            localDefs.set(mainKey,defChildren)
+            let childRes = parseTree(children,defs)
+            result.mergeCheck(childRes)
+			defChildren.push(...childRes.getEnsured())
 			continue
 		}
 		let nextOpt = keySubs[0]?keySubs[0].startsWith('['):false
-		let start = mainKey.split('|').map(k=>{
-			let ps = parseSpecial(k,children,findDef)
+		let start: CMDNode[] = mainKey.split('|').flatMap<CMDNode>((k:string)=>{
+            let psRes = parseSpecial(k,children,findDef)
+            if (result.merge(psRes)) return []
+            let ps = psRes.getValue()
+            if (ps.nodes) {
+                result.addError(new SheetError('cannot invoke on main key'))
+                return []
+            }
 			if (ps.spec)
 				return new SemanticalCMDNode(ps.spec,nextOpt,[])
 			if (ps.sub)
 				return new CMDNode(k,nextOpt,[])
-			if (ps.nodes)
-				throw new Error('cannot invoke on main key')
-			throw new Error('should not happen')
+			throw new Error('exhaustion failure')
 		})
 		ret.push(...start)
 		let last = start
@@ -144,16 +185,21 @@ function parseTree(tree:Tree,defs:Def[]): CMDNode[] {
 					keySub = keySub.slice(0,-1)
 			}
 			if (!keySub.length) {
-				// if it is empty, we just removed '['
+				// if it is empty, we just removed '[]'
 				// this is then an empty rest optional, which must be last
-				if (keySubs.length - 1 > i) throw new Error('children optional "[" must be last on line')
+				if (keySubs.length - 1 > i) {
+                    result.addError(new SheetError(`children optional '[' must be last in line`))
+                    continue
+                }
 				break
 			}
 			let newLast: CMDNode[] = []
 			let subs = keySub.split('|')
 			for (let [si,sub] of subs.entries()) {
 				// looping over possible subtokens of inline child
-				let ps = parseSpecial(sub,children,findDef)
+                let psRes = parseSpecial(sub,children,findDef)
+                if (result.merge(psRes)) continue
+                let ps = psRes.getValue()
 				if (ps.spec) {
 					let subnode = new SemanticalCMDNode(ps.spec,nextOpt,[])
 					newLast.push(subnode)
@@ -164,17 +210,21 @@ function parseTree(tree:Tree,defs:Def[]): CMDNode[] {
 					for (let n of last) n.children.push(subnode)
 				} else if (ps.nodes) {
 					for (let n of last) n.children = ps.nodes
-					if (subs.length - 1 > si) throw new Error('invokation must be last: '+keySubs.join(' '))
+					if (subs.length - 1 > si) {
+                        result.addError(new SheetError(`invokation must be last on line`))
+                        continue
+                    }
 					newLast = ps.nodes
-				} else throw new Error('should not happen')
+				} else throw new Error('exhaustion failed')
 			}
 			last = newLast
 		}
-		let nextChildren = parseTree(children,defs)
-		last.forEach(l=>l.children.push(...nextChildren))
-	}
+        let nextChildren = parseTree(children,defs)
+        result.mergeCheck(nextChildren)
+		last.forEach((l:CMDNode)=>l.children.push(...nextChildren.getEnsured()))
+    }
 
-	return ret
+    return result.ensured(ret)
 
 }
 
@@ -202,24 +252,31 @@ const validSpecials = [
 ]
 export type SheetSpecials = 'item' | 'block' | 'range' | 'nbtpath' | 'json' | 'nbt' | 'id' | 'name' | 'player' | 'players' | 'entity' | 'entities' | 'pint' | 'uint' | 'int' | 'coords' | 'coords2' | 'float' | 'ufloat' | 'text'
 
-function parseSpecial(sub:string,children:Tree,findDef:(str:string)=>CMDNode[]|undefined): {spec?:string,nodes?:CMDNode[],sub?:string} {
-	if (sub.startsWith('<') && sub.endsWith('>')) {
+export type Parse = {spec?:string,nodes?:CMDNode[],sub?:string}
+
+function parseSpecial(sub:string,children:Tree,findDef:(str:string)=>CMDNode[]|undefined): Result<Parse,null> {
+    const result = new ResultWrapper<Parse,null>()
+    if (sub.startsWith('<') && sub.endsWith('>')) {
 		let spec = sub.slice(1,-1)
 		if (spec.startsWith(':<')) { // escape '<x>' with '<:<x>'
 			sub = '<' + spec.slice(2) + '>'
-			return {sub}
+			return result.wrap({sub})
 		} else if (spec.startsWith(':')) { // invokation
 			let nodes = findDef(spec.slice(1))
-			if (!nodes) throw new Error('invokatee not defined: '+spec)
-			if (children.size) throw new Error('invokation cannot be followed by children: '+sub)
-			return {nodes}
+			if (!nodes) {
+                result.addError(new SheetError(`invokatee '${spec}' not defined`))
+                return result.none()
+            }
+			if (children.size)
+                result.addError(new SheetError(`invokation cannot be followed by children`))
+			return result.wrap({nodes})
 		} else if (spec.length) {
 			if (!validSpecials.includes(spec)) {
 				// console.warn('ss special not valid:',spec)
-				return {sub:spec}
+				return result.wrap({sub:spec})
 			}
-			return {spec}
+			return result.wrap({spec})
 		}
 	}
-	return {sub}
+	return result.wrap({sub})
 }

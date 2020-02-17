@@ -3,7 +3,7 @@ import { DeclarationWrapper, Declaration } from "../declarations/Declaration"
 import { Logger } from "../../toolbox/Logger"
 import { TokenI } from "../../lexing/Token"
 import $ from 'js-itertools'
-import { Result, ResultWrapper, EmptyResult } from "../../toolbox/Result"
+import { Result, ResultWrapper, EmptyResult, EnsuredResult } from "../../toolbox/Result"
 
 export type HoisterFn = () => Result<Declaration,null>
 
@@ -82,10 +82,19 @@ export interface UnreadableHoistingMaster {
     addPreHoistedInvalid(token:TokenI): Hoister
 }
 
+export type DeferedFn = () => EmptyResult|EnsuredResult<any>|Result<any,any>
+
 export class HoistingMaster implements UnreadableHoistingMaster {
 
-    private defered = new Set<()=>EmptyResult>()
-    defer(fn:()=>EmptyResult) {this.defered.add(fn)}
+    private defered = new Set<DeferedFn>()
+    private deferedHoisters = new Set<Hoister>()
+    defer(fn:DeferedFn) {this.defered.add(fn)}
+
+    deferHoister(token:TokenI, fn:HoisterFn) {
+        let h = new Hoister(fn, token)
+        this.hoisters.add(h)
+        this.deferedHoisters.add(h)
+    }
 
     private hoisters = new Set<Hoister>()
     addHoister(token:TokenI, fn:HoisterFn) {
@@ -108,7 +117,7 @@ export class HoistingMaster implements UnreadableHoistingMaster {
 
     getUnreferenced() {
         return $(this.hoisters)
-            .filter(h=>!h.wasReferenced())
+            .filter((h:Hoister)=>!h.wasReferenced())
     }
 
     flushAll(): EmptyResult {
@@ -123,6 +132,9 @@ export class HoistingMaster implements UnreadableHoistingMaster {
         const result = new ResultWrapper()
         for (let fn of this.defered)
             result.mergeCheck(fn())
+        for (let h of this.deferedHoisters)
+            h.evaluate()
+        this.deferedHoisters.clear()
         this.defered.clear()
         return result.empty()
     }

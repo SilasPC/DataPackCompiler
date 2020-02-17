@@ -8,12 +8,18 @@ import { Result, ResultWrapper } from "../toolbox/Result";
 
 export class SyntaxSheet {
 
-	public static fromString(string:string) {
-		return new SyntaxSheet(fromString(string))
+	public static fromString(string:string): Result<SyntaxSheet,null> {
+		const result = new ResultWrapper<SyntaxSheet,null>()
+		let res = fromString(string)
+		if (result.merge(res)) return result.none()
+		return result.wrap(new SyntaxSheet(res.getValue()))
 	}
 
 	public static async load(version:string) {
-		return new SyntaxSheet(await fromSheet(version))
+		const result = new ResultWrapper<SyntaxSheet,null>()
+		let res = await fromSheet(version)
+		if (result.merge(res)) return result.none()
+		return result.wrap(new SyntaxSheet(res.getValue()))
 	}
 
 	public static getNullSheet() {

@@ -64,7 +64,14 @@ export class Datapack {
 		
 		try {
 			let sheet = await SyntaxSheet.load(cfg.compilation.targetVersion)
-			let res = await compile(logger,cfg,src,sheet)
+			if (result.merge(sheet)) {
+				logger.logWrns(result)
+				logger.logErrs(result)
+				logger.log(0,'err','Failed to parse syntax sheet')
+				this.status = 'fail'
+				return
+			}
+			let res = await compile(logger,cfg,src,sheet.getValue())
 			if (!result.merge(res)) this.status = res.getValue()
 			else {
 				this.status = 'fail'

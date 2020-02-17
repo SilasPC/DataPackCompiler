@@ -92,14 +92,12 @@ export type Result<T,P> = FailedResult<T,P> | SuccededResult<T,P>
 
 export interface FailedResult<T,P> {
     readonly _type: 'normal'
-    getValue(): null
     getPartial(): P | null
 }
 
 export interface SuccededResult<T,P> {
     readonly _type: 'normal'
     getValue(): T
-    getPartial(): null
 }
 
 class ResultClass<T,P> {
