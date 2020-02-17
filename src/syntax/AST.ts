@@ -249,7 +249,9 @@ export class ASTEventNode extends ASTNodeBase {
         mod: ModuleFile,
         indexStart: number,
         indexEnd: number,
-        public readonly identifier: GenericToken
+        public readonly identifier: GenericToken,
+        public readonly extend: ASTStaticAccessNode | null,
+        public readonly body: ASTBody | null
     ){super(mod,indexStart,indexEnd)}
 }
 

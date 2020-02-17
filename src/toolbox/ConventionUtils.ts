@@ -45,10 +45,10 @@ function packCreate(title:string,item:string,namespace:string,description:string
 
 async function getIcon(player:string) {
     let userRes = await fetch(`https://api.mojang.com/users/profiles/minecraft/${player}?timestamp=${Date.now()}`)
-    if (!userRes.ok) throw new Error('could not find Minecraft player')
+    if (!userRes.ok) throw new Error('could not find Minecraft player: ' + await userRes.text())
     let user = await userRes.json()
     let dataRes = await fetch(`https://sessionserver.mojang.com/session/minecraft/profile/${user.id}`)
-    if (!dataRes.ok) throw new Error('could not get Minecraft player skin')
+    if (!dataRes.ok) throw new Error('could not get Minecraft player skin:' + await dataRes.text())
     let data = await dataRes.json()
     return `{SkullOwner:{Name:"${player}",Properties:{textures:[${data.properties.map((p:any)=>`{Value:"${p.value}"}`).join(',')}]}}}`
 }

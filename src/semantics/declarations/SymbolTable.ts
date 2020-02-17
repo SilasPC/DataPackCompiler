@@ -79,13 +79,33 @@ export class SymbolTable implements ReadOnlySymbolTable {
         return result.empty()
     }
 
-    declareHoister(id:TokenI,hoister:HoisterFn): EmptyResult {
+    deferHoister(id:TokenI,hoister:HoisterFn): EmptyResult {
         const result = new ResultWrapper()
+        let h = this.master.deferHoister(id,hoister)
         if (reservedSymbols.includes(id.value)) {
             result.addError(id.error('reserved identifier'))
             return result.empty()
         }
-        this.declarations.set(id.value,this.master.addHoister(id,hoister))
+        if (this.getInternal(id.value)) {
+            result.addError(id.error('duplicate declaration'))
+            return result.empty()
+        }
+        this.declarations.set(id.value,h)
+        return result.empty()
+    }
+
+    declareHoister(id:TokenI,hoister:HoisterFn): EmptyResult {
+        const result = new ResultWrapper()
+        let h = this.master.addHoister(id,hoister)
+        if (reservedSymbols.includes(id.value)) {
+            result.addError(id.error('reserved identifier'))
+            return result.empty()
+        }
+        if (this.getInternal(id.value)) {
+            result.addError(id.error('duplicate declaration'))
+            return result.empty()
+        }
+        this.declarations.set(id.value,h)
         return result.empty()
     }
 

@@ -77,6 +77,7 @@ class Hoister {
 
 export interface UnreadableHoistingMaster {
     defer(fn:()=>EmptyResult): void
+    deferHoister(token:TokenI, fn: HoisterFn): Hoister
     addHoister(token:TokenI, fn:HoisterFn): Hoister
     addPrehoisted(token: TokenI, decl: DeclarationWrapper): Hoister
     addPreHoistedInvalid(token:TokenI): Hoister
@@ -94,6 +95,7 @@ export class HoistingMaster implements UnreadableHoistingMaster {
         let h = new Hoister(fn, token)
         this.hoisters.add(h)
         this.deferedHoisters.add(h)
+        return h
     }
 
     private hoisters = new Set<Hoister>()

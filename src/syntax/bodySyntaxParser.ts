@@ -91,7 +91,7 @@ function parseStatement(iter:TokenIteratorI,ctx:CompileContext): Result<ASTState
                 case 'ref':
                 case 'recipe':
                 case 'struct':
-                case 'implements':
+                case 'extends':
                 case 'on':
                 case 'event':
                 case 'pub':

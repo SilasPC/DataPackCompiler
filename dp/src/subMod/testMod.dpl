@@ -3,4 +3,4 @@ fn helloWorld(): void {
     /say hello wououourld
 }
 
-event localEv
+event localEv {}

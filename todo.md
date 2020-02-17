@@ -5,6 +5,7 @@
   - Problem: Erroring on cyclic accesses during complete hoisting flush?
 - Control flow
 - Fix verifier
+- Iterator methods must check undefined
 
 # CURRENT
 - Syntax sheet

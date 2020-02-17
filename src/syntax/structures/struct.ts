@@ -9,7 +9,7 @@ export function parseStruct(iter:TokenIteratorI,ctx:CompileContext): ASTStructNo
     let id = iter.next()
     let parents: GenericToken[] = []
     if (id.type != TokenType.SYMBOL) return id.throwDebug('want symbol k')
-    if (iter.peek().value == 'implements') {
+    if (iter.peek().value == 'extends') {
         iter.skip(1)
         while (true) {
             let sym = iter.peek()

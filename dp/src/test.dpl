@@ -2,13 +2,16 @@
 use super::std
 // use subMod
 
-event abc
 on abc {
+	/say wtf
+}
+
+event abc {
 	/say abc fired
 }
 
 struct A {}
-struct B implements A {}
+struct B extends A {}
 
 fn x(): bool {
 	let t = 0

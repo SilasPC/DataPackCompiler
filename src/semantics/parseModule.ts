@@ -80,7 +80,7 @@ export function parseModule(
 
 			case ASTNodeType.EVENT: {
 				let node0 = node
-				scope.symbols.declareHoister(node.identifier,()=>parseEvent(dirs.getEnsured(),node0,scope,program))
+				scope.symbols.deferHoister(node.identifier,()=>parseEvent(dirs.getEnsured(),node0,scope,program,ctx.options))
 				break
 			}
 

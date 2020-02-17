@@ -8,8 +8,11 @@ import { DirectiveToken } from "../../lexing/Token"
 import { DirectiveList } from "../directives"
 import { exhaust } from "../../toolbox/other"
 import { Result, ResultWrapper } from "../../toolbox/Result"
+import { PTBody } from "../ParseTree"
+import { parseBody } from "../parseBody"
+import { CompilerOptions } from "../../toolbox/config"
 
-export function parseEvent(dirs: DirectiveList, node: ASTEventNode, scope:Scope, program: Program): Result<EventDeclaration,null> {
+export function parseEvent(dirs: DirectiveList, node: ASTEventNode, scope:Scope, program: Program, cfg: CompilerOptions): Result<EventDeclaration,null> {
 	const result = new ResultWrapper<EventDeclaration,null>()
 
 	let decl: EventDeclaration = {
@@ -36,8 +39,17 @@ export function parseEvent(dirs: DirectiveList, node: ASTEventNode, scope:Scope,
 		}
 	}
 
-	program.fnStore.appendToEvent(decl,new Interspercer())
+	let body: PTBody
+	if (!node.body) body = new Interspercer()
+	else {
+		let bodyRes = parseBody(node.body,scope,cfg)
+		if (!result.merge(bodyRes)) {
+			body = bodyRes.getValue()
+		} else body = new Interspercer()
+	}
 
-	return result.wrap(decl)
+	program.fnStore.appendToEvent(decl,body)
+
+	return result.wrap(decl) // use EnsuredResult later I think
 	
 }
