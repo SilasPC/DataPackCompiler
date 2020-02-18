@@ -16,9 +16,12 @@ export function fromString(string:string): Result<RootCMDNode,null> {
 	const result = new ResultWrapper<RootCMDNode,null>()
 	let root = new RootCMDNode('',false,[])
 	let def: Def = new Map([['',[root]]])
-	let lines = transformString(string)
-    if (lines.some(l=>l.l.trim().startsWith('@'))) throw new Error('no directives in string sheet')
-    let tree = buildTree(transformString(string))
+	let lines = transformString('source',string)
+    if (lines.some(l=>l.l.trim().startsWith('@'))) {
+        result.addError(new SheetError('no metatags in string sheet'))
+        return result.none()
+    }
+    let tree = buildTree(lines)
     if (result.merge(tree)) return result.none()
     let parsed = parseTree(tree.getValue(),[def])
     result.mergeCheck(parsed)
@@ -42,16 +45,16 @@ export async function fromSheet(sheet:string): Promise<Result<RootCMDNode,null>>
 type Tree = Map<string,[string[],Tree_]>
 interface Tree_ extends Tree {}
 
-type IndexedLines = {i:number,l:string}[]
+type IndexedLines = {f:string,i:number,l:string}[]
 
-function transformString(source:string): IndexedLines {
+function transformString(sourceName:string,source:string): IndexedLines {
 	return source
 		.replace(/\r/g,'')
 		.split('\n')
 		.flatMap((l,i)=>{
 			let trimmed = l.trim()
 			if (!trimmed.startsWith('#') && trimmed.length > 0) {
-				return [{l,i}] as {l:string,i:number}[]
+				return [{f:sourceName,l,i}] as IndexedLines
 			}
 			return []
 		})
@@ -60,9 +63,9 @@ function transformString(source:string): IndexedLines {
 async function readSheet(file:string): Promise<IndexedLines> {
 
 	let dir = dirname(file)
-	let lines = transformString((await fs.readFile(file)).toString())
+	let lines = transformString(file,(await fs.readFile(file)).toString())
 
-	let includes: [number,{l:string,i:number}[]][] = []
+	let includes: [number,IndexedLines][] = []
 	for (let i = 0; i < lines.length; i++) {
 		let line = lines[i]
 		if (line.l.startsWith('@include')) {
@@ -81,14 +84,6 @@ async function readSheet(file:string): Promise<IndexedLines> {
 		lines.splice(index,1,...ins)
 	}
 
-	for (let i = lines.length - 1; i >= 0; i--) {
-		let line = lines[i]
-		if (line.l.trim().startsWith('@warn')) {
-			console.warn(`Syntax sheet warning (${file} : ${line.i+1}): ${line.l.trim().slice(6)}`)
-			lines.splice(i,1)
-		}
-	}
-
 	return lines
 
 }
@@ -99,7 +94,8 @@ function buildTree(lines:IndexedLines): Result<Tree,null> {
 
 	let tree: Tree = new Map()
 	let stack: Tree[] = [tree]
-	for (let {l:line,i} of lines) {
+	for (let {f:file,l:line,i} of lines) {
+        // get depth (1 is root, such that stack will never be empty)
 		let depth = 1 + (line.length - line.trimStart().length) / 2
 		if (!Number.isInteger(depth)) {
             result.addError(new SheetError(`uneven indentation ${i+1}`))
@@ -114,7 +110,46 @@ function buildTree(lines:IndexedLines): Result<Tree,null> {
 		} else {
 			stack = stack.slice(0,depth)
 			tree = stack[stack.length-1]
-		}
+        }
+        let l = line.trim()
+        if (l.startsWith('@')) {
+            let [metatag,...r] = l.slice(1).split(' ')
+            switch (metatag) {
+                case 'warn':
+                    result.addWarning(new SheetError(`Syntax sheet warning (${file} : ${i+1}): ${l.slice(6)}`))
+                    break
+                case 'add': {
+                    if (!r.length) {
+                        result.addError(new SheetError(`Expected keypath after metatag (${file} : ${i+1})`))
+                        return result.none()
+                    }
+                    let subTree = getSubTree(tree,r)
+                    if (!subTree) {
+                        result.addError(new SheetError(`Could not find '${r.join(' ')}' in syntax tree (${file} : ${i+1})`))
+                        return result.none()
+                    }
+                    stack.push(tree = subTree)
+                    break
+                }
+                case 'remove': {
+                    if (!r.length) {
+                        result.addError(new SheetError(`Expected keypath after metatag (${file} : ${i+1})`))
+                        return result.none()
+                    }
+                    let rem = r.pop() as string
+                    let subTree = getSubTree(tree,r)
+                    if (!subTree||!subTree.has(rem)) {
+                        result.addError(new SheetError(`Could not find '${r.join(' ')} ${rem}' in syntax tree (${file} : ${i+1})`))
+                        return result.none()
+                    }
+                    subTree.delete(rem)
+                    break
+                }
+                default:
+                    result.addError(new SheetError(`Syntax sheet unknown metatag '${metatag}' (${file} : ${i+1})`))
+            }
+            continue
+        }
 		let [t,...v] = line.trimStart().split(' ')
 		if (v.some(s=>!s.length)) throw new Error('double space '+(i+1))
 		if (tree.has(t)) throw new Error('already defined '+(i+1))
@@ -226,6 +261,15 @@ function parseTree(tree:Tree,defs:Def[]): EnsuredResult<CMDNode[]> {
 
     return result.ensured(ret)
 
+}
+
+function getSubTree(tree:Tree,path:string[]) {
+    for (let sub of path) {
+        let subTree = tree.get(sub)
+        if (subTree) tree = subTree[1]
+        else return null
+    }
+    return tree
 }
 
 const validSpecials = [
