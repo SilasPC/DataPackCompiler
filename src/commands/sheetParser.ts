@@ -33,7 +33,7 @@ export async function fromSheet(sheet:string): Promise<Result<RootCMDNode,null>>
     const result = new ResultWrapper<RootCMDNode,null>()
 	let root = new RootCMDNode('',false,[])
 	let def: Def = new Map([['',[root]]])
-    let tree = buildTree(await readSheet('./sheets/'+sheet+'.txt'))
+    let tree = buildTree(await readSheet('./sheets/'+sheet+'.dplss'))
     if (result.merge(tree)) return result.none()
     let parsed = parseTree(tree.getValue(),[def])
     result.mergeCheck(parsed)
@@ -73,7 +73,7 @@ async function readSheet(file:string): Promise<IndexedLines> {
 			for await (let file of files) {
 				includes.push([
 					i,
-					await readSheet(dir+'/'+file+'.txt')
+					await readSheet(dir+'/'+file+'.dplss')
 				])
 			}
 		}

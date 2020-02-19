@@ -8,14 +8,13 @@
 - Syntax sheet
   - Special parameters and substitution methods
 	- Return type annotation
-	- Version control
-	- Extend | destroy from older versions
 - Actually add the check when invoking controlflow functions
 - Syntax reading, add structure for automatic semicolon insertion
 - Language Server
 - Use Result partials
 - Defered for semantical check of unreferenced hoisters
 - Compile without syntax sheet (for soft failure of syntax sheet parsing)
+- #[debug] on functions should make them empty, not non-existent (kinda same with modules)
 
 # FUTURE
 - Var declarations without intializer

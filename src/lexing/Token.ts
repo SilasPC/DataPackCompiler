@@ -87,6 +87,5 @@ export class Token {
     expectSemiColon() {return this.expectType(TokenType.MARKER).expectValue(';')}
     throwDebug(e:string): never {throw this.error('DEBUG '+e)}
     throwUnexpectedKeyWord(): never {throw this.error('Unexpected keyword: '+this.value)}
-    throwNotDefined(): never {throw this.error('Identifier not defined in this scope')}
 
 }

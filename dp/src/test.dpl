@@ -5,7 +5,6 @@ use std::events::tick
 use std::debug::panic
 
 on tick {
-	/say holy crap
 	panic()
 }
 
