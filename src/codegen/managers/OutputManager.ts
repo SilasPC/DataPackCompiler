@@ -3,9 +3,11 @@ import { CompilerOptions } from '../../toolbox/config';
 import { FnFileManager } from './FnFileManager';
 import { Config } from '../../api/Configuration';
 import { TagManager } from './TagManager';
+import { MiscManager } from './MiscManager';
 
 export class OutputManager {
 
+	public readonly misc: MiscManager
 	public readonly scoreboards: ScoreboardManager
 	public readonly functions: FnFileManager
 	public readonly tags: TagManager
@@ -16,6 +18,7 @@ export class OutputManager {
 		this.scoreboards = new ScoreboardManager(cfg)
 		this.functions = new FnFileManager(cfg)
 		this.tags = new TagManager()
+		this.misc = new MiscManager(cfg)
 	}
 
 	private instrCounter?: Scoreboard

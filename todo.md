@@ -17,6 +17,19 @@
 - #[debug] on functions should make them empty, not non-existent (kinda same with modules)
 
 # FUTURE
+- File types:
+	- .ogg/mp3
+	- .png
+	- .png.mcmeta
+	- .model.json
+	- .functiontag.json
+	- .blocktag.json
+	- .itemtag.json
+	- .loottable.json
+	- .recipe.json
+	- .advancement.json
+	- .predicate.json
+	- .structure.nbt
 - Var declarations without intializer
 - Verify functions are actually loaded (schedule and cancel?)
 - Enums

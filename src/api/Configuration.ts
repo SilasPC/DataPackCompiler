@@ -1,16 +1,15 @@
 import { CompilerOptions, compilerOptionDefaults, WeakCompilerOptions } from "../toolbox/config";
-import { promises as fs } from 'fs'
 import TOML from '@iarna/toml'
 
 export class Config {
 
-    public static async fromTOMLFile(file:string) {
-        return new Config(TOML.parse((await fs.readFile(file)).toString()))
+    public static fromTOML(toml:string) {
+        return new Config(TOML.parse(toml))
     }
 
-    public static async writeDefaultToTOMLFile(file:string) {
+    public static defaultTOML() {
         let def = new Config()
-        await fs.writeFile(file,TOML.stringify({...def}))
+        return TOML.stringify({...def})
     }
 
     public readonly pack: {
@@ -18,11 +17,15 @@ export class Config {
         name: string
         description: string
         namespace: string
-        icon: string
+        version: string
     }
 	public readonly author: {
         name: string
+    }
+    public readonly convention: {
+        generate: boolean
         player: string
+        icon: string
     }
 	public readonly compilation: CompilerOptions
 
@@ -32,14 +35,17 @@ export class Config {
             name: str(obj?obj.pack?obj.pack.name:0:0,'datapack'),
             description: str(obj?obj.pack?obj.pack.description:0:0,'No description available'),
             namespace: str(obj?obj.pack?obj.pack.namespace:0:0,'pack'),
-            icon: str(obj?obj.pack?obj.pack.icon:0:0,'minecraft:chest')
+            version: str(obj?obj.pack?obj.pack.version:0:0,'0.1.0')
         }
         this.author = {
-            name: str(obj?obj.author?obj.author.name:0:0,'Unknown author'),
-            player: str(obj?obj.author?obj.author.player:0:0,'Chest') // tmp for icon
+            name: str(obj?obj.author?obj.author.name:0:0,'Unknown author')
+        }
+        this.convention = {
+            generate: bool(obj?obj.convention?obj.convention.generate:0:0,true),
+            icon: str(obj?obj.convention?obj.convention.icon:0:0,'minecraft:chest'),
+            player: str(obj?obj.convention?obj.convention.player:0:0,'Chest') // tmp for icon
         }
         this.compilation = compilerOptionDefaults(obj?obj.compilation:undefined)
-        Object.freeze(this)
     }
 
     overrideCompilerOptions(cfg:WeakCompilerOptions) {
@@ -57,6 +63,11 @@ export class Config {
 function str(val:any,def:string): string {
     if (typeof val != 'string' || val.length == 0) return def
     return val
+}
+
+function bool(val:any,def:boolean): boolean {
+    if (typeof val == 'boolean') return val
+    return def
 }
 
 function purgeKeys<T>(obj:T): T {

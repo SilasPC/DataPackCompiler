@@ -100,7 +100,7 @@ export function readNumber(
 	} else throw new Error('not implemented other than base 10 nums')
 }
 
-const idRgx = /^(?<ns>[a-zA-Z0-9.-_]+:)?[a-zA-Z0-9.-_]+(?<sep> |$)?/g
+const idRgx = /^(?<ns>[a-z0-9.-_]+:)?([a-zA-Z0-9.-_]+)(\/([a-zA-Z0-9.-_]+))*(?<sep> |$)?/g
 export function readId(
 	token:TokenI,
 	i:number,

@@ -1,27 +1,28 @@
 [pack]
-longName = 'My datapack'
-name = 'datapack'
-description = 'My compiled datapack'
-namespace = 'pack'
-icon = 'minecraft:chest'
+longName = "My datapack"
+name = "datapack"
+description = "No description available"
+namespace = "pack"
+version = "0.1.0"
 
 [author]
-name = 'Silas Pockendahl'
-player = 'B4liz0ng'
+name = "Unknown author"
+
+[convention]
+generate = true
+icon = "minecraft:chest"
+player = "B4liz0ng"
 
 [compilation]
-sourceDir = './src'
-emitDir = './'
-minimumVersion = '0.1.0'
+sourceDir = "./src"
+emitDir = "./"
+minimumVersion = "0.1.0"
 obscureNames = false
-noInference = false
+noInference = true
 noImplicitCast = true
 ignoreUnreachable = true
 sourceMap = true
-optimize = true
+optimize = false
 noUnused = false
-ignoreWarnings = false
-verbosity = 3
-colorLog = true
-targetVersion = 'latest'
+targetVersion = "latest"
 debugBuild = true

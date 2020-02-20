@@ -10,17 +10,20 @@ import { purgeNullishKeys } from '../toolbox/other';
 import { loadDirectory } from '../input/loadFromFileSystem';
 import { SyntaxSheet } from '../commands/SyntaxSheet';
 import { ResultWrapper } from '../toolbox/Result';
+import { DataCache } from '../toolbox/Cache';
 
 export class Datapack {
 
 	static async initialize(path:string) {
-		await Config.writeDefaultToTOMLFile(join(path,'pack.toml'))
+		await fs.writeFile(join(path,'pack.toml'),Config.defaultTOML())
+		await fs.writeFile(join(path,'.cache'),DataCache.empty().getRaw())
 	}
 
 	static async load(path:string) {
 		return new Datapack(
 			path,
-			await Config.fromTOMLFile(join(path,'pack.toml'))
+			await Config.fromTOML(await (await fs.readFile(join(path,'pack.toml'))).toString()),
+			DataCache.fromRaw((await fs.readFile(join(path,'.cache'))).toString())
 		)
 	}
 	
@@ -29,7 +32,8 @@ export class Datapack {
 
 	private constructor(
 		public readonly packDir: string,
-		private readonly cfg: Config
+		private readonly cfg: Config,
+		private readonly cache: DataCache
 	) {}
 
 	watchSourceDir(h:()=>void) {
@@ -70,7 +74,7 @@ export class Datapack {
 				this.status = 'fail'
 				return
 			}
-			let res = await compile(logger,cfg,src,sheet.getValue())
+			let res = await compile(this.cache,logger,cfg,src,sheet.getValue())
 			if (res) this.status = res
 			else {
 				this.status = 'fail'
@@ -92,6 +96,7 @@ export class Datapack {
 
 		let emitDir = join(this.packDir,this.cfg.compilation.emitDir,this.cfg.pack.name)
 		await this.status.emit(emitDir,this.log)
+		await fs.writeFile(join(this.packDir,'.cache'),this.cache.getRaw())
 	}
 
 }

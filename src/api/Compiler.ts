@@ -14,10 +14,11 @@ import { instrsToCmds } from "../codegen/Instructions"
 import { Logger } from "../toolbox/Logger"
 import { ProgramManager } from "../semantics/managers/ProgramManager"
 import { parseInputTree } from "../semantics/parseModuleTree"
-import { emitConvention } from "../toolbox/ConventionUtils"
 import { Config } from "./Configuration"
 import { InputTree } from "../input/InputTree"
 import { Result, ResultWrapper } from "../toolbox/Result"
+import { DataCache } from "../toolbox/Cache"
+import { addConvention } from "../codegen/generateConvention"
 
 export const compilerVersion = '0.1.0'
 
@@ -38,6 +39,7 @@ export function checkVersion(ver:string,min:string) {
 export class CompileResult {
 
 	constructor(
+		private readonly cache: DataCache,
 		private readonly cfg: Config,
 		private readonly output: OutputManager
 	) {}
@@ -84,15 +86,13 @@ export class CompileResult {
 			values: [...this.output.tags.load].map(fnf=>fnf.mcPath)
 		}))
 
-		await emitConvention(this.cfg,dataNs)
-
 		log.log(2,'inf','Success')
 
 	}
 
 }
 
-export function compile(logger:Logger,cfg:Config,src:InputTree,sheet:SyntaxSheet): CompileResult | null {
+export async function compile(cache: DataCache, logger:Logger,cfg:Config,src:InputTree,sheet:SyntaxSheet): Promise<CompileResult | null> {
 
 	const result = new ResultWrapper<CompileResult,null>()
 
@@ -155,6 +155,7 @@ export function compile(logger:Logger,cfg:Config,src:InputTree,sheet:SyntaxSheet
 	const output = new OutputManager(cfg)
 	if (!gotSemanticalErrors) {
 
+		await addConvention(cache,cfg,output.misc)
 		generate(programManager,output)
 		logger.log(1,'inf',`Generation complete`)
 
@@ -169,6 +170,6 @@ export function compile(logger:Logger,cfg:Config,src:InputTree,sheet:SyntaxSheet
         return null
     }
 	
-	return new CompileResult(cfg,output)
+	return new CompileResult(cache,cfg,output)
 
 }
