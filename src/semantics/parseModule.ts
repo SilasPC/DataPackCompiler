@@ -39,7 +39,8 @@ export function parseModule(
 
 			case ASTNodeType.USE: {
 				let node0 = node
-				scope.symbols.declareHoister(node.accessors[node.accessors.length-1],()=>resolveStatic(node0.accessors,scope.symbols))
+				let name = node.identifier.accessors[node.identifier.accessors.length-1]
+				result.mergeCheck(scope.symbols.declareHoister(name,()=>resolveStatic(node0.identifier.accessors,scope.symbols)))
 				break
 			}
 	
@@ -79,13 +80,13 @@ export function parseModule(
 	
 			case ASTNodeType.STRUCT: {
 				let node0 = node
-				scope.symbols.declareHoister(node.identifier,()=>parseStruct(node0,scope))
+				result.mergeCheck(scope.symbols.declareHoister(node.identifier,()=>parseStruct(node0,scope)))
 				break
 			}
 
 			case ASTNodeType.EVENT: {
 				let node0 = node
-				scope.symbols.deferHoister(node.identifier,()=>parseEvent(dirs.getEnsured(),node0,scope,program,ctx.options))
+				result.mergeCheck(scope.symbols.deferHoister(node.identifier,()=>parseEvent(dirs.getEnsured(),node0,scope,program,ctx.options)))
 				break
 			}
 

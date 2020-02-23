@@ -1,10 +1,10 @@
 import { ASTStructNode } from "../../syntax/AST";
 import { Scope } from "../Scope";
-import { CompileContext } from "../../toolbox/CompileContext";
 import { StructDeclaration, DeclarationType, Declaration } from "../declarations/Declaration";
 import { Struct } from "../types/Struct";
-import { GenericToken } from "../../lexing/Token";
+import { GenericToken, TokenI } from "../../lexing/Token";
 import { Result, ResultWrapper, SuccededResult } from "../../toolbox/Result";
+import { ValueType, tokenToType } from "../types/Types";
 
 export function parseStruct(node:ASTStructNode,scope:Scope): Result<StructDeclaration,null> {
     const result = new ResultWrapper<StructDeclaration,null>()
@@ -22,11 +22,17 @@ export function parseStruct(node:ASTStructNode,scope:Scope): Result<StructDeclar
             let w = p.decl.getValue()
             if (w.type != DeclarationType.STRUCT) {
                 result.addError(p.token.error('not a struct'))
-                return [] as {struct:StructDeclaration,errOn:GenericToken}[]
+                return [] as {struct:StructDeclaration,identifier:GenericToken}[]
             }
-            return {struct:w,errOn:p.token}
+            return {struct:w,identifier:p.token}
         })
-    let struct = Struct.create(node.identifier.value,parents)
+    let fields: {identifier:TokenI,type:ValueType}[] = []
+    for (let [dirs,field] of node.body.iterate()) {
+        let type = tokenToType(field.fieldType,scope.symbols)
+        if (dirs.length) result.addWarning(dirs[0].error('directives not supported in structs yet'))
+        fields.push({identifier:field.identifier,type})
+    }
+    let struct = Struct.create(node.identifier.value,fields,parents)
     if (result.merge(struct)) return result.none()
     return result.wrap({
         type: DeclarationType.STRUCT,

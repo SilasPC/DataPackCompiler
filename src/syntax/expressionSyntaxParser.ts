@@ -1,8 +1,9 @@
 
 import { TokenI, TokenType, GenericToken } from "../lexing/Token";
-import { ASTNodeType, ASTIdentifierNode, ASTOpNode, ASTCallNode, ASTListNode, ASTExpr, ASTRefNode, ASTDynamicAccessNode, ASTStaticAccessNode, ASTPrimitiveNode } from "./AST";
+import { ASTNodeType, ASTIdentifierNode, ASTOpNode, ASTCallNode, ASTListNode, ASTExpr, ASTDynamicAccessNode, ASTPrimitiveNode } from "./AST";
 import { TokenIteratorI } from "../lexing/TokenIterator";
 import { parseSelector } from "./structures/selector";
+import { parseStaticAccess } from "./structures/staticAccess";
 
 enum OpType {
     INFIX,
@@ -96,13 +97,16 @@ function recurse(tokens:TokenIteratorI,asi:boolean,inFn:boolean,allowList:boolea
                             lastWasOperand = true
                             break
                         }
-                        break
                     case ')':
                         if (!lastWasOperand) t.throwDebug('unexpected')
                         return finish()
-                    case '::':
                     case '.':
-                        pushOperator(opInfo(t,!lastWasOperand))
+                        pushOperator(opInfo(t,!lastWasOperand),false)
+                        let o = que.pop()
+                        if (!o) return t.throwDebug('unexpected')
+                        let access = tokens.next().expectType(TokenType.SYMBOL) as GenericToken
+                        que.push(new ASTDynamicAccessNode(pfile,o.indexStart,t.indexEnd,access,o))
+                        postfix.push(access.value,'.')
                         lastWasOperand = false
                         break
                     case ',':
@@ -140,7 +144,7 @@ function recurse(tokens:TokenIteratorI,asi:boolean,inFn:boolean,allowList:boolea
                 if (lastWasOperand)
                     if (!asi||!tokens.currentFollowsNewline()) t.throwDebug('unexpected operand')
                     else {tokens.skip(-1);return finish()}
-                que.push(new ASTIdentifierNode(pfile,t.indexStart,t.indexEnd,t))
+                que.push(parseStaticAccess(tokens.skip(-1)))
                 postfix.push(t.value)
                 lastWasOperand = true
                 break
@@ -246,26 +250,8 @@ function recurse(tokens:TokenIteratorI,asi:boolean,inFn:boolean,allowList:boolea
             }
             case TokenType.MARKER:
                 switch (op.op) {
-                    case '::': {
-                        let [o0,o1] = que.splice(-2,2)
-                        let accessors: GenericToken[] = []
-                        if (o1.type != ASTNodeType.IDENTIFIER) return op.token.throwDebug('unexpected '+ASTNodeType[o1.type])
-                        if (o0.type == ASTNodeType.IDENTIFIER) {
-                            accessors.push(o0.identifier)
-                        } else if (o0.type == ASTNodeType.ACCESS && o0.isStatic == true) {
-                            accessors.push(...o0.accessors)
-                        } else return op.token.throwDebug('unexpected')
-                        que.push(new ASTStaticAccessNode(pfile,o0.indexStart,o1.indexEnd,accessors))
-                        postfix.push(op.token.value)
-                        break
-                    }
-                    case '.': {
-                        let [o0,o1] = que.splice(-2,2)
-                        if (o1.type != ASTNodeType.IDENTIFIER) return op.token.throwDebug('unexpected '+ASTNodeType[o1.type])
-                        que.push(new ASTDynamicAccessNode(pfile,o0.indexStart,o1.indexEnd,o1.identifier,o0))
-                        postfix.push(op.token.value)
-                        break
-                    }
+                    case '.':
+                    case '::': return op.token.throwDebug('unexpected')
                     default:
                         throw new Error('could not use marker value '+op.op)
                 }
@@ -298,8 +284,6 @@ function p(t:TokenI,prefix:boolean): [number,boolean,OpType] {
 
         // '(' has been set to 30 precedence for now
 
-        case '::':
-            return [21,true,OpType.INFIX]
         case '.':
             return [20,true,OpType.INFIX]
 

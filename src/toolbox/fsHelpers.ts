@@ -20,7 +20,7 @@ export function RIMRAF(path:string) {
 }
 
 import { join } from 'path'
-import { Stats, promises as fs } from 'fs'
+import { Stats, promises as fs, constants as FS } from 'fs'
 export async function allFilesInDir(path:string): Promise<string[]> {
 	let files = await fs.readdir(path)
 	let stats = await Promise.all(files.map(f=>fs.stat(join(path,f))))
@@ -36,4 +36,15 @@ export async function allFilesInDir(path:string): Promise<string[]> {
 				.reduce((a,c)=>a.concat(c),[])
 				.map(v=>v)
 		)
+}
+
+export async function createOrLoad(path:string,creator:string|(()=>Promise<string>|string)): Promise<string> {
+	try {
+		await fs.access(path, FS.F_OK)
+		return (await fs.readFile(path)).toString()
+	} catch {
+		let res = typeof creator == 'string' ? creator : await creator()
+		await fs.writeFile(path,res)
+		return res
+	}
 }

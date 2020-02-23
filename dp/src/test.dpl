@@ -1,11 +1,6 @@
 
-use super::std::events::tick
-use std::events::tick
-
-use std::debug::panic
-
-on tick {
-	panic()
+event lolz extends std::events::tick {
+	std::debug::panic()
 }
 
 on abc {
@@ -16,8 +11,16 @@ event abc {
 	/say abc fired
 }
 
-struct A {}
-struct B extends A {}
+struct A {
+	pub x: int
+	pub y: int
+}
+struct B {
+	pub z: int
+}
+struct C extends A,B {
+	pub l: int
+}
 
 fn x(): bool {
 	let t = 0

@@ -65,18 +65,24 @@ export class CompileResult {
 		await fs.mkdir(fns)
 		await Promise.all(
 			$(this.output.functions.all()).map(
-				([name,fnf]) => fs.writeFile(
-					fns+'/'+name+'.mcfunction',
-					instrsToCmds(
-						this.cfg,
-						this.output,
-						this.cfg.compilation.debugBuild,
-						fnf.mergeBuffers(this.output.functions),
-						fnf.getHeader()
-					).join('\n')
-				)
+				async ([path,fnf]) => {
+					await MKDIRP(dirname(fns+'/'+path))
+					return fs.writeFile(
+						fns+'/'+path+'.mcfunction',
+						instrsToCmds(
+							this.cfg,
+							this.output,
+							this.cfg.compilation.debugBuild,
+							fnf.mergeBuffers(this.output.functions),
+							fnf.getHeader()
+						).join('\n')
+					)
+				}
 			)
-		)
+		).catch(e=>{
+			console.log(e)
+			throw e
+		})
 		const mcFnTags = join(emitDir,'data/minecraft/tags/functions')
 		await MKDIRP(mcFnTags)
 		await fs.writeFile(join(mcFnTags,'tick.json'),JSON.stringify({

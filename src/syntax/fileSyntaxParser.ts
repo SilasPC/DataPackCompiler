@@ -61,7 +61,7 @@ export function fileSyntaxParser(mod: ModuleFile, ctx: CompileContext): Result<A
                         isPub = null
                         break
                     case 'struct':
-                        body.add(wrapPublic(parseStruct(iter,ctx),isPub))
+                        body.add(wrapPublic(parseStruct(iter),isPub))
                         isPub = null
                         break
                     case 'event': {

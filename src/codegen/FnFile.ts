@@ -2,8 +2,9 @@
 import { Instruction, InstrType } from "./Instructions"
 import { InstrWrapper } from "./InstrWrapper"
 import { FnFileManager } from "./managers/FnFileManager"
+import { McFile } from "./managers/FileSpace"
 
-export class FnFile {
+export class FnFile implements McFile {
 
 	private instrBuffer: InstrWrapper
 	private readonly stack: InstrWrapper[]

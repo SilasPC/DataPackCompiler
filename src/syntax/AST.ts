@@ -72,6 +72,7 @@ export enum ASTNodeType {
     MODULE,
     REFERENCE,
     USE,
+    FIELD,
     ACCESS,
     SELECTOR,
     RECIPE,
@@ -81,15 +82,15 @@ export enum ASTNodeType {
     ON
 }
 
-export type ASTAccess = ASTAccessNode | ASTIdentifierNode
+export type ASTAccess = ASTIdentifierNode | ASTDynamicAccessNode
 export type ASTExpr = ASTAccess | ASTSelectorNode | ASTPrimitiveNode | ASTIdentifierNode | ASTOpNode | ASTListNode | ASTCallNode
 export type ASTStatement = ASTWhileNode | ASTExpr | ASTReturnNode | ASTLetNode | ASTIfNode | ASTCMDNode
+export type ASTStaticFieldDeclaration = ASTFieldNode
 export type ASTStaticDeclaration = ASTEventNode | ASTOnNode | ASTRecipeNode | ASTLetNode | ASTModuleNode | ASTFnNode | ASTPublicNode | ASTUseNode | ASTStructNode
 export type ASTNode = ASTExpr | ASTStatement | ASTStaticDeclaration
 
-export type ASTAccessNode = ASTStaticAccessNode | ASTDynamicAccessNode
-
 export type ASTBody = Interspercer<ASTStatement,DirectiveToken>
+export type ASTStaticFieldBody = Interspercer<ASTStaticFieldDeclaration,DirectiveToken>
 export type ASTStaticBody = Interspercer<ASTStaticDeclaration,DirectiveToken>
 
 class ASTNodeBase {
@@ -104,6 +105,18 @@ class ASTNodeBase {
 
     sourceMap() {return astSourceMap(this.mod,this.indexStart,this.indexEnd)}
 
+}
+
+export class ASTFieldNode extends ASTNodeBase {
+    public readonly type = ASTNodeType.FIELD
+    constructor(
+        mod: ModuleFile,
+        indexStart: number,
+        indexEnd: number,
+        public readonly isPublic: boolean,
+        public readonly identifier: TokenI,
+        public readonly fieldType: TokenI
+    ){super(mod,indexStart,indexEnd)}
 }
 
 export class ASTRecipeNode extends ASTNodeBase {
@@ -207,7 +220,7 @@ export class ASTIdentifierNode extends ASTNodeBase {
         mod: ModuleFile,
         indexStart: number,
         indexEnd: number,
-        public readonly identifier: GenericToken
+        public readonly accessors: readonly GenericToken[],
     ){super(mod,indexStart,indexEnd)}
 }
 
@@ -218,7 +231,7 @@ export class ASTOpNode extends ASTNodeBase {
         indexStart: number,
         indexEnd: number,
         public readonly operator: OpToken,
-        public readonly operands: ASTExpr[]
+        public readonly operands: readonly ASTExpr[]
     ){super(mod,indexStart,indexEnd)}
 }
 
@@ -228,7 +241,7 @@ export class ASTListNode extends ASTNodeBase {
         mod: ModuleFile,
         indexStart: number,
         indexEnd: number,
-        public readonly list: ASTExpr[]
+        public readonly list: readonly ASTExpr[]
     ){super(mod,indexStart,indexEnd)}
 }
 
@@ -239,7 +252,7 @@ export class ASTCallNode extends ASTNodeBase {
         indexStart: number,
         indexEnd: number,
         public readonly func: ASTAccess,
-        public readonly parameters: (ASTRefNode|ASTExpr)[]
+        public readonly parameters: readonly (ASTRefNode|ASTExpr)[]
     ){super(mod,indexStart,indexEnd)}
 }
 
@@ -250,7 +263,7 @@ export class ASTEventNode extends ASTNodeBase {
         indexStart: number,
         indexEnd: number,
         public readonly identifier: GenericToken,
-        public readonly extend: ASTStaticAccessNode | null,
+        public readonly extend: ASTIdentifierNode | null,
         public readonly body: ASTBody | null
     ){super(mod,indexStart,indexEnd)}
 }
@@ -261,7 +274,7 @@ export class ASTOnNode extends ASTNodeBase {
         mod: ModuleFile,
         indexStart: number,
         indexEnd: number,
-        public readonly event: ASTStaticAccessNode | ASTIdentifierNode,
+        public readonly event: ASTIdentifierNode | ASTIdentifierNode,
         public readonly body: ASTBody
     ){super(mod,indexStart,indexEnd)}
 }
@@ -291,7 +304,8 @@ export class ASTStructNode extends ASTNodeBase {
         indexStart: number,
         indexEnd: number,
         public readonly identifier: GenericToken,
-        public readonly parents: GenericToken[]
+        public readonly parents: readonly GenericToken[],
+        public readonly body: ASTStaticFieldBody
     ){super(mod,indexStart,indexEnd)}
 }
 
@@ -317,21 +331,8 @@ export class ASTCmdNode extends ASTNodeBase {
     ){super(mod,indexStart,indexEnd)}
 }
 
-
-export class ASTStaticAccessNode extends ASTNodeBase {
-    public readonly type = ASTNodeType.ACCESS
-    public readonly isStatic = true
-    constructor(
-        mod: ModuleFile,
-        indexStart: number,
-        indexEnd: number,
-        public readonly accessors: GenericToken[],
-    ){super(mod,indexStart,indexEnd)}
-}
-
 export class ASTDynamicAccessNode extends ASTNodeBase {
     public readonly type = ASTNodeType.ACCESS
-    public readonly isStatic = false
     constructor(
         mod: ModuleFile,
         indexStart: number,
@@ -348,7 +349,7 @@ export class ASTUseNode extends ASTNodeBase {
         indexStart: number,
         indexEnd: number,
         public readonly useToken: TokenI,
-        public readonly accessors: TokenI[]
+        public readonly identifier: ASTIdentifierNode
     ){super(mod,indexStart,indexEnd)}
 }
 

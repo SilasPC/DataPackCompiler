@@ -80,7 +80,7 @@ function parser(iter: TokenIteratorI, ctx: CompileContext): Result<ASTStaticBody
                         break
                     }
                     case 'struct':
-                        body.add(wrapPublic(parseStruct(iter,ctx),isPub))
+                        body.add(wrapPublic(parseStruct(iter),isPub))
                         isPub = null
                         break
                     default:

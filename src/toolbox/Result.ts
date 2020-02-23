@@ -3,6 +3,7 @@ import { CompileError } from "./CompileErrors"
 export class ResultWrapper<T,P> {
 
     private part: P | null = null
+    private allowNoErrors = false
     private readonly errors = new Set<CompileError>()
     private readonly warnings = new Set<CompileError>()
 
@@ -14,8 +15,7 @@ export class ResultWrapper<T,P> {
     getWarnings() {return this.warnings}
     hasWarnings() {return this.warnings.size > 0}
 
-    /** Returns true if result had any errors */
-    mergeCheck(res:Result<any,any>|EnsuredResult<any>|EmptyResult): boolean {
+    mergeCheck(res:Result<any,any>|EnsuredResult<any>|EmptyResult) {
         let resc = res as ResultClass<any,any>
         for (let err of resc.errors)
             this.errors.add(err)
@@ -31,7 +31,9 @@ export class ResultWrapper<T,P> {
             this.errors.add(err)
         for (let wrn of resc.warnings)
             this.warnings.add(wrn)
-        return !resc.hasValue() || resc.errors.length > 0
+        let ret = !resc.hasValue() || resc.errors.length > 0
+        if (ret) this.allowNoErrors = true
+        return ret
     }
 
     partial(val:P) {
@@ -63,7 +65,8 @@ export class ResultWrapper<T,P> {
     }
 
     none() {
-        if (this.errors.size == 0) throw new Error('ResultWrapper.none() called without adding any errors')
+        if (this.errors.size == 0 && !this.allowNoErrors)
+            throw new Error('ResultWrapper.none() called without adding any errors')
         return this.noneNoErrors()
     }
 
@@ -80,7 +83,7 @@ export class ResultWrapper<T,P> {
             !this.merge(res) &&
             this.errors.size == 0
         ) return this.wrap(res.getValue())
-        return this.none()
+        return this.noneNoErrors()
 	}
 
 }

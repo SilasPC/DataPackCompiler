@@ -11,6 +11,7 @@ import { loadDirectory } from '../input/loadFromFileSystem';
 import { SyntaxSheet } from '../commands/SyntaxSheet';
 import { ResultWrapper } from '../toolbox/Result';
 import { DataCache } from '../toolbox/Cache';
+import { createOrLoad } from '../toolbox/fsHelpers';
 
 export class Datapack {
 
@@ -22,8 +23,18 @@ export class Datapack {
 	static async load(path:string) {
 		return new Datapack(
 			path,
-			await Config.fromTOML(await (await fs.readFile(join(path,'pack.toml'))).toString()),
-			DataCache.fromRaw((await fs.readFile(join(path,'.cache'))).toString())
+			await Config.fromTOML(
+				await createOrLoad(
+					join(path,'pack.toml'),
+					()=>Config.defaultTOML()
+				)
+			),
+			DataCache.fromRaw(
+				await createOrLoad(
+					join(path,'.cache'),
+					()=>DataCache.empty().getRaw()
+				)
+			)
 		)
 	}
 	

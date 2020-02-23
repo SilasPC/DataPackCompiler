@@ -1,11 +1,12 @@
 import { expect } from "chai"
 import { SyntaxSheet } from '../src/commands/SyntaxSheet'
-import { Token, TokenType } from "../src/lexing/Token"
-import { ParsingFile } from "../src/toolbox/ParsingFile"
+import { TokenType } from "../src/lexing/Token"
 import { CompileContext } from "../src/toolbox/CompileContext"
-import { Datapack } from "../src/codegen/Datapack"
 import { compilerOptionDefaults } from "../src/toolbox/config"
 import { lexer } from "../src/lexing/lexer"
+import { ResultWrapper } from "../src/toolbox/Result"
+import { Logger } from "../src/toolbox/Logger"
+import { ModuleFile } from "../src/input/InputTree"
 
 describe('syntax sheet - syntax verification', () => {
 
@@ -35,7 +36,7 @@ t2
 	})*/
 
 	it('invokation', () => {
-		const ss = SyntaxSheet.fromString(`
+		const ss = getSheet(`
 :world
   world
   universe
@@ -50,7 +51,7 @@ hello <:world>
 	})
 
 	it('circular invokation', () => {
-		const ss = SyntaxSheet.fromString(`
+		const ss = getSheet(`
 :c
   c <:c>
   e
@@ -69,7 +70,7 @@ c <:c>
 	})
 
 	it('optionals', () => {
-		const ss = SyntaxSheet.fromString(`
+		const ss = getSheet(`
 test [opt]
 		`)
 		let t = readSyntax(`
@@ -83,7 +84,7 @@ test [opt]
 	})
 
 	it('variations', () => {
-		const ss = SyntaxSheet.fromString(`
+		const ss = getSheet(`
 t1|t2 a|b
   x|y
 		`)
@@ -112,17 +113,24 @@ describe('syntax sheet - static semantics verification', () => {
 
 })
 
+function getSheet(source:string) {
+	const result = new ResultWrapper()
+	let ss = SyntaxSheet.fromString(source)
+	if (result.merge(ss)) throw result.getErrors().values().next().value
+	return ss.getValue()
+}
+
 function readSyntax(source:string,ss:SyntaxSheet) {
-	const ctx = new CompileContext(compilerOptionDefaults(),ss)
-	let pfile = ctx.loadFromSource(source,'test')
-	lexer(pfile,ctx)
-	let res: boolean[] = []
-	for (let token of pfile.getTokenIterator()) {
+	const result = new ResultWrapper()
+	const file = new ModuleFile('test',source)
+	lexer(file)
+	let ret: boolean[] = []
+	for (let token of file.getTokenIterator()) {
 		if (token.type == TokenType.COMMAND) {
-			let maybe = ss.readSyntax(token,ctx)
-			if (maybe.value) res.push(true)
-			else res.push(false)
-		}
+			let res = ss.readSyntax(token)
+			if (result.merge(res)) ret.push(false)
+			else ret.push(true)
+		} else throw new Error('expected cmds only in test')
 	}
-	return res
+	return ret
 }

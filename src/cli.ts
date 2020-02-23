@@ -182,7 +182,7 @@ async function compile(argv:any): Promise<void> {
 			if (!argv.silent) {
 				if (err instanceof Error) {
 					if (argv.trace)
-						console.trace(err)
+						console.error(err.stack)
 					else
 						console.error(err.message)
 				} else console.error(err)

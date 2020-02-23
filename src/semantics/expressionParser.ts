@@ -1,7 +1,7 @@
 import { ASTNode, ASTNodeType, ASTOpNode, ASTExpr, ASTCallNode } from "../syntax/AST"
 import { exhaust, Errorable } from "../toolbox/other"
 import { ParseTree, PTKind, PTExpr, PTOpNode, ptExprToType, ptCanMut, PTCallNode, PTVarNode } from "./ParseTree"
-import { resolveStatic, resolveAccess, resolveStaticNode } from "./resolveAccess"
+import { resolveStatic, resolveAccess } from "./resolveAccess"
 import { DeclarationType } from "./declarations/Declaration"
 import { Type, isSubType, ValueType } from "./types/Types"
 import { Scope } from "./Scope"
@@ -90,9 +90,9 @@ function invokation(node:ASTCallNode,scope:Scope): Result<PTCallNode,ValueType> 
 		if (result.merge(pt)) return result.none()
 		return result.wrap({pt:pt.getValue(),ref:false})
 	})
-	if (node.func.type == ASTNodeType.ACCESS && !node.func.isStatic)
+	if (node.func.type == ASTNodeType.ACCESS)
 		throw new Error('wait dyn access')
-	let res = resolveStaticNode(node.func,scope.symbols)
+	let res = resolveStatic(node.func.accessors,scope.symbols)
 	if (result.merge(res)) return result.none()
 	let decl = res.getValue()
 	if (decl.type == DeclarationType.STRUCT) {

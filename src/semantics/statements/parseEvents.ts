@@ -8,7 +8,7 @@ import { DirectiveToken } from "../../lexing/Token"
 import { DirectiveList } from "../directives"
 import { exhaust } from "../../toolbox/other"
 import { Result, ResultWrapper } from "../../toolbox/Result"
-import { PTBody } from "../ParseTree"
+import { PTBody, PTKind, PTCallNode } from "../ParseTree"
 import { parseBody } from "../parseBody"
 import { CompilerOptions } from "../../toolbox/config"
 
@@ -49,6 +49,26 @@ export function parseEvent(dirs: DirectiveList, node: ASTEventNode, scope:Scope,
 	}
 
 	program.fnStore.appendToEvent(decl,body)
+
+	if (node.extend) {
+		result.addWarning(node.extend.error('wait extensions'))
+		/*let extDec = scope.symbols.getDeclaration(node.extend)
+		if (!result.merge(extDec)) {
+			let dec = extDec.getValue()
+			if (dec.type == DeclarationType.EVENT) {
+				let call: PTCallNode = {
+					kind: PTKind.INVOKATION,
+					func: dec,
+					args: [],
+					scopeNames:
+				}
+				let body: PTBody = new Interspercer()
+				body.addSubData(...node.sourceMap())
+				body.add(call)
+				program.fnStore.appendToEvent(dec,body)
+			} else result.addError(node.extend.error('not an event'))
+		}*/
+	}
 
 	return result.wrap(decl) // use EnsuredResult later I think
 	
