@@ -11,12 +11,13 @@ import { Result, ResultWrapper } from "../../toolbox/Result"
 import { PTBody, PTKind, PTCallNode } from "../ParseTree"
 import { parseBody } from "../parseBody"
 import { CompilerOptions } from "../../toolbox/config"
+import { resolveStatic } from "../resolveAccess"
 
 export function parseEvent(dirs: DirectiveList, node: ASTEventNode, scope:Scope, program: Program, cfg: CompilerOptions): Result<EventDeclaration,null> {
 	const result = new ResultWrapper<EventDeclaration,null>()
 
 	let decl: EventDeclaration = {
-        type: DeclarationType.EVENT,
+		type: DeclarationType.EVENT,
         namePath: scope.nameAppend(node.identifier.value)
 	}
 
@@ -51,23 +52,22 @@ export function parseEvent(dirs: DirectiveList, node: ASTEventNode, scope:Scope,
 	program.fnStore.appendToEvent(decl,body)
 
 	if (node.extend) {
-		result.addWarning(node.extend.error('wait extensions'))
-		/*let extDec = scope.symbols.getDeclaration(node.extend)
+		let extDec = resolveStatic(node.extend.accessors,scope.symbols)
 		if (!result.merge(extDec)) {
 			let dec = extDec.getValue()
 			if (dec.type == DeclarationType.EVENT) {
 				let call: PTCallNode = {
 					kind: PTKind.INVOKATION,
-					func: dec,
+					func: decl,
 					args: [],
-					scopeNames:
+					scopeNames: scope.getScopeNames()
 				}
 				let body: PTBody = new Interspercer()
-				body.addSubData(...node.sourceMap())
+				if (cfg.sourceMap) body.addSubData(...node.sourceMap())
 				body.add(call)
 				program.fnStore.appendToEvent(dec,body)
 			} else result.addError(node.extend.error('not an event'))
-		}*/
+		}
 	}
 
 	return result.wrap(decl) // use EnsuredResult later I think
