@@ -20,11 +20,12 @@ export class Namespace<T extends McFile> {
         return space.getFile(pathName)
     }
 
-    protected getAllFiles() {
-        let ret = new Map<string,T>()
-        for (let [name,space] of this.spaces)
-            space.getAllInto(name,ret)
-        return ret
+    protected *getAllFiles() {
+        for (let [name,space] of this.spaces) {
+            let ret = new Map<string,T>()
+            space.getAllInto('',ret)
+            yield [name,ret] as [string,Map<string,T>]
+        }
     }
 
 }

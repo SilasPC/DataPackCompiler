@@ -58,24 +58,24 @@ export class CompileResult {
 				description: this.cfg.pack.description
 			}
 		},null,2))
-		const dataNs = join(emitDir,'data')
-		const ns = emitDir+'/data/'+this.cfg.pack.namespace
-		await fs.mkdir(ns)
-		let fns = ns + '/functions'
-		await fs.mkdir(fns)
+		const dataFolder = join(emitDir,'data')
 		await Promise.all(
-			$(this.output.functions.all()).map(
-				async ([path,fnf]) => {
-					await MKDIRP(dirname(fns+'/'+path))
-					return fs.writeFile(
-						fns+'/'+path+'.mcfunction',
-						instrsToCmds(
-							this.cfg,
-							this.output,
-							this.cfg.compilation.debugBuild,
-							fnf.mergeBuffers(this.output.functions),
-							fnf.getHeader()
-						).join('\n')
+			$(this.output.functions.all()).flatMap(
+				([ns,map]) => {
+					return $(map).map(
+						async ([path,fnf]) => {
+							await MKDIRP(dirname(join(dataFolder,ns,'functions',path)))
+							return fs.writeFile(
+								join(dataFolder,ns,'functions',path+'.mcfunction'),
+								instrsToCmds(
+									this.cfg,
+									this.output,
+									this.cfg.compilation.debugBuild,
+									fnf.mergeBuffers(this.output.functions),
+									fnf.getHeader()
+								).join('\n')
+							)
+						}
 					)
 				}
 			)
