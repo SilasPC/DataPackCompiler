@@ -12,17 +12,17 @@ export class FnFileManager extends Namespace<FnFile> {
 	) {super()}
 
 	byDeclaration(decl:FnDeclaration|EventDeclaration): FnFile {
-		let file = this.getFile(this.cfg.pack.namespace,decl.namePath)
+		let file = this.fns.get(decl)
 		if (file) return file
-		return this.addFile(this.cfg.pack.namespace,decl.namePath,fullPath=>{
+		file = this.addFile(this.cfg.pack.namespace,decl.namePath,fullPath=>{
 			let mcPath = `${this.cfg.pack.namespace}:${fullPath.join('/')}`
 			return new FnFile(mcPath,decl.namePath)
 		})
+		this.fns.set(decl,file)
+		return file
 	}
 
 	createFn(names:readonly string[]) {
-		let file = this.getFile(this.cfg.pack.namespace,names)
-		if (file) return file
 		return this.addFile(this.cfg.pack.namespace,names,fullPath=>{
 			let mcPath = `${this.cfg.pack.namespace}:${fullPath.join('/')}`
 			return new FnFile(mcPath,names)
