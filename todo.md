@@ -5,6 +5,8 @@
 - Iterator methods must check undefined
 
 # CURRENT
+- Semantical substition
+  - Compile time evaluation
 - Syntax sheet
   - Special parameters and substitution methods
 	- Return type annotation
