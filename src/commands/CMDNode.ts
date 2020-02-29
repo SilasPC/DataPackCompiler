@@ -2,13 +2,19 @@ import { expressionSyntaxParser } from "../syntax/expressionSyntaxParser"
 import { inlineLiveLexer } from "../lexing/lexer"
 import { TokenI, TokenType } from "../lexing/Token"
 import { ASTNode, ASTExpr } from "../syntax/AST"
-import { SheetSpecials } from "./sheetParser"
+import { SheetSpecial } from "./sheetParser"
 import { exhaust } from "../toolbox/other"
-import { readNumber, readSelector, readId, readCoords, read2Coords, readJSON, readNbtPath, readRange } from "./specialParsers"
+import { readNumber, readSelector, readId, readCoords, read2Coords, readJSON, readNbtPath, readRange, readScore, readTime } from "./specialParsers"
 import { CompileError } from "../toolbox/CompileErrors"
 import { ValueType, Type } from "../semantics/types/Types"
+import { PTExpr, ptExprToType } from "../semantics/ParseTree"
+import { Scope } from "../semantics/Scope"
+import { parseExpression } from "../semantics/expressionParser"
+import { ResultWrapper, Result } from "../toolbox/Result"
+import { SemanticsInterpretor } from "./interpolation"
 
-export type ParsedSyntax = {node:CMDNode,expr:ASTExpr|null,capture:string}[]
+export type ParsedSyntax = {expr:ASTExpr,spec:SheetSpecial} | string
+type TryReturn = {read:number,expr:ASTExpr,spec:SheetSpecial} | {read:number} | string
 
 export class CMDNode {
 
@@ -19,32 +25,33 @@ export class CMDNode {
 	) {}
 
 	/** i is the current index. */
-	protected parseSyntax(token:TokenI,i:number): ParsedSyntax | CompileError {
+	protected parseSyntax(token:TokenI,i:number): ParsedSyntax[] | CompileError {
 		let l = this.tryConsume(token,i)
-		if (typeof l != 'number')
+		if (typeof l == 'string')
 			throw new Error('should not happen')
-		let cmd = token.value
-		let j = i + l
+		let j = i + l.read
 		// console.log(cmd,'->',`"${cmd.substr(i,l)}"`)
-		if (cmd.length <= j) {
+		let ps: ParsedSyntax
+		if ('expr' in l) ps = {expr:l.expr,spec:l.spec}
+		else ps = token.value.substr(i,l.read)
+		if (token.value.length <= j) {
 			if (
 				!this.restOptional &&
 				this.children.length > 0
 			) return token.error('match failed (expected more)')
-			return [{node:this,capture:cmd.substr(i,l-1),expr:null}]
+			return [ps]
 		}
 		let sub = this.findNext(token,j)
 		if (Array.isArray(sub)) return errMsgsToCompileError(token,j,sub)
 		let res = sub.parseSyntax(token,j)
 		if (res instanceof CompileError) return res
-		return [{node:this,capture:cmd.substr(i,l-1),expr:null},...res]
+		return [ps,...res]
 	}
 
 	/** Return child. j is next index */
 	protected findNext(token:TokenI,j:number): CMDNode | string[] {
-		let cmd = token.value
 		let trys = this.children.map(c=>c.tryConsume(token,j))
-		let [s,...d] = this.children.filter((_,i)=>typeof trys[i] == 'number')
+		let [s,...d] = this.children.filter((_,i)=>typeof trys[i] != 'string')
 		// if (d.length) [s,...d] = this.children.filter(c=>c.tryConsume(token,j+1)) // try strict equal
 		if (d.length)
 			return ['match failed (matched too many)']
@@ -58,11 +65,11 @@ export class CMDNode {
 	}
 
 	/** Find consumed length. ErrMsg is failed. Includes whitespace. */
-	protected tryConsume(token:TokenI,i:number): number | string {
+	protected tryConsume(token:TokenI,i:number): TryReturn {
 		let cmd = token.value
 		if (cmd.length <= i) return `expected '${this.cmpStr}'`
 		let x = cmd.slice(i).split(' ')[0]
-		return this.cmpStr == x ? x.length + 1 : `expected '${this.cmpStr}'`
+		return this.cmpStr == x ? {read:x.length + 1} : `expected '${this.cmpStr}'`
 	}
 
 	getSubstituteType(): ValueType {
@@ -73,16 +80,8 @@ export class CMDNode {
 
 export class SemanticalCMDNode extends CMDNode {
 
-	private lastAST: ASTExpr | null = null
-
-	protected parseSyntax(token:TokenI,i:number) {
-		let ret = super.parseSyntax(token,i)
-		if (ret instanceof CompileError) return ret
-		ret[ret.length-1].expr = this.lastAST
-		return ret
-	}
-
-	protected tryConsume(token:TokenI,i:number): number | string {
+	protected tryConsume(token:TokenI,i:number): TryReturn {
+		let spec = this.cmpStr as SheetSpecial
 		if (token.value.startsWith('${',i)) {
 			let lexer = inlineLiveLexer(token.line.file,token,i+2)
 			let {ast} = expressionSyntaxParser(
@@ -93,35 +92,41 @@ export class SemanticalCMDNode extends CMDNode {
 				.expectType(TokenType.MARKER)
 				.expectValue('}')
 				.indexLine
-			this.lastAST = ast
-			return j - token.indexLine + 1
+			return {read:j - i + 1,expr:ast,spec}
 		}
-		let spec = this.cmpStr as SheetSpecials
-		switch (spec) {
-			case 'id': return readId(token,i,true)
-			case 'name': return readId(token,i,false)
-			case 'text': return token.value.length - i
-			case 'range': return readRange(token,i)
-			case 'int': return readNumber(token,true,true,true,i)
-			case 'uint': return readNumber(token,true,false,true,i)
-			case 'pint': return readNumber(token,true,false,false,i)
-			case 'float': return readNumber(token,false,true,true,i)
-			case 'ufloat': return readNumber(token,false,false,true,i)
-			case 'player': return readSelector(token,i,false,true,true)
-			case 'players': return readSelector(token,i,true,true,true)
-			case 'entity': return readSelector(token,i,false,false,true)
-			case 'entities': return readSelector(token,i,true,false,true)
-			case 'coords': return readCoords(token,i)
-			case 'coords2': return read2Coords(token,i)
-			case 'json': return readJSON(token,i)
-			case 'nbtpath': return readNbtPath(token,i)
-			case 'nbt':
-			case 'block':
-			case 'item':
-				console.log('sheet spec not yet: '+spec)
-				return token.value.length - i
-			default:
-				return exhaust(spec)
+		let read = readSpecial()
+		if (typeof read == 'string') return read
+		return {read}
+		
+		function readSpecial() {
+			switch (spec) {
+				case 'id': return readId(token,i,true)
+				case 'name': return readId(token,i,false)
+				case 'text': return token.value.length - i
+				case 'range': return readRange(token,i)
+				case 'int': return readNumber(token,true,true,true,i)
+				case 'uint': return readNumber(token,true,false,true,i)
+				case 'pint': return readNumber(token,true,false,false,i)
+				case 'float': return readNumber(token,false,true,true,i)
+				case 'ufloat': return readNumber(token,false,false,true,i)
+				case 'player': return readSelector(token,i,false,true,true)
+				case 'players': return readSelector(token,i,true,true,true)
+				case 'entity': return readSelector(token,i,false,false,true)
+				case 'entities': return readSelector(token,i,true,false,true)
+				case 'coords': return readCoords(token,i)
+				case 'coords2': return read2Coords(token,i)
+				case 'json': return readJSON(token,i)
+				case 'nbtpath': return readNbtPath(token,i)
+				case 'score': return readScore(token,i)
+				case 'time': return readTime(token,i)
+				case 'nbt':
+				case 'block':
+				case 'item':
+					console.log('sheet spec not yet: '+spec)
+					return token.value.length
+				default:
+					return exhaust(spec)
+			}
 		}
 	}
 	
@@ -133,16 +138,20 @@ export class SemanticalCMDNode extends CMDNode {
 
 export class RootCMDNode extends CMDNode {
 
-	syntaxParse(token:TokenI) {
-		return this.parseSyntax(token,1)
+	syntaxParse(token:TokenI): SemanticsInterpretor | CompileError {
+		let res = this.parseSyntax(token,1)
+		if (res instanceof CompileError) return res
+		return new SemanticsInterpretor(res)
 	}
 
-	syntaxParseNoSlash(token:TokenI) {
-		return this.parseSyntax(token,0)
+	syntaxParseNoSlash(token:TokenI): SemanticsInterpretor | CompileError {
+		let res = this.parseSyntax(token,0)
+		if (res instanceof CompileError) return res
+		return new SemanticsInterpretor(res)
 	}
 	
 	protected tryConsume() {
-		return 0
+		return {read:0}
 	}
 
 }

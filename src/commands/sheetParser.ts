@@ -292,9 +292,11 @@ const validSpecials = [
 	'json',
 	'range',
 	'block',
-	'item'
+	'item',
+	'time',
+	'score'
 ]
-export type SheetSpecials = 'item' | 'block' | 'range' | 'nbtpath' | 'json' | 'nbt' | 'id' | 'name' | 'player' | 'players' | 'entity' | 'entities' | 'pint' | 'uint' | 'int' | 'coords' | 'coords2' | 'float' | 'ufloat' | 'text'
+export type SheetSpecial = 'time' | 'score' | 'item' | 'block' | 'range' | 'nbtpath' | 'json' | 'nbt' | 'id' | 'name' | 'player' | 'players' | 'entity' | 'entities' | 'pint' | 'uint' | 'int' | 'coords' | 'coords2' | 'float' | 'ufloat' | 'text'
 
 export type Parse = {spec?:string,nodes?:CMDNode[],sub?:string}
 
@@ -316,8 +318,8 @@ function parseSpecial(sub:string,children:Tree,findDef:(str:string)=>CMDNode[]|u
 			return result.wrap({nodes})
 		} else if (spec.length) {
 			if (!validSpecials.includes(spec)) {
-				// console.warn('ss special not valid:',spec)
-				return result.wrap({sub:spec})
+				result.addError(new SheetError(`Sheet substitute not valid: '${spec}'`))
+				return result.none()
 			}
 			return result.wrap({spec})
 		}

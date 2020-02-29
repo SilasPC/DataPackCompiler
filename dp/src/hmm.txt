@@ -10,7 +10,7 @@ enum Hello {
 fn set_repeater(delay:int): void {
     repeat (let value of [0,1,2,3])
     repeat (let direction of ['north','south','east','west'])
-        /execute 
+        /execute
             if score ${delay} matches ${value}
             if block ~ ~ ~ minecraft:repeater[facing=${direction}]
             run setblock ~ ~ ~ minecraft:repeater[facing=${direction},delay=${value}]
@@ -24,4 +24,9 @@ blocktag air [
 struct MahMan {
     pub x: int
     pub hello(): void {}
+    
+    #[cast]
+    pub isNonZero(): bool {
+        return this.x != 0
+    }
 }

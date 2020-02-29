@@ -1,10 +1,18 @@
 import { TokenI } from "../lexing/Token"
 import { parseJSONInline } from "../toolbox/other"
 
-const rangeRgx = /(?<min>-?\d*(\.\d+)?)(?:\.\.(?<max>-?\d*(\.\d+)?))?(?<sep> )?/g
+export function readScore(token:TokenI,i:number): number | string {
+	let x = readSelector(token,i,true,false,true)
+	if (typeof x == 'string') return x
+	let y = readId(token,i+x,false)
+	if (typeof y == 'string') return y
+	return x + y
+}
+
+const rangeRgx = /(?<min>-?\d*(\.\d+)?)(?:\.\.(?<max>-?\d*(\.\d+)?))?(?<sep> )?/y
 export function readRange(token:TokenI,i:number): number | string {
-	rangeRgx.lastIndex = 0
-	let res = rangeRgx.exec(token.value.slice(i))
+	rangeRgx.lastIndex = i
+	let res = rangeRgx.exec(token.value)
 	if (!res) return 'expected range'
 	if (!res.groups || (!res.groups.sep && token.value.length > i + res[0].length))
 		return 'expected seperator'
@@ -14,22 +22,22 @@ export function readRange(token:TokenI,i:number): number | string {
 	return res[0].length
 }
 
-const nbtRgx = /[a-zA-Z0-9](\.[a-zA-Z0-9]+|\[-?\d+\])*(?<sep> )?/g
+const nbtRgx = /[a-zA-Z0-9](\.[a-zA-Z0-9]+|\[-?\d+\])*(?<sep> )?/y
 export function readNbtPath(token:TokenI,i:number): number | string {
-	nbtRgx.lastIndex = 0
-	let res = nbtRgx.exec(token.value.slice(i))
+	nbtRgx.lastIndex = i
+	let res = nbtRgx.exec(token.value)
 	if (!res) return 'expected nbt path'
 	if (!res.groups || (!res.groups.sep && token.value.length > i + res[0].length))
 		return 'expected seperator'
 	return res[0].length
 }
 
-const sepRgx = /(?<sep> )?/g
+const sepRgx = /(?<sep> )?/y
 export function readJSON(token:TokenI,i:number): number | string {
 	let res = parseJSONInline(token.value.slice(i))
 	if (res.errIndex != -1) return `malformed json (index ${res.errIndex})`
-	sepRgx.lastIndex = 0
-	let sepRes = sepRgx.exec(token.value.slice(i+res.read))
+	sepRgx.lastIndex = i + res.read
+	let sepRes = sepRgx.exec(token.value)
 	if (
 		!sepRes ||
 		!sepRes.groups ||
@@ -38,13 +46,13 @@ export function readJSON(token:TokenI,i:number): number | string {
 	return res.read + sepRes[0].length
 }
 
-const coordsRgx = /^(?:~|(?<l1>\^)|)(?:-?\d+(?:\.\d+)?|(?<=\^|~)) (?:~|(?<l2>\^)|)(?:-?\d+(?:\.\d+)?|(?<=\^|~)) (?:~|(?<l3>\^)|)(?:-?\d+(?:\.\d+)?|(?<=\^|~))(?<sep> |$)?/g
+const coordsRgx = /(?:~|(?<l1>\^)|)(?:-?\d+(?:\.\d+)?|(?<=\^|~)) (?:~|(?<l2>\^)|)(?:-?\d+(?:\.\d+)?|(?<=\^|~)) (?:~|(?<l3>\^)|)(?:-?\d+(?:\.\d+)?|(?<=\^|~))(?<sep> |$)?/y
 export function readCoords(
 	token:TokenI,
 	i:number
 ): number | string {
-	coordsRgx.lastIndex = 0
-	let res = coordsRgx.exec(token.value.slice(i))
+	coordsRgx.lastIndex = i
+	let res = coordsRgx.exec(token.value)
 	if (!res) return 'expected three valid coordinates'
 	if (!res.groups || (!res.groups.sep && token.value.length > i + res[0].length))
 		return 'expected seperator'
@@ -55,13 +63,13 @@ export function readCoords(
 	return res[0].length
 }
 
-const coords2Rgx = /^(?:~|(?<l1>\^)|)(?:-?\d+(?:\.\d+)?|(?<=\^|~)) (?:~|(?<l2>\^)|)(?:-?\d+(?:\.\d+)?|(?<=\^|~))(?<sep> |$)?/g
+const coords2Rgx = /(?:~|(?<l1>\^)|)(?:-?\d+(?:\.\d+)?|(?<=\^|~)) (?:~|(?<l2>\^)|)(?:-?\d+(?:\.\d+)?|(?<=\^|~))(?<sep> |$)?/y
 export function read2Coords(
 	token:TokenI,
 	i:number
 ): number | string {
-	coords2Rgx.lastIndex = 0
-	let res = coords2Rgx.exec(token.value.slice(i))
+	coords2Rgx.lastIndex = i
+	let res = coords2Rgx.exec(token.value)
 	if (!res) return 'expected two valid coordinates'
 	if (!res.groups || (!res.groups.sep && token.value.length > i + res[0].length))
 		return 'expected seperator'
@@ -69,7 +77,21 @@ export function read2Coords(
 	return res[0].length
 }
 
-const numRgx = /^(?<b10>-?\d+(?:\.\d+)?)(?<sep> |$)?/g
+const timeRgx = /\d+(?:\.\d+)?[dst]?(?<sep> |$)?/y
+export function readTime(
+	token:TokenI,
+	i:number
+): number | string {
+	timeRgx.lastIndex = i
+	let res = numRgx.exec(token.value)
+	if (!res)
+		return 'expected time'
+	if (!res.groups || (!res.groups.sep && token.value.length > i + res[0].length))
+		return 'expected seperator'
+	return res[0].length
+}
+
+const numRgx = /(?<b10>-?\d+(?:\.\d+)?)(?<sep> |$)?/y
 export function readNumber(
 	token:TokenI,
 	integer:boolean,
@@ -77,8 +99,8 @@ export function readNumber(
 	zero:boolean,
 	i:number
 ): number | string {
-	numRgx.lastIndex = 0
-	let res = numRgx.exec(token.value.slice(i))
+	numRgx.lastIndex = i
+	let res = numRgx.exec(token.value)
 	if (!res)
 		return 'expected number'
 	if (!res.groups || (!res.groups.sep && token.value.length > i + res[0].length))
@@ -100,14 +122,14 @@ export function readNumber(
 	} else throw new Error('not implemented other than base 10 nums')
 }
 
-const idRgx = /^(?<ns>[a-z0-9.-_]+:)?([a-zA-Z0-9.-_]+)(\/([a-zA-Z0-9.-_]+))*(?<sep> |$)?/g
+const idRgx = /(?<ns>[a-z0-9.-_]+:)?([a-zA-Z0-9.-_]+)(\/([a-zA-Z0-9.-_]+))*(?<sep> |$)?/y
 export function readId(
 	token:TokenI,
 	i:number,
 	allowNamespace:boolean
 ): number | string {
-	idRgx.lastIndex = 0
-	let res = idRgx.exec(token.value.slice(i))
+	idRgx.lastIndex = i
+	let res = idRgx.exec(token.value)
 	if (!res) return 'expected valid id'
 	if (!res.groups || (!res.groups.sep && token.value.length > i + res[0].length))
 		return 'expected seperator'
@@ -116,7 +138,7 @@ export function readId(
 	return res[0].length
 }
 
-const selRgx = /^@(?<typ>[apser])(?:(?!\[)|(?:\[[^\]\s]*?\]))(?<sep> |$)?/g // improve and fix this
+const selRgx = /@(?<typ>[apser])(?:(?!\[)|(?:\[[^\]\s]*?\]))(?<sep> |$)?/y // improve and fix this
 export function readSelector(
 	token:TokenI,
 	i:number,
@@ -124,8 +146,8 @@ export function readSelector(
 	playerOnly:boolean,
 	allowId:boolean
 ): number | string {
-	selRgx.lastIndex = 0
-	let res = selRgx.exec(token.value.slice(i))
+	selRgx.lastIndex = i
+	let res = selRgx.exec(token.value)
 	if (!res) {
 		if (!allowId) return 'expected selector'
 		let idRes = readId(token,i,false)

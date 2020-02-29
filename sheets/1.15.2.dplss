@@ -55,7 +55,6 @@ data
     entity <entities> <nbtpath> <:data_modify>
     storage <id> <nbtpath> <:data_modify>
       
-
 datapack
   enable <id> [
     first|last
@@ -98,11 +97,11 @@ enchant <player> <id> [uint]
       entity <entities> <nbtpath> [<:exe>]
       storage <id> <nbtpath> [<:exe>]
     entity <entities> [<:exe>]
-    score <entities> <name>
-      <|<=|=|>|>= <entities> <name> [<:exe>]
+    score <score>
+      <|<=|=|>|>= <score> [<:exe>]
       matches <range> [<:exe>]
     store result|success
-      score <entities> <name> [<:exe>]
+      score <score> [<:exe>]
       block <coords> <nbtpath> byte|double|float|int|long|short <float> [<:exe>]
       entity <entities> <nbtpath> byte|double|float|int|long|short <float> [<:exe>]
       storage <id> <nbtpath> byte|double|float|int|long|short <float> [<:exe>]
@@ -191,14 +190,27 @@ scoreboard
       rendertype hearts|integer
   players
     list *|[<entity>]
-    get <entity> <name>
-    set *|<entities> <name> <int>
-    add *|<entities> <name> <int>
-    remove *|<entities> <name> <int>
+    get
+      <score>
+      * <name>
+    set
+      <score> <int>
+      * <name> <int>
+    add
+      <score> <int>
+      * <name> <int>
+    remove
+      <score> <int>
+      * <name> <int>
     reset *|<entities> [<name>]
     enable *|<entities> <name>
-    operation *|<entities> <name> +=|-=|*=|/=|%=|=|<|>|>< *|<entities> <name>
-
+    operation
+      :op
+        +=|-=|*=|/=|%=|=|<|>|><
+          <score>
+          * <name>
+      <score> <:op>
+      * <name> <:op>
 
 setblock <coords> <block> [destroy|keep|replace]
 
@@ -239,13 +251,11 @@ teammsg|tm <text>
 teleport|tp
   <entity>|<coords>
   <entities> <entity>|<coords>
-  
 
 tellraw <players> <json>
 
 time
-  @warn time set and add not supported yet
-  set|add <text>
+  set|add <time>
   query day|daytime|gametime
 
 title

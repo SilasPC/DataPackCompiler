@@ -3,8 +3,8 @@ import { Primitive, primToType } from "./types/PrimitiveValue";
 import { Operator } from "../lexing/values";
 import { ValueType, Type } from "./types/Types";
 import { exhaust } from "../toolbox/other";
-import { CMDNode } from "../commands/CMDNode";
 import { Interspercer } from "../toolbox/Interspercer";
+import { CMDInterpolation } from "../commands/interpolation";
 
 export function ptExprToType(pt:PTExpr): ValueType {
 	switch (pt.kind) {
@@ -78,7 +78,7 @@ export interface PTIfNode {
 
 export interface PTCmdNode {
 	kind: PTKind.COMMAND
-	interpolations: {node:CMDNode,capture:string,pt:PTExpr|null}[]
+	interpolations: CMDInterpolation
 	raw: string
 	scopeNames: string[]
 }

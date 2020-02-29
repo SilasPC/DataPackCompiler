@@ -3,7 +3,7 @@ import { exhaust } from "../toolbox/other"
 import { parseDefine } from "./statements/parseDefine"
 import { parseExpression } from "./expressionParser"
 import { Scope } from "./Scope"
-import { ptExprToType, PTKind, PTCmdNode, PTBody, PTReturn } from "./ParseTree"
+import { ptExprToType, PTKind, PTCmdNode, PTBody, PTReturn, PTExpr } from "./ParseTree"
 import { isSubType, Type } from "./types/Types"
 import { parseWhile } from "./statements/parseWhile"
 import { CompilerOptions } from "../toolbox/config"
@@ -40,27 +40,13 @@ export function parseBody(nodes:ASTBody,scope:Scope,cfg:CompilerOptions): Result
 		switch (node.type) {
 			case ASTNodeType.COMMAND: {
 
-				let foundErrors = false
-				let interpolations = node.consume.map<PTCmdNode['interpolations'][0]>(n => {
-					if (!n.expr) return {node:n.node,capture:n.capture,pt:null}
-					let x = parseExpression(n.expr,scope)
-					if (result.merge(x)) {
-						foundErrors = true
-						return {node:n.node,capture:n.capture,pt:null}
-					}
-					let type = ptExprToType(x.getValue())
-					if (!isSubType(n.node.getSubstituteType(),type)) {
-						result.addError(n.expr.error('type mismatch'))
-						return {node:n.node,capture:n.capture,pt:null}
-					}
-					return {node:n.node,capture:n.capture,pt:x.getValue()}
-				})
+				let interpolations = node.semanticsParser.interpret(scope)
 
-				if (foundErrors) continue
+				if (result.merge(interpolations)) continue
 				
 				if (!returnedAt) body.add({
 					kind: PTKind.COMMAND,
-					interpolations,
+					interpolations: interpolations.getValue(),
 					scopeNames: scope.getScopeNames(),
 					raw: node.token.value.slice(1)
 				})

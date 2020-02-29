@@ -133,8 +133,8 @@ export async function compile(cache: DataCache, logger:Logger,cfg:Config,src:Inp
 	if (!gotSyntaxErrors)
 		logger.log(1,'inf',`Syntax analysis complete`)
 	else {
-		logger.log(1,'err',`Syntax analysis failed`)
 		logger.raiseErrors(result)
+		logger.logGroup(1,'err',`Syntax analysis failed`)
 		return null
 	}
 
@@ -155,26 +155,22 @@ export async function compile(cache: DataCache, logger:Logger,cfg:Config,src:Inp
 
 	if (!gotSemanticalErrors)
 		logger.log(1,'inf',`Semantical analysis complete`)
-	else
-		logger.log(1,'err',`Semantical analysis failed`)
+	else {
+		logger.raiseErrors(result)
+		logger.logGroup(1,'err',`Semantical analysis failed`)
+		return null
+	}
 
 	const output = new OutputManager(cfg)
-	if (!gotSemanticalErrors) {
+	await addConvention(cache,cfg,output.misc)
+	generate(programManager,output)
+	logger.log(1,'inf',`Generation complete`)
 
-		await addConvention(cache,cfg,output.misc)
-		generate(programManager,output)
-		logger.log(1,'inf',`Generation complete`)
+	logger.log(0,'wrn',`No verifier function yet`)
+	logger.log(1,'inf',`Verification complete`)
 
-		logger.log(0,'wrn',`No verifier function yet`)
-		logger.log(1,'inf',`Verification complete`)
-
-		logger.log(1,'inf',`Compilation complete`)
-		logger.log(2,'inf',`Elapsed time: ${(moment.duration(moment().diff(start)) as any).format()}`)
-
-	} else {
-	    logger.raiseErrors(result)
-        return null
-    }
+	logger.log(1,'inf',`Compilation complete`)
+	logger.log(2,'inf',`Elapsed time: ${(moment.duration(moment().diff(start)) as any).format()}`)
 	
 	return new CompileResult(cache,cfg,output)
 

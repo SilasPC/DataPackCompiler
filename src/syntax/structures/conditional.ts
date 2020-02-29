@@ -17,16 +17,16 @@ export function parseConditional(iter:TokenIteratorI,ctx:CompileContext): Result
     let expression = exprParseNoList(iter,true).ast
     iter.skip(-1).next().expectType(TokenType.MARKER).expectValue(')')
     let primaryBranch = bodyOrLineSyntaxParser(iter,ctx)
-    if (result.merge(primaryBranch)) return result.none()
     let secondaryBranch: ASTBody
-    let elseToken: KeywordToken | null = null
-    if (iter.peek().type == TokenType.KEYWORD && iter.peek().value == 'else') {
-        elseToken = iter.next() as KeywordToken
+    if (iter.peek().value == 'else') {
+        iter.skip(1)
         let res = bodyOrLineSyntaxParser(iter,ctx)
         if (result.merge(res)) return result.none()
         secondaryBranch = res.getValue()
     } else secondaryBranch = new Interspercer()
 
+    if (result.merge(primaryBranch)) return result.none()
+    
     return result.wrap(new ASTIfNode(iter.file,ifToken.indexStart,iter.current().indexEnd,expression,primaryBranch.getValue(),secondaryBranch))
 
 }

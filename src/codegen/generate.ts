@@ -56,7 +56,14 @@ function generateBody(fnf:FnFile,fn:PTBody,om:OutputManager): void {
 			case PTKind.COMMAND:
 				fnf.push({
 					type: InstrType.CMD,
-					raw: stmt.raw
+					//raw: stmt.raw
+					// temporary ignore expr:
+					// raw: stmt.interpolations.filter(i => typeof i == 'string').join('')
+					raw: stmt.interpolations.join(pt=>{
+						let res = generateExpr(fnf,pt,om)
+						if (!res) throw new Error('lul')
+						return `${res.selector} ${res.scoreboard} `
+					})
 				})
 				break
 			case PTKind.RETURN:

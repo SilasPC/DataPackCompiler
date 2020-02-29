@@ -1,10 +1,10 @@
 
 import { TokenI, OpToken, GenericToken, DirectiveToken } from "../lexing/Token";
 import { SourceLine } from "../lexing/SourceLine";
-import { CMDNode } from "../commands/CMDNode";
 import { SourceCodeError } from "../toolbox/CompileErrors";
 import { Interspercer } from "../toolbox/Interspercer";
 import { ModuleFile } from "../input/InputTree";
+import { SemanticsInterpretor } from "../commands/interpolation";
 
 export function astArrErr(nodes:ASTNode[],err:string) {
     return new SourceCodeError(
@@ -167,7 +167,7 @@ export class ASTCMDNode extends ASTNodeBase {
         indexStart: number,
         indexEnd: number,
         public readonly token: TokenI,
-        public readonly consume: {node:CMDNode,capture:string,expr:ASTExpr|null}[]
+        public readonly semanticsParser: SemanticsInterpretor
     ){super(mod,indexStart,indexEnd)}
 }
 
