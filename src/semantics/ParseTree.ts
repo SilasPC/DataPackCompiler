@@ -6,6 +6,59 @@ import { exhaust } from "../toolbox/other";
 import { Interspercer } from "../toolbox/Interspercer";
 import { CMDInterpolation } from "../commands/interpolation";
 
+export function knownAtCompileTime(pt:PTExpr): Primitive | null {
+	switch (pt.kind) {
+		case PTKind.VARIABLE:
+			return pt.decl.knownAtCompileTime
+		case PTKind.PRIMITIVE:
+			return pt.value
+		case PTKind.INVOKATION:
+			return null
+		case PTKind.OPERATOR:
+			let vals = pt.vals.map(knownAtCompileTime)
+			if (vals.some(v=>!v)) return null
+			switch (pt.op) {
+				/*
+					need to figure out what to do here
+					this needs to be centralized, such that
+					generation does not accidentally yield something different
+				*/
+				case '!':
+				
+				case '&&':
+				case '||':
+				
+				case '=':
+
+				case '==':
+				case '!=':
+
+				case '>':
+				case '>=':
+				case '<':
+				case '<=':
+
+				case '++':
+				case '--':
+
+				case '+=':
+				case '-=':
+				case '*=':
+				case '/=':
+				case '%=':
+				case '+':
+				case '-':
+				case '*':
+				case '/':
+				case '%':
+					return null
+				default: return exhaust(pt.op)
+			}
+			return knownAtCompileTime(pt)
+		default: return exhaust(pt)
+	}
+}
+
 export function ptExprToType(pt:PTExpr): ValueType {
 	switch (pt.kind) {
 		case PTKind.VARIABLE:

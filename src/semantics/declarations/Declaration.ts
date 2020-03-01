@@ -6,6 +6,7 @@ import { Struct } from "../types/Struct";
 import { Program } from "../managers/ProgramManager";
 import { ModScope } from "../Scope";
 import { Result, ResultWrapper } from "../../toolbox/Result";
+import { Primitive } from "../types/PrimitiveValue";
 
 export type Declaration = VarDeclaration | FnDeclaration | ModDeclaration | RecipeDeclaration | StructDeclaration | EventDeclaration
 
@@ -79,6 +80,8 @@ export interface VarDeclaration {
 	type: DeclarationType.VARIABLE
 	varType: ValueType
 	mutable: boolean
+	knownAtCompileTime: null | Primitive
+	existsAtRunTime: boolean
 }
 
 export interface FnDeclaration {

@@ -1,8 +1,8 @@
 import { ASTLetNode } from "../../syntax/AST"
 import { parseExpression } from "../expressionParser"
 import { ValueType, tokenToType, Type, isSubType } from "../types/Types"
-import { ptExprToType, PTExpr, PTOpNode, PTKind } from "../ParseTree"
-import { Declaration, VarDeclaration, DeclarationType } from "../declarations/Declaration"
+import { ptExprToType, PTExpr, PTOpNode, PTKind, knownAtCompileTime } from "../ParseTree"
+import { VarDeclaration, DeclarationType } from "../declarations/Declaration"
 import { Scope } from "../Scope"
 import { ResultWrapper, Result } from "../../toolbox/Result"
 
@@ -34,7 +34,9 @@ export function parseDefine(node: ASTLetNode, scope:Scope): Result<{pt:PTExpr,de
 		type: DeclarationType.VARIABLE,
 		varType: type,
 		mutable: !node.isConst,
-		namePath: scope.nameAppend(node.identifier.value)
+		namePath: scope.nameAppend(node.identifier.value),
+		existsAtRunTime: true,
+		knownAtCompileTime: node.isConst ? knownAtCompileTime(pt.getValue()) : null
 	}
 
 	const setPt: PTOpNode = {

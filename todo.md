@@ -4,6 +4,11 @@
 - Fix verifier
 - Iterator methods must check undefined
 
+# BROKEN
+- Known at compile time
+- Command semantics lexing
+- ++/--
+
 # CURRENT
 - Semantical substition
   - Compile time evaluation
@@ -15,7 +20,6 @@
 - Language Server
 - Use Result partials
 - Defered for semantical check of unreferenced hoisters
-- Compile without syntax sheet (for soft failure of syntax sheet parsing)
 - #[debug] on functions should make them empty, not non-existent (kinda same with modules)
 
 # FUTURE

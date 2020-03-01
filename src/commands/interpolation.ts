@@ -1,4 +1,4 @@
-import { PTExpr, ptExprToType } from "../semantics/ParseTree"
+import { PTExpr, ptExprToType, knownAtCompileTime } from "../semantics/ParseTree"
 import { Scope } from "../semantics/Scope"
 import { Result, ResultWrapper } from "../toolbox/Result"
 import { parseExpression } from "../semantics/expressionParser"
@@ -43,7 +43,8 @@ export class SemanticsInterpretor {
 	interpret(scope:Scope): Result<CMDInterpolation,null> {
 		const result = new ResultWrapper<CMDInterpolation,null>()
 		let res: (string|PTExpr)[] = []
-		for (let c of this.consume) {
+		for (let i = 0; i < this.consume.length; i++) {
+            let c = this.consume[i]
 			if (typeof c == 'string') {
 				res.push(c)
 				continue
@@ -51,30 +52,46 @@ export class SemanticsInterpretor {
 			let expr = parseExpression(c.expr,scope)
 			if (result.merge(expr)) continue
 			let pt = expr.getValue()
-            res.push(pt)
-            let typeMatchErr = checkTypeMatch(c.spec,ptExprToType(pt))
-            if (typeMatchErr) {
-                result.addError(new CompileError(typeMatchErr))
+            let ins = insert(c.spec,pt,i < this.consume.length - 1)
+            if (ins instanceof CompileError) {
+                result.addError(ins)
                 continue
             }
+            res.push(ins)
 		}
 		return result.wrap(new CMDInterpolation(res))
 	}
 
 }
 
-function checkTypeMatch(spec:SheetSpecial,type:ValueType): string | null {
+function insert(spec:SheetSpecial,pt:PTExpr,addSpace:boolean): CompileError | PTExpr | string {
+    const type = ptExprToType(pt)
+    const value = knownAtCompileTime(pt)
+    const unknown = new CompileError(`Parameter needs to be known at compile time`)
     switch (spec) {
         case 'score':
-            if (type.type == Type.INT) return null
-            return `Interpolation of score requires an int`
+            if (type.type != Type.INT) return new CompileError(`Interpolation of score requires an int`)
+            return pt
+        case 'int':
+        case 'uint':
+        case 'pint':
+            if (type.type != Type.INT) return new CompileError(`Interpolation requires an int`)
+            if (!value) return unknown
+            if (value.type != Type.INT) throw new Error('precalculated type does not match ptexpr type')
+            switch (spec) {
+                case 'pint': 
+                    if (value.value <= 0) return new CompileError(`Integer needs to be positive`)
+                case 'uint':
+                    if (value.value < 0) return new CompileError(`Integer needs to be unsigned`)
+                case 'int':
+                    break
+                default: return exhaust(spec)
+            }
+            return value.value + (addSpace ? ' ' : '')
         case 'id':
         case 'name':
         case 'text':
         case 'range':
-        case 'int':
-        case 'uint':
-        case 'pint':
         case 'float':
         case 'ufloat':
         case 'player':

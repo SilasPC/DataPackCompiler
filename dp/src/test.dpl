@@ -24,7 +24,8 @@ struct C extends A,B {
 
 fn x(): bool {
 	let t = 0
-	/scoreboard players add ${t} 1
+	const c123 = 123
+	/scoreboard players add ${t} ${c123}
 	t += (2+t) * t
 	/execute if score @a a matches -1..2
 	/execute as @a positioned 1 2 3 align x facing entity @s feet run say hello!

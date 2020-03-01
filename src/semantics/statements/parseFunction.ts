@@ -49,7 +49,9 @@ export function parseFunction(dirs:DirectiveList,node:ASTFnNode,modScope:ModScop
 			type: DeclarationType.VARIABLE,
 			varType: type,
 			mutable: false, // controls parameter mutability
-			namePath: namePath.concat(param.symbol.value)
+			namePath: namePath.concat(param.symbol.value),
+			existsAtRunTime: true,
+			knownAtCompileTime: null
 		}
 		parameters.push({type,isRef:param.ref})
 		paramDecls.push([param.symbol,decl])
