@@ -1,5 +1,8 @@
 import { TokenI } from "../lexing/Token"
 import { parseJSONInline } from "../toolbox/other"
+import { ASTExpr } from "../syntax/AST"
+
+const sepRgx = / |$/y
 
 export function readScore(token:TokenI,i:number): number | string {
 	let x = readSelector(token,i,true,false,true)
@@ -32,17 +35,12 @@ export function readNbtPath(token:TokenI,i:number): number | string {
 	return res[0].length
 }
 
-const sepRgx = /(?<sep> )?/y
 export function readJSON(token:TokenI,i:number): number | string {
 	let res = parseJSONInline(token.value.slice(i))
 	if (res.errIndex != -1) return `malformed json (index ${res.errIndex})`
 	sepRgx.lastIndex = i + res.read
 	let sepRes = sepRgx.exec(token.value)
-	if (
-		!sepRes ||
-		!sepRes.groups ||
-		(!sepRes.groups.sep && token.value.length > i + res.read + sepRes[0].length)
-	) return 'expected seperator'
+	if (sepRes == null) return 'expected seperator'
 	return res.read + sepRes[0].length
 }
 
@@ -136,6 +134,29 @@ export function readId(
 	if (res.groups.ns && !allowNamespace)
 		return 'unexpected namespace'
 	return res[0].length
+}
+
+export type Read = ({read:number,str:string} | {read:number,expr:ASTExpr})[] | string
+
+export function readItem(
+	token: TokenI,
+	i: number,
+	isBlock: boolean
+): Read {
+	let id = readId(token,i,true)
+	if (typeof id == 'string') return id
+	i += id
+	if (token.value.charAt(i) == '[') {
+		if (!isBlock) return 'items cannot have block properties'
+		const propRgx = /[a-z]/y
+		let char = token.value.charAt(++i)
+		do {
+
+		} while ()
+	}
+	sepRgx.lastIndex = i
+	let sep = sepRgx.exec(token.value)
+	if (sep == null) return 'expected seperator'
 }
 
 const selRgx = /@(?<typ>[apser])(?:(?!\[)|(?:\[[^\]\s]*?\]))(?<sep> |$)?/y // improve and fix this

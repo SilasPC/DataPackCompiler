@@ -23,15 +23,18 @@ mod maths {
 
 // Note: the module system also makes use of directory structure
 // Files are just modules, and so are folders.
-// The following is therefore legal:
+// Folders by default have all submodules public, but a folders module
+//  can be explicitly declared with a module of the same name, or a
+//  'mod.dpl' module in the folder.
+// As files are modules, the following is therefore legal:
 
 pub some_func(): void {}
 
 // This function will be available outside of this file.
-// Note0 however, that the 'maths' module is NOT.
+// Note however, that the 'maths' module is NOT.
 // To ensure that, just use the access modifier again:
 
-pub some_other_module {}
+pub mod some_other_module {}
 
 // This module will be available outside of this file.
 // The same idea applies to all module declarations.
